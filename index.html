@@ -756,6 +756,44 @@
     };
   }
 
+  function sameSyncValue(a,b){return canonicalRecordJSON(a)===canonicalRecordJSON(b);}
+  function mergeEpisodeSetChanges(baseValue,localValue,remoteValue){
+    const toSets=value=>{
+      const result={};
+      for(const [season,episodes] of Object.entries(value||{}))result[season]=new Set((Array.isArray(episodes)?episodes:[]).map(Number).filter(Number.isInteger));
+      return result;
+    };
+    const base=toSets(baseValue),local=toSets(localValue),remote=toSets(remoteValue),result={...remote};
+    for(const season of new Set([...Object.keys(base),...Object.keys(local)])){
+      const before=base[season]||new Set(),after=local[season]||new Set(),merged=new Set(result[season]||[]);
+      for(const episode of before)if(!after.has(episode))merged.delete(episode);
+      for(const episode of after)if(!before.has(episode))merged.add(episode);
+      if(merged.size)result[season]=merged;else delete result[season];
+    }
+    return Object.fromEntries(Object.entries(result).map(([season,episodes])=>[season,[...episodes].sort((a,b)=>a-b)]));
+  }
+  function mergeEpisodeHistory(baseValue,localValue,remoteValue){
+    const baseKeys=new Set((Array.isArray(baseValue)?baseValue:[]).map(event=>String(event?.id||canonicalRecordJSON(event))));
+    const local=Array.isArray(localValue)?localValue:[],remote=Array.isArray(remoteValue)?remoteValue:[],byKey=new Map(remote.map(event=>[String(event?.id||canonicalRecordJSON(event)),event]));
+    for(const event of local){const key=String(event?.id||canonicalRecordJSON(event));if(!baseKeys.has(key))byKey.set(key,event);}
+    return [...byKey.values()].sort((a,b)=>toMillis(a?.watchedAt)-toMillis(b?.watchedAt)).slice(-500);
+  }
+  function mergeRecordChanges(baseItem,localItem,remoteItem){
+    if(!remoteItem)return localItem;
+    const merged={...remoteItem};
+    for(const key of new Set([...Object.keys(baseItem||{}),...Object.keys(localItem||{})])){
+      if(key==="id")continue;
+      const before=baseItem?.[key],local=localItem?.[key],remote=remoteItem?.[key];
+      if(sameSyncValue(local,before))continue;
+      if(key==="watchedEpisodes"&&!sameSyncValue(remote,before))merged[key]=mergeEpisodeSetChanges(before,local,remote);
+      else if(key==="episodeHistory"&&!sameSyncValue(remote,before))merged[key]=mergeEpisodeHistory(before,local,remote);
+      else if(local===undefined)delete merged[key];
+      else merged[key]=local;
+    }
+    merged.updatedAt=[localItem?.updatedAt,remoteItem?.updatedAt].filter(Boolean).sort((a,b)=>toMillis(b)-toMillis(a))[0]||merged.updatedAt;
+    return merged;
+  }
+
   function replayLocalChanges(baseItems,localItems,remoteItems){
     const base=new Map((Array.isArray(baseItems)?baseItems:[]).filter(item=>item?.id).map(item=>[String(item.id),item]));
     const local=new Map((Array.isArray(localItems)?localItems:[]).filter(item=>item?.id).map(item=>[String(item.id),item]));
@@ -763,7 +801,7 @@
     for(const [id,baseItem] of base){
       if(!local.has(id)){remote.delete(id);continue;}
       const localItem=local.get(id);
-      if(JSON.stringify(localItem)!==JSON.stringify(baseItem))remote.set(id,localItem);
+      if(!sameSyncValue(localItem,baseItem))remote.set(id,mergeRecordChanges(baseItem,localItem,remote.get(id)));
     }
     for(const [id,localItem] of local)if(!base.has(id))remote.set(id,localItem);
     return Array.from(remote.values());
@@ -997,14 +1035,15 @@
         const scheduleVerified=result?.episodeScheduleAvailable===true;
         const episodeCounts=positiveEpisodeMap(scheduleVerified?result.episodeCounts:(current.episodeCounts||{}));
         const airedEpisodeCounts=positiveEpisodeMap(scheduleVerified?result.airedEpisodeCounts:(current.airedEpisodeCounts||{}));
+        const releasedEpisodes=scheduleVerified?normalizeReleasedEpisodeMap(result.releasedEpisodes||{}):normalizeReleasedEpisodeMap(current.releasedEpisodes||{});
         let watchedSeasons=Math.max(0,Number(current.watchedSeasons||0));
         let curSeason=Math.max(0,Number(current.curSeason||0));
         let curEp=Math.max(0,Number(current.curEp||0));
         if(scheduleVerified){
           const completedMax=Math.max(0,Number(result.completedSeasons||0)),latestMax=Math.max(0,Number(result.latestAired||0));
           watchedSeasons=Math.min(watchedSeasons,completedMax);
-          if(curSeason>latestMax){curSeason=Math.min(latestMax,watchedSeasons);curEp=curSeason?Number(airedEpisodeCounts[curSeason]||0):0;}
-          else curEp=Math.min(curEp,Number(airedEpisodeCounts[curSeason]||0));
+          if(curSeason>latestMax){curSeason=Math.min(latestMax,watchedSeasons);curEp=curSeason?Math.max(0,...(releasedEpisodes[curSeason]||[])):0;}
+          else{const available=releasedEpisodes[curSeason]||[];curEp=Math.max(0,...available.filter(episode=>episode<=curEp));}
         }
         const airing=scheduleVerified?(result?.airing||null):null,next=airing?.nextEpisode||null,upcoming=result?.upcoming||null;
         refreshed={
@@ -1015,7 +1054,7 @@
           watchedSeasons,curSeason:curSeason||null,curEp:curEp||null,
           currentSeasonEpisodeCount:curSeason?Number(airedEpisodeCounts[curSeason]||0)||null:null,
           currentSeasonTotalEpisodes:curSeason?Number(episodeCounts[curSeason]||0)||null:null,
-          episodeCounts,airedEpisodeCounts,episodeScheduleVerified:scheduleVerified,
+          episodeCounts,airedEpisodeCounts,releasedEpisodes,episodeScheduleVerified:scheduleVerified,
           airingSeason:scheduleVerified?(airing?.season??null):current.airingSeason,
           latestEpisodeNum:scheduleVerified?(airing?.latestEpisode??null):current.latestEpisodeNum,
           latestEpisodeTitle:scheduleVerified?(airing?.latestEpisodeTitle||""):(current.latestEpisodeTitle||""),
@@ -1023,11 +1062,11 @@
           seriesReleaseDate:result?.seriesReleaseDate||current.seriesReleaseDate||"",
           nextEpisodeNum:scheduleVerified?(next?.number??null):current.nextEpisodeNum,
           nextEpisodeTitle:scheduleVerified?(next?.name||""):(current.nextEpisodeTitle||""),
-          nextEpisodeDate:scheduleVerified?(next?episodeLocalInput(next):""):(current.nextEpisodeDate||""),
+          nextEpisodeDate:scheduleVerified?episodeReleaseTimestamp(next):(current.nextEpisodeDate||""),
           nextSeasonNum:upcoming?.number??(scheduleVerified?"":current.nextSeasonNum),
-          nextSeasonDate:upcoming?(result?.nextEpisode&&Number(result.nextEpisode.season)===Number(upcoming.number)?episodeLocalInput(result.nextEpisode):(upcoming.premiereDate?dateOnlyInput(upcoming.premiereDate):"")):(scheduleVerified?"":(current.nextSeasonDate||"")),
+          nextSeasonDate:upcoming?(result?.nextEpisode&&Number(result.nextEpisode.season)===Number(upcoming.number)?episodeReleaseTimestamp(result.nextEpisode):(upcoming.premiereDate||"")):(scheduleVerified?"":(current.nextSeasonDate||"")),
           verifiedCompletedSeasons:scheduleVerified&&Number.isFinite(Number(result?.completedSeasons))?Number(result.completedSeasons):current.verifiedCompletedSeasons,
-          ...(Object.prototype.hasOwnProperty.call(current,"watchedEpisodes")?{watchedEpisodes:normalizeWatchedEpisodeMap(current.watchedEpisodes,airedEpisodeCounts)}:{}),
+          ...(Object.prototype.hasOwnProperty.call(current,"watchedEpisodes")?{watchedEpisodes:normalizeWatchedEpisodeMap(current.watchedEpisodes,releasedEpisodes)}:{}),
           metadataUpdatedAt:scheduleVerified?nowISO():(current.metadataUpdatedAt||"")
         };
       }
@@ -1431,11 +1470,19 @@
     }
     return counts;
   }
-  function releasedEpisodeCounts(item){
+  function normalizeReleasedEpisodeMap(value){
+    const result={};
+    for(const [seasonValue,episodeValue] of Object.entries(value||{})){
+      const season=Number(seasonValue),episodes=[...new Set((Array.isArray(episodeValue)?episodeValue:[]).map(Number).filter(episode=>Number.isInteger(episode)&&episode>0))].sort((a,b)=>a-b);
+      if(Number.isInteger(season)&&season>0&&episodes.length)result[season]=episodes;
+    }
+    return result;
+  }
+  function releasedEpisodeMap(item){
     if(!isEpisodeTrackable(item))return{};
+    if(item?.episodeScheduleVerified===true&&Object.prototype.hasOwnProperty.call(item,"releasedEpisodes"))return normalizeReleasedEpisodeMap(item.releasedEpisodes);
     const verified=positiveEpisodeMap(item.airedEpisodeCounts);
-    if(item?.episodeScheduleVerified===true)return verified;
-    if(Object.keys(verified).length)return verified;
+    if(item?.episodeScheduleVerified===true||Object.keys(verified).length)return Object.fromEntries(Object.entries(verified).map(([season,count])=>[season,Array.from({length:count},(_,index)=>index+1)]));
 
     // Never treat announced/total episode counts as released episodes. For an
     // unverified schedule, expose only seasons/episodes supported by concrete
@@ -1456,36 +1503,39 @@
     if(activeSeason>0&&activeReleased>0)counts[activeSeason]=totals[activeSeason]?Math.min(Number(totals[activeSeason]),activeReleased):activeReleased;
 
     for(const season of Object.keys(counts))if(!Number.isFinite(counts[season])||counts[season]<=0)delete counts[season];
-    return counts;
+    return Object.fromEntries(Object.entries(counts).map(([season,count])=>[season,Array.from({length:count},(_,index)=>index+1)]));
+  }
+  function releasedEpisodeCounts(item){
+    return Object.fromEntries(Object.entries(releasedEpisodeMap(item)).map(([season,episodes])=>[season,Math.max(0,...episodes)]));
   }
   function normalizeWatchedEpisodeMap(value,counts={}){
     const result={};
     for(const [seasonValue,episodeValue] of Object.entries(value||{})){
       const season=Number(seasonValue);if(!Number.isInteger(season)||season<=0)continue;
       const source=Array.isArray(episodeValue)?episodeValue:Object.entries(episodeValue||{}).filter(([,watched])=>Boolean(watched)).map(([episode])=>episode);
-      const maximum=Math.max(0,Number(counts[season]||0));
-      const episodes=[...new Set(source.map(Number).filter(episode=>Number.isInteger(episode)&&episode>0&&maximum>0&&episode<=maximum))].sort((a,b)=>a-b);
+      const allowed=Array.isArray(counts[season])?new Set(counts[season].map(Number)):null,maximum=allowed?0:Math.max(0,Number(counts[season]||0));
+      const episodes=[...new Set(source.map(Number).filter(episode=>Number.isInteger(episode)&&episode>0&&(allowed?allowed.has(episode):(maximum>0&&episode<=maximum))))].sort((a,b)=>a-b);
       if(episodes.length)result[season]=episodes;
     }
     return result;
   }
-  function legacyWatchedEpisodeMap(item,counts=releasedEpisodeCounts(item)){
+  function legacyWatchedEpisodeMap(item,counts=releasedEpisodeMap(item)){
     const result={},fully=Math.max(0,Number(item?.watchedSeasons||0)),current=Math.max(0,Number(item?.curSeason||0)),currentEpisode=Math.max(0,Number(item?.curEp||0));
     for(const [seasonValue,countValue] of Object.entries(counts)){
-      const season=Number(seasonValue),count=Math.max(0,Number(countValue||0));let watchedThrough=0;
-      if(season<=fully)watchedThrough=count;else if(season===current)watchedThrough=Math.min(count,currentEpisode);
-      if(watchedThrough>0)result[season]=Array.from({length:watchedThrough},(_,index)=>index+1);
+      const season=Number(seasonValue),available=Array.isArray(countValue)?countValue:Array.from({length:Math.max(0,Number(countValue||0))},(_,index)=>index+1);
+      const episodes=season<=fully?available:season===current?available.filter(episode=>episode<=currentEpisode):[];
+      if(episodes.length)result[season]=episodes;
     }
     for(const event of (Array.isArray(item?.episodeHistory)?item.episodeHistory:[])){
-      const season=Number(event?.season),episode=Number(event?.episode),maximum=Number(counts[season]||0);
-      if(!Number.isInteger(season)||season<=0||!Number.isInteger(episode)||episode<=0||(maximum&&episode>maximum))continue;
+      const season=Number(event?.season),episode=Number(event?.episode),available=Array.isArray(counts[season])?counts[season]:[];
+      if(!Number.isInteger(season)||season<=0||!Number.isInteger(episode)||episode<=0||!available.includes(episode))continue;
       const episodes=new Set(result[season]||[]);
       if(event.kind==="unmark")episodes.delete(episode);else episodes.add(episode);
       if(episodes.size)result[season]=[...episodes].sort((a,b)=>a-b);else delete result[season];
     }
     return normalizeWatchedEpisodeMap(result,counts);
   }
-  function watchedEpisodeMap(item,counts=releasedEpisodeCounts(item)){
+  function watchedEpisodeMap(item,counts=releasedEpisodeMap(item)){
     if(Object.prototype.hasOwnProperty.call(item||{},"watchedEpisodes"))return normalizeWatchedEpisodeMap(item.watchedEpisodes,counts);
     return legacyWatchedEpisodeMap(item,counts);
   }
@@ -1517,10 +1567,10 @@
     return total;
   }
   function applyEpisodeToggle(item,season,episode,markWatched,event){
-    const counts=releasedEpisodeCounts(item),map=watchedEpisodeMap(item,counts),episodes=new Set(map[season]||[]);
+    const releases=releasedEpisodeMap(item),counts=releasedEpisodeCounts(item),map=watchedEpisodeMap(item,releases),episodes=new Set(map[season]||[]);
     if(markWatched)episodes.add(episode);else episodes.delete(episode);
     if(episodes.size)map[season]=[...episodes].sort((a,b)=>a-b);else delete map[season];
-    const watchedEpisodes=normalizeWatchedEpisodeMap(map,counts),highest=highestWatchedEpisode(watchedEpisodes);
+    const watchedEpisodes=normalizeWatchedEpisodeMap(map,releases),highest=highestWatchedEpisode(watchedEpisodes);
     let curSeason=Math.max(0,Number(item.curSeason||0)),curEp=Math.max(0,Number(item.curEp||0));
     const currentOrder=curSeason*10000+curEp,targetOrder=season*10000+episode;
     if(markWatched&&targetOrder>currentOrder){curSeason=season;curEp=episode;}
@@ -1539,8 +1589,8 @@
   async function toggleEpisodeWatched(id,season,episode){
     const key=String(id);if(episodeLogBusy.has(key))return;
     const index=mediaItems.findIndex(item=>String(item.id)===key),item=mediaItems[index];if(index<0||!item)return;
-    const counts=releasedEpisodeCounts(item),maximum=Number(counts[season]||0);if(!maximum||episode<1||episode>maximum)return;
-    const wasWatched=(watchedEpisodeMap(item,counts)[season]||[]).includes(episode),markWatched=!wasWatched,event={id:uuid(),kind:markWatched?"mark":"unmark",season,episode,watchedAt:nowISO()};
+    const releases=releasedEpisodeMap(item),available=releases[season]||[];if(!available.includes(episode))return;
+    const wasWatched=(watchedEpisodeMap(item,releases)[season]||[]).includes(episode),markWatched=!wasWatched,event={id:uuid(),kind:markWatched?"mark":"unmark",season,episode,watchedAt:nowISO()};
     const original=item;episodeLogBusy.add(key);episodeLogFeedback={itemId:key,eventId:event.id,season,episode,label:`Saving S${season} E${episode}…`,saving:true};
     mediaItems[index]=applyEpisodeToggle(item,season,episode,markWatched,event);render();
     let saved=false;
@@ -1558,7 +1608,7 @@
   function closeEpisodeTrackerSheet(){activeEpisodeTrackerId="";activeEpisodeTrackerSeason=0;episodeTrackerModal.classList.add("hidden");}
   function openEpisodeTracker(id){
     const item=mediaItems.find(row=>String(row.id)===String(id));if(!isEpisodeTrackable(item))return;
-    const counts=releasedEpisodeCounts(item),seasons=Object.keys(counts).map(Number).sort((a,b)=>a-b),current=Number(item.curSeason||0);
+    const releases=releasedEpisodeMap(item),seasons=Object.keys(releases).map(Number).sort((a,b)=>a-b),current=Number(item.curSeason||0);
     activeEpisodeTrackerId=String(id);activeEpisodeTrackerSeason=seasons.includes(current)?current:(seasons[seasons.length-1]||0);episodeTrackerModal.classList.remove("hidden");updateEpisodeTracker();
     if(episodeMetadataNeedsRefresh(item)){
       episodeTrackerRelease.textContent=`${episodeTrackerRelease.textContent} · Checking for new episodes…`;
@@ -1569,18 +1619,18 @@
   function updateEpisodeTracker(){
     if(!activeEpisodeTrackerId||episodeTrackerModal.classList.contains("hidden"))return;
     const item=mediaItems.find(row=>String(row.id)===String(activeEpisodeTrackerId));if(!item){closeEpisodeTrackerSheet();return;}
-    const counts=releasedEpisodeCounts(item),releasedSeasons=Object.keys(counts).map(Number).sort((a,b)=>a-b),latestSeason=releasedSeasons[releasedSeasons.length-1]||0;
-    const watchedMap=watchedEpisodeMap(item,counts),highest=highestWatchedEpisode(watchedMap),feedback=episodeLogFeedback?.itemId===String(item.id)?episodeLogFeedback:null;
+    const releases=releasedEpisodeMap(item),counts=releasedEpisodeCounts(item),releasedSeasons=Object.keys(releases).map(Number).sort((a,b)=>a-b),latestSeason=releasedSeasons[releasedSeasons.length-1]||0;
+    const watchedMap=watchedEpisodeMap(item,releases),highest=highestWatchedEpisode(watchedMap),feedback=episodeLogFeedback?.itemId===String(item.id)?episodeLogFeedback:null;
     if(!releasedSeasons.includes(activeEpisodeTrackerSeason))activeEpisodeTrackerSeason=releasedSeasons.includes(Number(item.curSeason||0))?Number(item.curSeason):latestSeason;
     episodeTrackerTitle.textContent=item.title||"Show";
     episodeTrackerProgress.textContent=highest?`S${highest.season} E${highest.episode}`:"Not started";
     episodeTrackerRelease.textContent=latestSeason?`Released through S${latestSeason} E${counts[latestSeason]}`:"No released episode schedule found";
     episodeTrackerSeason.innerHTML=releasedSeasons.length?releasedSeasons.map(season=>`<option value="${season}"${season===activeEpisodeTrackerSeason?" selected":""}>Season ${season}</option>`).join(""):'<option value="">No seasons</option>';
     episodeTrackerSeason.disabled=!releasedSeasons.length;
-    const maximum=Number(counts[activeEpisodeTrackerSeason]||0),watched=new Set(watchedMap[activeEpisodeTrackerSeason]||[]),busy=episodeLogBusy.has(String(item.id));
-    episodeTrackerSeasonSummary.textContent=maximum?`${watched.size} of ${maximum} watched`:"";
-    episodeTrackerGrid.innerHTML=maximum?Array.from({length:maximum},(_,index)=>{
-      const episode=index+1,isWatched=watched.has(episode),isSaving=busy&&feedback?.season===activeEpisodeTrackerSeason&&feedback?.episode===episode;
+    const available=releases[activeEpisodeTrackerSeason]||[],watched=new Set(watchedMap[activeEpisodeTrackerSeason]||[]),busy=episodeLogBusy.has(String(item.id));
+    episodeTrackerSeasonSummary.textContent=available.length?`${watched.size} of ${available.length} released watched`:"";
+    episodeTrackerGrid.innerHTML=available.length?available.map(episode=>{
+      const isWatched=watched.has(episode),isSaving=busy&&feedback?.season===activeEpisodeTrackerSeason&&feedback?.episode===episode;
       return`<button class="episode-tick${isWatched?" watched":""}" type="button" data-season="${activeEpisodeTrackerSeason}" data-episode="${episode}" aria-pressed="${isWatched}" aria-label="Season ${activeEpisodeTrackerSeason} episode ${episode}, ${isWatched?"watched":"not watched"}"${busy?" disabled":""}>${isSaving?"…":`${isWatched?"✓ ":""}E${episode}`}</button>`;
     }).join(""):'<div class="episode-tracker-grid-empty">No released episodes are available for this show yet.</div>';
     const watchedTotal=Object.values(watchedMap).reduce((total,episodes)=>total+episodes.length,0);
@@ -2025,6 +2075,11 @@
     if(episode.airstamp)return toLocalInput(episode.airstamp);
     return episode.airdate?dateOnlyInput(episode.airdate):"";
   }
+  function episodeReleaseTimestamp(episode){
+    if(!episode)return"";
+    if(episode.airstamp){const time=new Date(episode.airstamp);if(!Number.isNaN(time.getTime()))return time.toISOString();}
+    return episode.airdate||"";
+  }
 
   function analyzeTVSchedule(seasonsRaw,episodesRaw,show,now=Date.now()){
     const seasons=(Array.isArray(seasonsRaw)?seasonsRaw:[])
@@ -2036,11 +2091,11 @@
     const known=new Set(seasons.map(s=>s.number));
     episodes.forEach(ep=>known.add(ep.season));
     const highest=known.size?Math.max(...known):null;
-    const episodeCounts={},airedEpisodeCounts={};
+    const episodeCounts={},airedEpisodeCounts={},releasedEpisodes={};
     for(const ep of episodes){
       episodeCounts[ep.season]=Math.max(episodeCounts[ep.season]||0,ep.number);
       const t=episodeAirTime(ep);
-      if(t>0&&t<=now)airedEpisodeCounts[ep.season]=Math.max(airedEpisodeCounts[ep.season]||0,ep.number);
+      if(t>0&&t<=now){airedEpisodeCounts[ep.season]=Math.max(airedEpisodeCounts[ep.season]||0,ep.number);(releasedEpisodes[ep.season]||(releasedEpisodes[ep.season]=[])).push(ep.number);}
     }
     const aired=episodes.filter(ep=>{const t=episodeAirTime(ep);return t>0&&t<=now;}).sort((a,b)=>episodeAirTime(a)-episodeAirTime(b));
     const future=episodes.filter(ep=>episodeAirTime(ep)>now).sort((a,b)=>episodeAirTime(a)-episodeAirTime(b)||a.season-b.season||a.number-b.number);
@@ -2075,7 +2130,8 @@
     if(!upcomingSeason){
       upcomingSeason=seasons.filter(s=>s.number>(latestAired||0)&&s.premiereDate&&new Date(`${s.premiereDate}T23:59:59`).getTime()>now).sort((a,b)=>a.number-b.number)[0]||null;
     }
-    return {seasons,episodes,known,highest,latestAired,currentEpisode,currentEpisodeRow,nextEpisode,airing,upcomingSeason,episodeCounts,airedEpisodeCounts,completedSeasons};
+    for(const season of Object.keys(releasedEpisodes))releasedEpisodes[season]=[...new Set(releasedEpisodes[season])].sort((a,b)=>a-b);
+    return {seasons,episodes,known,highest,latestAired,currentEpisode,currentEpisodeRow,nextEpisode,airing,upcomingSeason,episodeCounts,airedEpisodeCounts,releasedEpisodes,completedSeasons};
   }
 
   function tvMazeShowMatchesSelection(show,title,{imdbId="",year=""}={}){
@@ -2114,9 +2170,9 @@
     }:null;
     return {
       highest:schedule.highest,latestAired:schedule.latestAired,currentEpisode:schedule.currentEpisode,
-      latestEpisodeDate:schedule.currentEpisodeRow?.airstamp||schedule.currentEpisodeRow?.airdate||"",seriesReleaseDate:show?.premiered||"",
+      latestEpisodeDate:episodeReleaseTimestamp(schedule.currentEpisodeRow),seriesReleaseDate:show?.premiered||"",
       completedSeasons:schedule.completedSeasons,upcoming,nextEpisode:schedule.nextEpisode,airing:schedule.airing,
-      episodeCounts:schedule.episodeCounts,airedEpisodeCounts:schedule.airedEpisodeCounts,known:new Set(schedule.known),
+      episodeCounts:schedule.episodeCounts,airedEpisodeCounts:schedule.airedEpisodeCounts,releasedEpisodes:schedule.releasedEpisodes,known:new Set(schedule.known),
       sources:tvAvailable?["TVMaze"]:[],tvAvailable,episodeScheduleAvailable,resolvedShowId,
       imdbId:String(imdbId||show?.externals?.imdb||""),imdbConfirmed:false,show,ended,provisional:true
     };
@@ -2187,22 +2243,22 @@
     if(wiki.available)sources.push("Wikipedia");
     const resolvedImdbId=imdb?.imdbId||expectedImdbId||"";
     return {
-      highest,latestAired,currentEpisode,latestEpisodeDate:schedule.currentEpisodeRow?.airstamp||schedule.currentEpisodeRow?.airdate||"",seriesReleaseDate:show?.premiered||"",completedSeasons:schedule.completedSeasons,upcoming,nextEpisode:schedule.nextEpisode,airing:schedule.airing,
-      episodeCounts:schedule.episodeCounts,airedEpisodeCounts:schedule.airedEpisodeCounts,known,sources,tvAvailable,episodeScheduleAvailable,
+      highest,latestAired,currentEpisode,latestEpisodeDate:episodeReleaseTimestamp(schedule.currentEpisodeRow),seriesReleaseDate:show?.premiered||"",completedSeasons:schedule.completedSeasons,upcoming,nextEpisode:schedule.nextEpisode,airing:schedule.airing,
+      episodeCounts:schedule.episodeCounts,airedEpisodeCounts:schedule.airedEpisodeCounts,releasedEpisodes:schedule.releasedEpisodes,known,sources,tvAvailable,episodeScheduleAvailable,
       resolvedShowId,imdbId:resolvedImdbId,imdbConfirmed:imdb?.confirmed===true,show,ended:tvEnded,provisional:false
     };
   }
 
-  let episodeCountsForForm={};
+  let episodeCountsForForm={},releasedEpisodesForForm={};
   function refreshEpisodeOptions(){
-    const season=Number($("cur-season").value||0),max=Number(episodeCountsForForm[season]||0);
+    const season=Number($("cur-season").value||0),available=releasedEpisodesForForm[season]||[],max=available.length?Math.max(...available):Number(episodeCountsForForm[season]||0);
     const options=$("episode-options"),episodeInput=$("cur-ep");
     if(season===0){
       if(options)options.innerHTML='<option value="0">Not started</option>';
       episodeInput.min="0";episodeInput.max="0";episodeInput.value="0";
       return;
     }
-    if(options)options.innerHTML=max?Array.from({length:max+1},(_,n)=>`<option value="${n}">${n===0?"Not started":`Episode ${n}`}</option>`).join(""):'<option value="0">Not started</option>';
+    if(options)options.innerHTML=max?`<option value="0">Not started</option>${(available.length?available:Array.from({length:max},(_,i)=>i+1)).map(n=>`<option value="${n}">Episode ${n}</option>`).join("")}`:'<option value="0">Not started</option>';
     episodeInput.min="0";
     if(max)episodeInput.max=String(max);else episodeInput.removeAttribute("max");
   }
@@ -2210,6 +2266,7 @@
   function configureProgressOptions(result){
     const verifiedEpisodes=result?.episodeScheduleAvailable===true;
     episodeCountsForForm=verifiedEpisodes?(result?.airedEpisodeCounts||{}):(Object.keys(result?.airedEpisodeCounts||{}).length?result.airedEpisodeCounts:(result?.episodeCounts||{}));
+    releasedEpisodesForForm=verifiedEpisodes?normalizeReleasedEpisodeMap(result?.releasedEpisodes||Object.fromEntries(Object.entries(episodeCountsForForm).map(([season,count])=>[season,Array.from({length:Number(count)||0},(_,i)=>i+1)]))):{};
     const highest=Number(result?.highest||0);
     const latestReleased=verifiedEpisodes?Math.max(0,Number(result?.latestAired||0)):highest;
     const fullyReleased=verifiedEpisodes?Math.min(latestReleased,Math.max(0,Number(result?.completedSeasons||0))):highest;
@@ -2299,8 +2356,8 @@
         $("cur-season").value=String(savedSeason);
         $("cur-ep").value=String(savedSeason?Number(r.airedEpisodeCounts?.[savedSeason]||0):0);
       }else{
-        const releasedEpisodeMax=Math.max(0,Number(r.airedEpisodeCounts?.[savedSeason]||0));
-        if(Number($("cur-ep").value||0)>releasedEpisodeMax)$("cur-ep").value=String(releasedEpisodeMax);
+        const released=(r.releasedEpisodes?.[savedSeason]||Array.from({length:Math.max(0,Number(r.airedEpisodeCounts?.[savedSeason]||0))},(_,i)=>i+1)),requested=Number($("cur-ep").value||0);
+        $("cur-ep").value=String(Math.max(0,...released.filter(episode=>episode<=requested)));
       }
     }
     configureProgressOptions(r);
@@ -2557,7 +2614,7 @@
     return{items:merged,removedCount:removedTitles.length,titles:[...new Set(removedTitles.map(String))]};
   }
 
-  function strictWatchedEpisodeMap(value,counts){
+function strictWatchedEpisodeMap(value,counts){
   const result={};
   for(const [seasonValue,episodeValue] of Object.entries(value||{})){
     const season=Number(seasonValue),maximum=Math.max(0,Number(counts?.[season]||0));
@@ -2569,20 +2626,29 @@
   return result;
 }
 
+function progressWatchedEpisodeMap(releases,watchedSeasons,curSeason,curEp){
+  const result={};
+  for(const [seasonValue,available] of Object.entries(normalizeReleasedEpisodeMap(releases))){
+    const season=Number(seasonValue),episodes=season<=watchedSeasons?available:(season===curSeason?available.filter(episode=>episode<=curEp):[]);
+    if(episodes.length)result[season]=episodes;
+  }
+  return result;
+}
+
 function sanitizeUnreleasedEpisodeProgress(item){
   if(!isEpisodeTrackable(item)||!item)return item;
-  const aired=positiveEpisodeMap(item.airedEpisodeCounts);
+  const aired=positiveEpisodeMap(item.airedEpisodeCounts),releases=releasedEpisodeMap(item);
   if(item.episodeScheduleVerified!==true)return item;
-  const watchedEpisodes=strictWatchedEpisodeMap(Object.prototype.hasOwnProperty.call(item,"watchedEpisodes")?item.watchedEpisodes:legacyWatchedEpisodeMap({...item,episodeScheduleVerified:true},aired),aired);
+  const watchedEpisodes=normalizeWatchedEpisodeMap(Object.prototype.hasOwnProperty.call(item,"watchedEpisodes")?item.watchedEpisodes:legacyWatchedEpisodeMap({...item,episodeScheduleVerified:true},releases),releases);
   const highest=highestWatchedEpisode(watchedEpisodes);
   let curSeason=Math.max(0,Number(item.curSeason||0)),curEp=Math.max(0,Number(item.curEp||0));
-  const currentMaximum=Math.max(0,Number(aired[curSeason]||0));
-  if(curSeason>0&&currentMaximum>0)curEp=Math.min(curEp,currentMaximum);
+  const currentAvailable=releases[curSeason]||[];
+  if(curSeason>0&&currentAvailable.length)curEp=Math.max(0,...currentAvailable.filter(episode=>episode<=curEp));
   else if(curSeason>0){curSeason=highest?.season||0;curEp=highest?.episode||0;}
   if(curSeason===0)curEp=0;
   const episodeHistory=(Array.isArray(item.episodeHistory)?item.episodeHistory:[]).filter(event=>{
-    const season=Number(event?.season),episode=Number(event?.episode),maximum=Math.max(0,Number(aired[season]||0));
-    return Number.isInteger(season)&&season>0&&Number.isInteger(episode)&&episode>0&&maximum>0&&episode<=maximum;
+    const season=Number(event?.season),episode=Number(event?.episode);
+    return Number.isInteger(season)&&season>0&&Number.isInteger(episode)&&episode>0&&(releases[season]||[]).includes(episode);
   });
   const completedCap=Number.isFinite(Number(item.verifiedCompletedSeasons))?Math.max(0,Number(item.verifiedCompletedSeasons)):Math.max(0,...Object.keys(aired).map(Number));
   const watchedSeasons=Math.min(Math.max(0,Number(item.watchedSeasons||0)),completedCap);
@@ -3419,7 +3485,7 @@ function duplicateCleanupMessage(cleanup){
     $("total-seasons").value=item.totalSeasons??"";$("watched-seasons").value=item.watchedSeasons??"";$("cur-season").value=item.curSeason??"";$("cur-ep").value=item.curEp??"";
     $("next-season-num").value=item.nextSeasonNum??"";$("next-season-date").value=item.nextSeasonDate?toLocalInput(item.nextSeasonDate):"";
     filmReleaseDate.value=item.filmReleaseDate||"";filmReleaseSource.value=item.filmReleaseSource||"";$("platform").value=item.platform||"";
-    configureProgressOptions({highest:item.totalSeasons,episodeCounts:item.episodeCounts||{},airedEpisodeCounts:item.airedEpisodeCounts||{[item.curSeason]:item.currentSeasonEpisodeCount||0},latestAired:item.curSeason,currentEpisode:item.curEp,completedSeasons:item.verifiedCompletedSeasons,episodeScheduleAvailable:item.episodeScheduleVerified===true||Boolean(Object.keys(item.airedEpisodeCounts||{}).length)});
+    configureProgressOptions({highest:item.totalSeasons,episodeCounts:item.episodeCounts||{},airedEpisodeCounts:item.airedEpisodeCounts||{[item.curSeason]:item.currentSeasonEpisodeCount||0},releasedEpisodes:item.releasedEpisodes||{},latestAired:item.curSeason,currentEpisode:item.curEp,completedSeasons:item.verifiedCompletedSeasons,episodeScheduleAvailable:item.episodeScheduleVerified===true||Boolean(Object.keys(item.airedEpisodeCounts||{}).length)});
     loadStoredAiringFields(item);
     const film=item.type==="Film";seriesSection.style.display=film?"none":"flex";upcomingSection.style.display=film?"none":"flex";filmSection.style.display=film?"flex":"none";if(film)clearAiringFields();
     $("modal-title").textContent="Edit Title";deleteBtn.classList.remove("hidden");modal.classList.remove("hidden");
@@ -3468,18 +3534,26 @@ function duplicateCleanupMessage(cleanup){
         ...previous,
         id,title,type,status,tvmazeShowId:type==="Film"?"":(sid||""),imdbId:$("imdb-id").value||requestedImdbId,releaseYear,
         totalSeasons:total,watchedSeasons:type==="Film"?null:numOrNull("watched-seasons"),curSeason,curEp:type==="Film"?null:numOrNull("cur-ep"),
-        currentSeasonEpisodeCount:type==="Film"?null:Number(airedEpisodeCounts?.[curSeason]||0)||null,currentSeasonTotalEpisodes:type==="Film"?null:Number(episodeCounts?.[curSeason]||0)||null,episodeCounts:type==="Film"?{}:episodeCounts,airedEpisodeCounts:type==="Film"?{}:airedEpisodeCounts,
+        currentSeasonEpisodeCount:type==="Film"?null:Number(airedEpisodeCounts?.[curSeason]||0)||null,currentSeasonTotalEpisodes:type==="Film"?null:Number(episodeCounts?.[curSeason]||0)||null,episodeCounts:type==="Film"?{}:episodeCounts,airedEpisodeCounts:type==="Film"?{}:airedEpisodeCounts,releasedEpisodes:type==="Film"?{}:(verified?.releasedEpisodes||previous?.releasedEpisodes||{}),
         episodeScheduleVerified:type==="Film"?false:(verified?.episodeScheduleAvailable===true||previous?.episodeScheduleVerified===true),
         airingSeason:type==="Film"?null:numOrNull("airing-season"),latestEpisodeNum:type==="Film"?null:numOrNull("latest-episode-num"),latestEpisodeTitle:type==="Film"?"":$("latest-episode-title").value||"",
         latestEpisodeDate:type==="Film"?"":(verified?.latestEpisodeDate||previous?.latestEpisodeDate||""),seriesReleaseDate:type==="Film"?"":(verified?.seriesReleaseDate||previous?.seriesReleaseDate||""),
-        nextEpisodeNum:type==="Film"?null:numOrNull("next-episode-num"),nextEpisodeTitle:type==="Film"?"":$("next-episode-title").value||"",nextEpisodeDate:type==="Film"?"":($("next-episode-date").value||""),
-        nextSeasonNum:type==="Film"?"":($("next-season-num").value?Number($("next-season-num").value):""),nextSeasonDate:type==="Film"?"":($("next-season-date").value||""),
+        nextEpisodeNum:type==="Film"?null:numOrNull("next-episode-num"),nextEpisodeTitle:type==="Film"?"":$("next-episode-title").value||"",nextEpisodeDate:type==="Film"?"":(verified?.nextEpisode?episodeReleaseTimestamp(verified.nextEpisode):($("next-episode-date").value||"")),
+        nextSeasonNum:type==="Film"?"":($("next-season-num").value?Number($("next-season-num").value):""),nextSeasonDate:type==="Film"?"":(verified?.upcoming?(verified.nextEpisode&&Number(verified.nextEpisode.season)===Number(verified.upcoming.number)?episodeReleaseTimestamp(verified.nextEpisode):(verified.upcoming.premiereDate||"")):($("next-season-date").value||"")),
         filmReleaseDate:type==="Film"?(filmReleaseDate.value||""):"",filmReleaseSource:type==="Film"?(filmReleaseDate.value?(filmReleaseSource.value||"Manual"):""):"",
         verifiedCompletedSeasons:type==="Film"?null:(Number.isFinite(Number(verified?.completedSeasons))?Number(verified.completedSeasons):Number(previous?.verifiedCompletedSeasons||0)),
         episodeHistory:type==="Film"?[]:episodeHistory,...(type==="Film"?{watchedEpisodes:{}}:(Object.prototype.hasOwnProperty.call(previous||{},"watchedEpisodes")?{watchedEpisodes:normalizeWatchedEpisodeMap(previous.watchedEpisodes,airedEpisodeCounts)}:{})),lastEpisodeWatchedAt:type==="Film"?"":(previous?.lastEpisodeWatchedAt||""),
         lastWatchedSeason:type==="Film"?null:(previous?.lastWatchedSeason??null),lastWatchedEpisode:type==="Film"?null:(previous?.lastWatchedEpisode??null),
         platform,date:watchedDate,createdAt:previous?.createdAt||nowISO(),updatedAt:previous?.updatedAt||nowISO()
       };
+      if(type!=="Film"&&item.episodeScheduleVerified===true){
+        const releases=releasedEpisodeMap(item),progressChanged=!previous||Number(previous.watchedSeasons||0)!==Number(item.watchedSeasons||0)||Number(previous.curSeason||0)!==Number(item.curSeason||0)||Number(previous.curEp||0)!==Number(item.curEp||0);
+        if(progressChanged){
+          const available=releases[Number(item.curSeason||0)]||[],requested=Number(item.curEp||0),validEpisode=Math.max(0,...available.filter(episode=>episode<=requested));
+          item.curEp=validEpisode||null;item.watchedEpisodes=progressWatchedEpisodeMap(releases,Number(item.watchedSeasons||0),Number(item.curSeason||0),validEpisode);
+          const highest=highestWatchedEpisode(item.watchedEpisodes);item.curSeason=highest?.season||null;item.curEp=highest?.episode||null;item.lastWatchedSeason=highest?.season||null;item.lastWatchedEpisode=highest?.episode||null;item.lastEpisodeWatchedAt=highest?nowISO():"";
+        }else if(Object.prototype.hasOwnProperty.call(previous||{},"watchedEpisodes"))item.watchedEpisodes=normalizeWatchedEpisodeMap(previous.watchedEpisodes,releases);
+      }
       item=migratePlannedStatuses([item]).rows[0];
       const duplicate=findTrackedDuplicate(item,mediaItems,id);
       if(duplicate){

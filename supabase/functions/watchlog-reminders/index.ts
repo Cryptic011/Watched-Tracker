@@ -23,6 +23,7 @@ const enc = new TextEncoder();
 const PRIVATE_TEST_ACCOUNT_HASH = "ea67160ff90d5a1b54a6b7fe8522c1573ec9dea8fb18fff38969f42b09c27f0b";
 const VAPID_SUBJECT = "mailto:push@watched-logger.app";
 const MAX_PUSH_ATTEMPTS = 5;
+const EPISODE_SCHEDULE_REFRESH_MS = 6 * 60 * 60 * 1000;
 const ALLOWED_PUSH_HOSTS = new Set([
   "web.push.apple.com",
   "fcm.googleapis.com",
@@ -46,6 +47,12 @@ type PushConfig = {
   vapid_private_key: string | null;
   cron_secret: string;
   last_scan_at: string | null;
+};
+
+type LibraryRow = {
+  account_id: string;
+  items: unknown;
+  revision: number;
 };
 
 function json(body: unknown, status = 200) {
@@ -215,6 +222,96 @@ function scheduledEventTime(rawValue: unknown, timeZone: string) {
     minute === undefined ? 0 : Number(minute),
     timeZone,
   );
+}
+
+function episodeUtcValue(episode) {
+  const raw = String(episode?.airstamp || "").trim();
+  if (raw) {
+    const date = new Date(raw);
+    if (!Number.isNaN(date.getTime())) return date.toISOString();
+  }
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(episode?.airdate || ""))
+    ? String(episode.airdate)
+    : "";
+}
+
+function episodeReleaseTime(episode) {
+  const value = episodeUtcValue(episode);
+  if (!value) return 0;
+  const time = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T23:59:59Z` : value).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function buildServerEpisodeSchedule(item, episodesRaw, now = Date.now()) {
+  const episodes = (Array.isArray(episodesRaw) ? episodesRaw : [])
+    .filter((episode) => Number.isInteger(Number(episode?.season)) && Number(episode.season) > 0 && Number.isInteger(Number(episode?.number)) && Number(episode.number) > 0)
+    .map((episode) => ({ ...episode, season: Number(episode.season), number: Number(episode.number) }));
+  if (!episodes.length) return item;
+  const episodeCounts = {}, airedEpisodeCounts = {}, releasedEpisodes = {};
+  for (const episode of episodes) {
+    episodeCounts[episode.season] = Math.max(Number(episodeCounts[episode.season] || 0), episode.number);
+    const time = episodeReleaseTime(episode);
+    if (time > 0 && time <= now) {
+      airedEpisodeCounts[episode.season] = Math.max(Number(airedEpisodeCounts[episode.season] || 0), episode.number);
+      (releasedEpisodes[episode.season] ||= []).push(episode.number);
+    }
+  }
+  for (const season of Object.keys(releasedEpisodes)) releasedEpisodes[season] = [...new Set(releasedEpisodes[season])].sort((a, b) => a - b);
+  const released = episodes.filter((episode) => episodeReleaseTime(episode) > 0 && episodeReleaseTime(episode) <= now).sort((a, b) => episodeReleaseTime(a) - episodeReleaseTime(b));
+  const future = episodes.filter((episode) => episodeReleaseTime(episode) > now).sort((a, b) => episodeReleaseTime(a) - episodeReleaseTime(b) || a.season - b.season || a.number - b.number);
+  const latest = released.at(-1) || null, next = future[0] || null;
+  const latestSeason = Number(latest?.season || 0), nextSeason = Number(next?.season || 0), highest = Math.max(0, ...episodes.map((episode) => episode.season));
+  return {
+    ...item,
+    totalSeasons: Math.max(Number(item?.totalSeasons || 0), highest) || null,
+    episodeCounts,
+    airedEpisodeCounts,
+    releasedEpisodes,
+    episodeScheduleVerified: true,
+    airingSeason: latestSeason || null,
+    latestEpisodeNum: latest?.number ?? null,
+    latestEpisodeTitle: String(latest?.name || ""),
+    latestEpisodeDate: episodeUtcValue(latest),
+    nextEpisodeNum: next?.number ?? null,
+    nextEpisodeTitle: String(next?.name || ""),
+    nextEpisodeDate: episodeUtcValue(next),
+    nextSeasonNum: nextSeason > latestSeason ? nextSeason : "",
+    nextSeasonDate: nextSeason > latestSeason ? episodeUtcValue(next) : "",
+    metadataUpdatedAt: new Date(now).toISOString(),
+  };
+}
+
+function serverScheduleRefreshDue(item: Record<string, unknown>, now = Date.now()) {
+  if (!["Series", "Anime"].includes(String(item?.type || "")) || !item?.tvmazeShowId) return false;
+  const next = scheduledEventTime(item.nextEpisodeDate, "UTC"), refreshed = new Date(String(item.metadataUpdatedAt || "")).getTime();
+  return !Number.isFinite(refreshed) || now - refreshed >= EPISODE_SCHEDULE_REFRESH_MS || (Number.isFinite(next) && next <= now);
+}
+
+async function refreshServerEpisodeSchedules(libraries: LibraryRow[], now = Date.now()) {
+  const requests = new Map<string, Promise<unknown[]>>();
+  const load = (showId: unknown) => {
+    const key = String(showId);
+    if (!requests.has(key)) requests.set(key, fetch(`https://api.tvmaze.com/shows/${encodeURIComponent(key)}/episodes`, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(12000) }).then(async (response) => { const data = response.ok ? await response.json() : []; return Array.isArray(data) ? data : []; }).catch(() => []));
+    return requests.get(key)!;
+  };
+  const refreshed = [];
+  for (const library of libraries || []) {
+    const source = (Array.isArray(library.items) ? library.items : []) as Record<string, unknown>[], items = [...source];
+    let changed = false;
+    for (let index = 0; index < items.length; index++) {
+      if (!serverScheduleRefreshDue(items[index], now)) continue;
+      const episodes = await load(items[index].tvmazeShowId);
+      const updated = buildServerEpisodeSchedule(items[index], episodes, now);
+      if (JSON.stringify(updated) !== JSON.stringify(items[index])) { items[index] = updated; changed = true; }
+    }
+    if (changed) {
+      const revision = Math.max(0, Number(library.revision || 0));
+      const { error } = await db.from("watchlog_pin_library").update({ items, revision: revision + 1, updated_at: new Date(now).toISOString() }).eq("account_id", library.account_id).eq("revision", revision);
+      if (error) console.error("Server episode schedule save failed", error.code || error.message);
+    }
+    refreshed.push({ ...library, items });
+  }
+  return refreshed;
 }
 
 function plannedEvent(item: Record<string, unknown>) {
@@ -432,11 +529,12 @@ async function processPlannedReminders(
   const accountIds = [...new Set(subscriptions.map((row) => row.account_id))];
   if (!accountIds.length) return { sent: 0, failed: 0 };
 
-  const { data: libraries, error } = await db
+  const { data: libraryRows, error } = await db
     .from("watchlog_pin_library")
-    .select("account_id,items")
+    .select("account_id,items,revision")
     .in("account_id", accountIds);
   if (error) throw error;
+  const libraries = await refreshServerEpisodeSchedules(libraryRows || [], Date.now());
 
   const byAccount = new Map(
     (libraries || []).map((row) => [

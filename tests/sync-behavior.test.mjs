@@ -39,7 +39,7 @@ function memoryDB(initial){
   };
 }
 
-const persistenceFunctions=["activePersistenceContext","setCloudBaseline","saveCache","cachePut","cacheGet","cloneLibrarySnapshot","createLibrarySnapshot","replayLocalChanges","acknowledgeCloudSnapshot","acknowledgeCachedSnapshot","uploadCloudLibrary","queueLocalLibrarySave","queueCloudLibrarySave","persistLibrary","mergePendingCache"];
+const persistenceFunctions=["toMillis","canonicalRecordJSON","sameSyncValue","mergeEpisodeSetChanges","mergeEpisodeHistory","mergeRecordChanges","activePersistenceContext","setCloudBaseline","saveCache","cachePut","cacheGet","cloneLibrarySnapshot","createLibrarySnapshot","replayLocalChanges","acknowledgeCloudSnapshot","acknowledgeCachedSnapshot","uploadCloudLibrary","queueLocalLibrarySave","queueCloudLibrarySave","persistLibrary","mergePendingCache"];
 function harness(extra={}){
   const pending=new Set();
   const context=vm.createContext({
@@ -128,6 +128,18 @@ test("Signing in again replays pending edits and deletions from that account's c
   const remote=[{id:"a",title:"A"},{id:"b",title:"B"},{id:"c",title:"New remote title"}];
   assert.deepEqual(copy(app.mergePendingCache(cached,remote)),[{id:"a",title:"A saved offline"},{id:"c",title:"New remote title"}]);
   assert.deepEqual(copy(app.mergePendingCache({...cached,userId:"other"},remote)),remote);
+});
+
+test("Conflict replay merges individual fields and concurrent watched episode changes",()=>{
+  const app=harness();
+  const base=[{id:"show",title:"Show",platform:"Old",nextEpisodeDate:"2026-09-01T19:00:00.000Z",watchedEpisodes:{1:[1]},episodeHistory:[],updatedAt:"2026-09-01T10:00:00.000Z"}];
+  const local=[{...base[0],platform:"New",watchedEpisodes:{1:[1,2]},episodeHistory:[{id:"local",kind:"mark",season:1,episode:2,watchedAt:"2026-09-01T11:00:00.000Z"}],updatedAt:"2026-09-01T11:00:00.000Z"}];
+  const remote=[{...base[0],nextEpisodeDate:"2026-09-08T19:00:00.000Z",watchedEpisodes:{1:[1,3]},episodeHistory:[{id:"remote",kind:"mark",season:1,episode:3,watchedAt:"2026-09-01T12:00:00.000Z"}],updatedAt:"2026-09-01T12:00:00.000Z"}];
+  const [merged]=app.replayLocalChanges(base,local,remote);
+  assert.equal(merged.platform,"New");
+  assert.equal(merged.nextEpisodeDate,"2026-09-08T19:00:00.000Z");
+  assert.deepEqual(copy(merged.watchedEpisodes),{1:[1,2,3]});
+  assert.deepEqual(copy(merged.episodeHistory.map(event=>event.id)),["local","remote"]);
 });
 
 test("A timed-out or incomplete successful response cannot acknowledge a save",async()=>{

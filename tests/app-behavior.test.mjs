@@ -103,7 +103,7 @@ test("Date-only releases remain upcoming all day and never become midnight", () 
 });
 
 test("Announced episode totals do not become released episodes", () => {
-  const api = loadFunctions(["isEpisodeTrackable", "positiveEpisodeMap", "toMillis", "releasedEpisodeCounts", "normalizeWatchedEpisodeMap"]);
+  const api = loadFunctions(["isEpisodeTrackable", "positiveEpisodeMap", "toMillis", "normalizeReleasedEpisodeMap", "releasedEpisodeMap", "releasedEpisodeCounts", "normalizeWatchedEpisodeMap"]);
   const unreleased = { type:"Series", episodeCounts:{1:8}, nextSeasonNum:1, nextSeasonDate:"2099-01-01" };
   assert.equal(Object.keys(api.releasedEpisodeCounts(unreleased)).length, 0);
   const partial = { type:"Series", episodeCounts:{1:8}, airingSeason:1, latestEpisodeNum:3, latestEpisodeDate:"2026-01-01T20:00:00Z" };
@@ -150,7 +150,7 @@ test("Local search ranks exact, prefix, and typo matches", () => {
 });
 
 test("Conflict replay preserves remote work while applying local edits and deletes", () => {
-  const { replayLocalChanges } = loadFunctions(["replayLocalChanges"]);
+  const { replayLocalChanges } = loadFunctions(["toMillis","canonicalRecordJSON","sameSyncValue","mergeEpisodeSetChanges","mergeEpisodeHistory","mergeRecordChanges","replayLocalChanges"]);
   const base = [{ id: "a", title: "A", updatedAt: "1" }, { id: "b", title: "B", updatedAt: "1" }];
   const local = [{ id: "a", title: "A edited", updatedAt: "2" }, { id: "c", title: "C", updatedAt: "2" }];
   const remote = [{ id: "a", title: "A", updatedAt: "1" }, { id: "b", title: "B remote", updatedAt: "2" }, { id: "d", title: "D", updatedAt: "2" }];
@@ -168,6 +168,40 @@ test("No-op record comparison ignores only updatedAt", () => {
   const b = { nested: { a: 1, b: 2 }, title: "Show", id: "1", updatedAt: "new" };
   assert.equal(api.sameRecordWithoutUpdateTime(a, b), true);
   assert.equal(api.sameRecordWithoutUpdateTime(a, { ...b, title: "Changed" }), false);
+});
+
+test("Only explicitly released episode numbers are trackable", () => {
+  const api=loadFunctions(["isEpisodeTrackable","positiveEpisodeMap","toMillis","normalizeReleasedEpisodeMap","releasedEpisodeMap","releasedEpisodeCounts","normalizeWatchedEpisodeMap","progressWatchedEpisodeMap"]);
+  const item={type:"Series",episodeScheduleVerified:true,releasedEpisodes:{1:[1,3]},airedEpisodeCounts:{1:3}};
+  assert.deepEqual(JSON.parse(JSON.stringify(api.releasedEpisodeMap(item))),{1:[1,3]});
+  assert.deepEqual(JSON.parse(JSON.stringify(api.normalizeWatchedEpisodeMap({1:[1,2,3]},api.releasedEpisodeMap(item)))),{1:[1,3]});
+  assert.deepEqual(JSON.parse(JSON.stringify(api.progressWatchedEpisodeMap(api.releasedEpisodeMap(item),0,1,3))),{1:[1,3]});
+});
+
+test("Schedule analysis records released episode identities instead of filling gaps", () => {
+  const api=loadFunctions(["episodeAirTime","analyzeTVSchedule"]);
+  const episodes=[
+    {season:1,number:1,airstamp:"2026-09-01T19:00:00Z"},
+    {season:1,number:2,airstamp:"2026-09-10T19:00:00Z"},
+    {season:1,number:3,airstamp:"2026-09-03T19:00:00Z"},
+  ];
+  const result=api.analyzeTVSchedule([],episodes,{},new Date("2026-09-06T12:00:00Z").getTime());
+  assert.deepEqual(JSON.parse(JSON.stringify(result.releasedEpisodes)),{1:[1,3]});
+  assert.equal(result.nextEpisode.number,2);
+});
+
+test("TVMaze release timestamps are stored in UTC", () => {
+  const api=loadFunctions(["episodeReleaseTimestamp"]);
+  assert.equal(api.episodeReleaseTimestamp({airstamp:"2026-09-06T20:00:00+01:00"}),"2026-09-06T19:00:00.000Z");
+  assert.equal(api.episodeReleaseTimestamp({airdate:"2026-09-06"}),"2026-09-06");
+});
+
+test("Reminder backend refreshes schedules before scanning and uses revision checks", () => {
+  const source=fs.readFileSync(path.join(root,"supabase/functions/watchlog-reminders/index.ts"),"utf8");
+  assert.match(source,/refreshServerEpisodeSchedules\(libraryRows \|\| \[\], Date\.now\(\)\)/);
+  assert.match(source,/\.eq\("revision", revision\)/);
+  assert.match(source,/nextEpisodeDate: episodeUtcValue\(next\)/);
+  assert.match(source,/releasedEpisodes,/);
 });
 
 test("Production surface contains no executable third-party catalogue scripts", () => {
