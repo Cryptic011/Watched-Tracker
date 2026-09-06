@@ -246,7 +246,6 @@ function buildServerEpisodeSchedule(item, episodesRaw, now = Date.now()) {
   const episodes = (Array.isArray(episodesRaw) ? episodesRaw : [])
     .filter((episode) => Number.isInteger(Number(episode?.season)) && Number(episode.season) > 0 && Number.isInteger(Number(episode?.number)) && Number(episode.number) > 0)
     .map((episode) => ({ ...episode, season: Number(episode.season), number: Number(episode.number) }));
-  if (!episodes.length) return item;
   const episodeCounts = {}, airedEpisodeCounts = {}, releasedEpisodes = {};
   for (const episode of episodes) {
     episodeCounts[episode.season] = Math.max(Number(episodeCounts[episode.season] || 0), episode.number);
@@ -267,6 +266,13 @@ function buildServerEpisodeSchedule(item, episodesRaw, now = Date.now()) {
     episodeCounts,
     airedEpisodeCounts,
     releasedEpisodes,
+    // Persist a short release window independently of the mutable "next"
+    // pointer, so the release just passed is still eligible for its alert.
+    scheduledEpisodeReleases: episodes.filter(episode => {
+      const time = episodeReleaseTime(episode);
+      return time > 0 && time >= now - 2 * 86400000 && time <= now + 8 * 86400000;
+    }).map(episode => ({ season: episode.season, number: episode.number, raw: episodeUtcValue(episode) })),
+    serverScheduleUpdatedAt: new Date(now).toISOString(),
     episodeScheduleVerified: true,
     airingSeason: latestSeason || null,
     latestEpisodeNum: latest?.number ?? null,
@@ -283,31 +289,54 @@ function buildServerEpisodeSchedule(item, episodesRaw, now = Date.now()) {
 
 function serverScheduleRefreshDue(item: Record<string, unknown>, now = Date.now()) {
   if (!["Series", "Anime"].includes(String(item?.type || "")) || !item?.tvmazeShowId) return false;
-  const next = scheduledEventTime(item.nextEpisodeDate, "UTC"), refreshed = new Date(String(item.metadataUpdatedAt || "")).getTime();
-  return !Number.isFinite(refreshed) || now - refreshed >= EPISODE_SCHEDULE_REFRESH_MS || (Number.isFinite(next) && next <= now);
+  const next = scheduledEventTime(item.nextEpisodeDate, "UTC"), refreshed = new Date(String(item.serverScheduleUpdatedAt || "")).getTime();
+  return !Array.isArray(item.scheduledEpisodeReleases) || !Number.isFinite(refreshed) || now - refreshed >= EPISODE_SCHEDULE_REFRESH_MS || (Number.isFinite(next) && next <= now);
 }
 
 async function refreshServerEpisodeSchedules(libraries: LibraryRow[], now = Date.now()) {
-  const requests = new Map<string, Promise<unknown[]>>();
+  const requests = new Map<string, Promise<unknown[] | null>>();
   const load = (showId: unknown) => {
     const key = String(showId);
-    if (!requests.has(key)) requests.set(key, fetch(`https://api.tvmaze.com/shows/${encodeURIComponent(key)}/episodes`, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(12000) }).then(async (response) => { const data = response.ok ? await response.json() : []; return Array.isArray(data) ? data : []; }).catch(() => []));
+    if (!/^[1-9]\d*$/.test(key)) return Promise.resolve(null);
+    if (!requests.has(key)) requests.set(key, fetch(`https://api.tvmaze.com/shows/${key}/episodes`, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(6000) }).then(async (response) => { if (!response.ok) return null; const data = await response.json(); return Array.isArray(data) ? data : null; }).catch(() => null));
     return requests.get(key)!;
   };
+  // Bound work on cold scans and rotate through larger catalogues fairly.
+  const due = [...new Set(libraries.flatMap(library => (Array.isArray(library.items) ? library.items : []).filter(item => serverScheduleRefreshDue(item, now)).map(item => String(item.tvmazeShowId))))].sort();
+  const offset = due.length ? (Math.floor(now / 60000) * 60) % due.length : 0;
+  const queue = [...due.slice(offset), ...due.slice(0, offset)].slice(0, 60);
+  const results = new Map<string, unknown[]>();
+  let cursor = 0;
+  const deadline = Date.now() + 25000;
+  await Promise.all(Array.from({ length: Math.min(4, queue.length) }, async () => {
+    while (cursor < queue.length && Date.now() < deadline) {
+      const key = queue[cursor++], episodes = await load(key);
+      if (episodes !== null) results.set(key, episodes);
+    }
+  }));
   const refreshed = [];
   for (const library of libraries || []) {
     const source = (Array.isArray(library.items) ? library.items : []) as Record<string, unknown>[], items = [...source];
     let changed = false;
     for (let index = 0; index < items.length; index++) {
       if (!serverScheduleRefreshDue(items[index], now)) continue;
-      const episodes = await load(items[index].tvmazeShowId);
+      const episodes = results.get(String(items[index].tvmazeShowId));
+      if (!episodes) continue;
       const updated = buildServerEpisodeSchedule(items[index], episodes, now);
       if (JSON.stringify(updated) !== JSON.stringify(items[index])) { items[index] = updated; changed = true; }
     }
     if (changed) {
       const revision = Math.max(0, Number(library.revision || 0));
-      const { error } = await db.from("watchlog_pin_library").update({ items, revision: revision + 1, updated_at: new Date(now).toISOString() }).eq("account_id", library.account_id).eq("revision", revision);
+      const { data: saved, error } = await db.from("watchlog_pin_library").update({ items, revision: revision + 1, updated_at: new Date(now).toISOString() }).eq("account_id", library.account_id).eq("revision", revision).select("account_id").maybeSingle();
       if (error) console.error("Server episode schedule save failed", error.code || error.message);
+      if (!saved) {
+        // A user edited/deleted a title while the catalogue request was in
+        // flight. Do not send alerts using that stale library snapshot.
+        const { data: latest, error: readError } = await db.from("watchlog_pin_library").select("account_id,items,revision").eq("account_id", library.account_id).maybeSingle();
+        if (readError) throw readError;
+        if (latest) refreshed.push(latest);
+        continue;
+      }
     }
     refreshed.push({ ...library, items });
   }
@@ -338,6 +367,18 @@ function plannedEvent(item: Record<string, unknown>) {
     return { kind: "film", raw: filmReleaseDate, number: null };
   }
   return null;
+}
+
+function reminderEvents(item: Record<string, unknown>) {
+  if (!["Series", "Anime"].includes(String(item.type)) || !Array.isArray(item.scheduledEpisodeReleases)) {
+    const fallback = plannedEvent(item);
+    return fallback ? [fallback] : [];
+  }
+  const events = item.scheduledEpisodeReleases.map(episode => ({ kind: "episode", raw: String(episode.raw || ""), number: Number(episode.number), season: Number(episode.season) }));
+  if (item.nextSeasonDate && !events.some(event => event.season === Number(item.nextSeasonNum) && event.number === 1)) {
+    events.push({ kind: "season", raw: String(item.nextSeasonDate), number: Number(item.nextSeasonNum), season: Number(item.nextSeasonNum) });
+  }
+  return events;
 }
 
 function reminderCopy(
@@ -417,7 +458,13 @@ async function claimDelivery(
   itemId: string,
   eventKey: string,
   scheduledFor: string,
+  legacyKeys: string[] = [],
 ) {
+  if (legacyKeys.length) {
+    const { data: sent, error } = await db.from("watchlog_push_deliveries").select("id").eq("subscription_id", row.id).in("event_key", legacyKeys).eq("status", "sent").limit(1);
+    if (error) throw error;
+    if (sent?.length) return null;
+  }
   const nowIso = new Date().toISOString();
   const { data: existing } = await db
     .from("watchlog_push_deliveries")
@@ -550,8 +597,7 @@ async function processPlannedReminders(
     const items = byAccount.get(subscription.account_id) || [];
     for (const item of items as Record<string, unknown>[]) {
       const status = String(item?.status || "");
-      const event = plannedEvent(item);
-      if (!event) continue;
+      for (const event of reminderEvents(item)) {
       const isPlanned = status === "Planned" || status === "Saved";
       // Every dated episode gets advance and release-time alerts regardless of
       // whether the tracked title is Planned, Watching, or Watched.
@@ -568,13 +614,17 @@ async function processPlannedReminders(
         }
 
         const itemId = String(item.id || (await sha256(String(item.title || ""))));
-        const eventKey = `${itemId}:${event.kind}:${event.raw}:lead-${leadHours}h`;
+        const identity = event.kind === "episode" ? `episode:s${"season" in event ? event.season : Number(item.airingSeason || item.nextSeasonNum || 0)}e${event.number}` : event.kind;
+        const eventKey = `${itemId}:${identity}:${event.raw}:lead-${leadHours}h`;
+        const legacyKeys = event.kind === "episode" && Number(event.number) === Number(item.nextEpisodeNum)
+          ? [...new Set([event.raw, String(item.nextEpisodeDate || "")].filter(Boolean))].map(raw => `${itemId}:episode:${raw}:lead-${leadHours}h`) : [];
         const delivery = await claimDelivery(
           subscription,
           subscription.account_id,
           itemId,
           eventKey,
           new Date(reminderTime).toISOString(),
+          legacyKeys,
         );
         if (!delivery) continue;
 
@@ -595,6 +645,7 @@ async function processPlannedReminders(
           await finishDelivery(delivery, subscription, pushError);
           failed++;
         }
+      }
       }
     }
   }

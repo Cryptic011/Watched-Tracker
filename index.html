@@ -791,6 +791,15 @@
       else merged[key]=local;
     }
     merged.updatedAt=[localItem?.updatedAt,remoteItem?.updatedAt].filter(Boolean).sort((a,b)=>toMillis(b)-toMillis(a))[0]||merged.updatedAt;
+    if(merged.watchedEpisodes&&(!sameSyncValue(baseItem?.watchedEpisodes,localItem?.watchedEpisodes)||!sameSyncValue(baseItem?.watchedEpisodes,remoteItem?.watchedEpisodes))){
+      const highest=Object.entries(merged.watchedEpisodes).flatMap(([season,episodes])=>episodes.map(episode=>[Number(season),Number(episode)])).sort((a,b)=>b[0]-a[0]||b[1]-a[1])[0];
+      merged.curSeason=highest?.[0]||null;merged.curEp=highest?.[1]||null;
+      merged.lastWatchedSeason=merged.curSeason;merged.lastWatchedEpisode=merged.curEp;
+      merged.watchedSeasons=Object.entries(merged.watchedEpisodes).filter(([season,episodes])=>{
+        const count=Number(merged.episodeCounts?.[season]||0);
+        return Number(season)<=Number(merged.verifiedCompletedSeasons||0)&&count>0&&Array.from({length:count},(_,i)=>i+1).every(episode=>episodes.includes(episode));
+      }).length;
+    }
     return merged;
   }
 
@@ -801,7 +810,7 @@
     for(const [id,baseItem] of base){
       if(!local.has(id)){remote.delete(id);continue;}
       const localItem=local.get(id);
-      if(!sameSyncValue(localItem,baseItem))remote.set(id,mergeRecordChanges(baseItem,localItem,remote.get(id)));
+      if(remote.has(id)&&!sameSyncValue(localItem,baseItem))remote.set(id,mergeRecordChanges(baseItem,localItem,remote.get(id)));
     }
     for(const [id,localItem] of local)if(!base.has(id))remote.set(id,localItem);
     return Array.from(remote.values());
@@ -1085,7 +1094,7 @@
     const nextEpisodeTime=toMillis(item.nextEpisodeDate),nextSeasonTime=toMillis(item.nextSeasonDate);
     const dueTimes=[nextEpisodeTime,nextSeasonTime].filter(time=>time>0&&time<=now);
     const due=dueTimes.length>0;
-    const refreshedAt=toMillis(item.metadataUpdatedAt),missingReleaseDate=!item.latestEpisodeDate&&!item.seriesReleaseDate,stale=missingReleaseDate||!refreshedAt||now-refreshedAt>=SERIES_METADATA_STALE_MS;
+    const refreshedAt=toMillis(item.metadataUpdatedAt),missingReleaseDate=!item.latestEpisodeDate&&!item.seriesReleaseDate,stale=!Object.prototype.hasOwnProperty.call(item,"releasedEpisodes")||missingReleaseDate||!refreshedAt||now-refreshedAt>=SERIES_METADATA_STALE_MS;
     if(!due&&!stale)return null;
     const statusScore=item.status==="Watching"?30:item.status==="Planned"?20:10;
     const dueTime=due?Math.min(...dueTimes):Number.POSITIVE_INFINITY;
@@ -1780,7 +1789,13 @@
     if(row&&(event.key==="Enter"||event.key===" ")){event.preventDefault();openMediaRow(row.dataset.itemId);}
   });
 
-  function toLocalInput(v){if(!v)return"";const d=new Date(v);if(Number.isNaN(d.getTime()))return"";const p=n=>String(n).padStart(2,"0");return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;}
+  function toLocalInput(v){if(!v)return"";if(/^\d{4}-\d{2}-\d{2}$/.test(String(v)))return`${v}T12:00`;const d=new Date(v);if(Number.isNaN(d.getTime()))return"";const p=n=>String(n).padStart(2,"0");return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;}
+  function storedDateFromInput(value,previous=""){
+    if(!value)return"";
+    if(previous&&value===toLocalInput(previous))return previous;
+    const time=new Date(value).getTime();
+    return Number.isFinite(time)?new Date(time).toISOString():"";
+  }
   function dateOnlyInput(v){return v?`${v}T12:00`:"";}
   async function imdbVerify(title,season,premiereDate){if(!IMDB_VERIFY_ENDPOINT)return{confirmed:null};try{const u=new URL(IMDB_VERIFY_ENDPOINT,location.href);u.searchParams.set("title",title);u.searchParams.set("season",String(season));if(premiereDate)u.searchParams.set("premiereDate",premiereDate);return await fetchJSONWithTimeout(u.toString());}catch(_){return{confirmed:null};}}
 
@@ -2152,7 +2167,7 @@
     const seasonsRaw=seasonResult.status==="fulfilled"&&Array.isArray(seasonResult.value)?seasonResult.value:[];
     const show=showResult.status==="fulfilled"?showResult.value:fallbackShow;
     const episodes=episodeResult.status==="fulfilled"&&Array.isArray(episodeResult.value)?episodeResult.value:[];
-    const seasonAvailable=seasonResult.status==="fulfilled",showAvailable=showResult.status==="fulfilled",episodeAvailable=episodeResult.status==="fulfilled";
+    const seasonAvailable=seasonResult.status==="fulfilled",showAvailable=showResult.status==="fulfilled",episodeAvailable=episodeResult.status==="fulfilled"&&Array.isArray(episodeResult.value);
     return {
       tvAvailable:seasonAvailable||showAvailable||episodeAvailable,
       episodeScheduleAvailable:episodeAvailable,show,
@@ -3534,12 +3549,12 @@ function duplicateCleanupMessage(cleanup){
         ...previous,
         id,title,type,status,tvmazeShowId:type==="Film"?"":(sid||""),imdbId:$("imdb-id").value||requestedImdbId,releaseYear,
         totalSeasons:total,watchedSeasons:type==="Film"?null:numOrNull("watched-seasons"),curSeason,curEp:type==="Film"?null:numOrNull("cur-ep"),
-        currentSeasonEpisodeCount:type==="Film"?null:Number(airedEpisodeCounts?.[curSeason]||0)||null,currentSeasonTotalEpisodes:type==="Film"?null:Number(episodeCounts?.[curSeason]||0)||null,episodeCounts:type==="Film"?{}:episodeCounts,airedEpisodeCounts:type==="Film"?{}:airedEpisodeCounts,releasedEpisodes:type==="Film"?{}:(verified?.releasedEpisodes||previous?.releasedEpisodes||{}),
+        currentSeasonEpisodeCount:type==="Film"?null:Number(airedEpisodeCounts?.[curSeason]||0)||null,currentSeasonTotalEpisodes:type==="Film"?null:Number(episodeCounts?.[curSeason]||0)||null,episodeCounts:type==="Film"?{}:episodeCounts,airedEpisodeCounts:type==="Film"?{}:airedEpisodeCounts,releasedEpisodes:type==="Film"?{}:(verified?.releasedEpisodes||previous?.releasedEpisodes||releasedEpisodeMap({type,airedEpisodeCounts,episodeScheduleVerified:true})),
         episodeScheduleVerified:type==="Film"?false:(verified?.episodeScheduleAvailable===true||previous?.episodeScheduleVerified===true),
         airingSeason:type==="Film"?null:numOrNull("airing-season"),latestEpisodeNum:type==="Film"?null:numOrNull("latest-episode-num"),latestEpisodeTitle:type==="Film"?"":$("latest-episode-title").value||"",
         latestEpisodeDate:type==="Film"?"":(verified?.latestEpisodeDate||previous?.latestEpisodeDate||""),seriesReleaseDate:type==="Film"?"":(verified?.seriesReleaseDate||previous?.seriesReleaseDate||""),
-        nextEpisodeNum:type==="Film"?null:numOrNull("next-episode-num"),nextEpisodeTitle:type==="Film"?"":$("next-episode-title").value||"",nextEpisodeDate:type==="Film"?"":(verified?.nextEpisode?episodeReleaseTimestamp(verified.nextEpisode):($("next-episode-date").value||"")),
-        nextSeasonNum:type==="Film"?"":($("next-season-num").value?Number($("next-season-num").value):""),nextSeasonDate:type==="Film"?"":(verified?.upcoming?(verified.nextEpisode&&Number(verified.nextEpisode.season)===Number(verified.upcoming.number)?episodeReleaseTimestamp(verified.nextEpisode):(verified.upcoming.premiereDate||"")):($("next-season-date").value||"")),
+        nextEpisodeNum:type==="Film"?null:numOrNull("next-episode-num"),nextEpisodeTitle:type==="Film"?"":$("next-episode-title").value||"",nextEpisodeDate:type==="Film"?"":storedDateFromInput($("next-episode-date").value,verified?.nextEpisode?episodeReleaseTimestamp(verified.nextEpisode):(previous?.nextEpisodeDate||"")),
+        nextSeasonNum:type==="Film"?"":($("next-season-num").value?Number($("next-season-num").value):""),nextSeasonDate:type==="Film"?"":storedDateFromInput($("next-season-date").value,verified?.upcoming?(verified.nextEpisode&&Number(verified.nextEpisode.season)===Number(verified.upcoming.number)?episodeReleaseTimestamp(verified.nextEpisode):(verified.upcoming.premiereDate||"")):(previous?.nextSeasonDate||"")),
         filmReleaseDate:type==="Film"?(filmReleaseDate.value||""):"",filmReleaseSource:type==="Film"?(filmReleaseDate.value?(filmReleaseSource.value||"Manual"):""):"",
         verifiedCompletedSeasons:type==="Film"?null:(Number.isFinite(Number(verified?.completedSeasons))?Number(verified.completedSeasons):Number(previous?.verifiedCompletedSeasons||0)),
         episodeHistory:type==="Film"?[]:episodeHistory,...(type==="Film"?{watchedEpisodes:{}}:(Object.prototype.hasOwnProperty.call(previous||{},"watchedEpisodes")?{watchedEpisodes:normalizeWatchedEpisodeMap(previous.watchedEpisodes,airedEpisodeCounts)}:{})),lastEpisodeWatchedAt:type==="Film"?"":(previous?.lastEpisodeWatchedAt||""),
