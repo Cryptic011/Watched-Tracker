@@ -123,7 +123,7 @@
     <button class="tab-btn" data-tab="settings"><div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58-1.92-3.32-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.4h-4.8l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96-1.92 3.32 2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58 1.92 3.32 2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54h4.8l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96 1.92-3.32-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></div><span>Settings</span></button>
   </nav>
 
-  <div id="modal" class="modal-overlay hidden"><div class="modal-content"><div class="modal-header"><h2 id="modal-title">Log Title</h2><div class="modal-header-actions"><button id="save-btn" class="header-save-btn" type="submit" form="media-form">Save</button><button id="close-modal" class="close-btn" type="button" aria-label="Close editor">&times;</button></div></div><form id="media-form"><input id="item-id" type="hidden" /><input id="tvmaze-id" type="hidden" /><input id="imdb-id" type="hidden" /><input id="release-year" type="hidden" /><input id="film-release-source" type="hidden" /><div class="form-group suggest-wrap"><label for="title">Title</label><input id="title" type="text" required autocomplete="off" placeholder="e.g. Black Mirror" /><div id="suggest-list" class="suggest-list hidden"></div></div><div class="form-row"><div class="form-group"><label for="type">Format</label><select id="type"><option>Series</option><option>Film</option><option>Anime</option><option>Game</option></select></div><div class="form-group"><label for="status">Status</label><select id="status"><option>Watched</option><option>Watching</option><option>Planned</option></select></div></div><div id="series-section" class="section-box"><span class="section-title">Seasons & Progress</span><div class="form-row"><div class="form-group"><label for="total-seasons">Known / Announced Seasons</label><input id="total-seasons" type="number" min="1" /></div><div class="form-group"><label for="watched-seasons">Fully Watched Seasons</label><input id="watched-seasons" type="number" min="0" /></div></div><div class="form-row"><div class="form-group"><label for="cur-season">Current Season #</label><input id="cur-season" type="number" min="0" inputmode="numeric" placeholder="0 if not started" list="season-options" /><datalist id="season-options"></datalist></div><div class="form-group"><label for="cur-ep">Episode Watched To</label><input id="cur-ep" type="number" min="0" list="episode-options" /><datalist id="episode-options"></datalist></div></div><p id="progress-verify-note" class="small-note">Choose a series to autofill released episodes and valid progress ranges.</p></div><div id="airing-section" class="section-box" style="display:none"><span class="section-title">📺 Currently Airing</span><p id="airing-note" class="small-note">Current episodes are checked against IMDb, TVMaze and Wikipedia.</p><div class="form-row"><div class="form-group"><label for="airing-season">Airing Season</label><input id="airing-season" type="number" readonly /></div><div class="form-group"><label for="latest-episode">Latest Available</label><input id="latest-episode" type="text" readonly /></div></div><div class="form-row"><div class="form-group"><label for="next-episode">Next Episode</label><input id="next-episode" type="text" readonly /></div><div class="form-group"><label for="next-episode-date">Release Date / Time</label><input id="next-episode-date" type="datetime-local" readonly /></div></div><input id="latest-episode-num" type="hidden" /><input id="latest-episode-title" type="hidden" /><input id="next-episode-num" type="hidden" /><input id="next-episode-title" type="hidden" /></div><div id="upcoming-section" class="section-box"><span class="section-title">🔔 Verified Upcoming Season</span><p id="season-verify-note" class="small-note">IMDb, TVMaze and Wikipedia are checked for announced seasons.</p><div class="form-row"><div class="form-group"><label for="next-season-num">Upcoming Season #</label><input id="next-season-num" type="number" /></div><div class="form-group"><label for="next-season-date">Premiere Date / Time</label><input id="next-season-date" type="datetime-local" /></div></div></div><div id="film-section" class="section-box" style="display:none"><span class="section-title">🎬 Verified Film Release</span><p id="film-verify-note" class="small-note">Films and series are checked through multiple sources.</p><div class="form-group"><label for="film-release-date">Release Date</label><input id="film-release-date" type="date" /></div></div><div class="form-group"><label for="platform">Watched / Streaming Source</label><input id="platform" type="text" list="platform-options" placeholder="Theatre, Netflix, Apple TV+, etc." /><datalist id="platform-options"><option value="Theatre"></option><option value="Netflix"></option><option value="Disney+"></option><option value="Prime Video"></option><option value="Apple TV+"></option><option value="Max"></option><option value="Hulu"></option><option value="Paramount+"></option><option value="Peacock"></option><option value="BBC iPlayer"></option><option value="ITVX"></option><option value="Channel 4"></option><option value="Blu-ray"></option><option value="DVD"></option><option value="Digital Purchase"></option></datalist></div><button id="delete-btn" type="button" class="btn btn-danger btn-full modal-delete-button hidden">Delete</button></form></div></div>
+  <div id="modal" class="modal-overlay hidden"><div class="modal-content"><div class="modal-header"><h2 id="modal-title">Log Title</h2><div class="modal-header-actions"><button id="save-btn" class="header-save-btn" type="submit" form="media-form">Save</button><button id="close-modal" class="close-btn" type="button" aria-label="Close editor">&times;</button></div></div><form id="media-form"><input id="item-id" type="hidden" /><input id="tvmaze-id" type="hidden" /><input id="imdb-id" type="hidden" /><input id="release-year" type="hidden" /><input id="film-release-source" type="hidden" /><div class="form-group suggest-wrap"><label for="title">Title</label><input id="title" type="text" required autocomplete="off" placeholder="e.g. Black Mirror" /><div id="suggest-list" class="suggest-list hidden"></div></div><div class="form-row"><div class="form-group"><label for="type">Format</label><select id="type"><option>Series</option><option>Film</option><option>Anime</option><option>Game</option></select></div><div class="form-group"><label for="status">Status</label><select id="status"><option>Watched</option><option>Watching</option><option>Planned</option></select></div></div><div id="series-section" class="section-box"><span class="section-title">Seasons & Progress</span><div class="form-row"><div class="form-group"><label for="total-seasons">Known / Announced Seasons</label><input id="total-seasons" type="number" min="1" /></div><div class="form-group"><label for="watched-seasons">Fully Watched Seasons</label><input id="watched-seasons" type="number" min="0" /></div></div><div class="form-row"><div class="form-group"><label for="cur-season">Season Watched</label><select id="cur-season"><option value="0">0 — Not started</option></select></div><div class="form-group"><label for="cur-ep">Episode Watched To</label><select id="cur-ep"><option value="0">0 — None watched</option></select></div></div><p id="progress-verify-note" class="small-note">Choose a series to autofill released episodes and valid progress ranges.</p></div><div id="airing-section" class="section-box" style="display:none"><span class="section-title">📺 Currently Airing</span><p id="airing-note" class="small-note">Current episodes are checked against IMDb, TVMaze and Wikipedia.</p><div class="form-row"><div class="form-group"><label for="airing-season">Airing Season</label><input id="airing-season" type="number" readonly /></div><div class="form-group"><label for="latest-episode">Latest Available</label><input id="latest-episode" type="text" readonly /></div></div><div class="form-row"><div class="form-group"><label for="next-episode">Next Episode</label><input id="next-episode" type="text" readonly /></div><div class="form-group"><label for="next-episode-date">Release Date / Time</label><input id="next-episode-date" type="datetime-local" readonly /></div></div><input id="latest-episode-num" type="hidden" /><input id="latest-episode-title" type="hidden" /><input id="next-episode-num" type="hidden" /><input id="next-episode-title" type="hidden" /></div><div id="upcoming-section" class="section-box"><span class="section-title">🔔 Verified Upcoming Season</span><p id="season-verify-note" class="small-note">IMDb, TVMaze and Wikipedia are checked for announced seasons.</p><div class="form-row"><div class="form-group"><label for="next-season-num">Upcoming Season #</label><input id="next-season-num" type="number" /></div><div class="form-group"><label for="next-season-date">Premiere Date / Time</label><input id="next-season-date" type="datetime-local" /></div></div></div><div id="film-section" class="section-box" style="display:none"><span class="section-title">🎬 Verified Film Release</span><p id="film-verify-note" class="small-note">Films and series are checked through multiple sources.</p><div class="form-group"><label for="film-release-date">Release Date</label><input id="film-release-date" type="date" /></div></div><div class="form-group"><label for="platform">Watched / Streaming Source</label><input id="platform" type="text" list="platform-options" placeholder="Theatre, Netflix, Apple TV+, etc." /><datalist id="platform-options"><option value="Theatre"></option><option value="Netflix"></option><option value="Disney+"></option><option value="Prime Video"></option><option value="Apple TV+"></option><option value="Max"></option><option value="Hulu"></option><option value="Paramount+"></option><option value="Peacock"></option><option value="BBC iPlayer"></option><option value="ITVX"></option><option value="Channel 4"></option><option value="Blu-ray"></option><option value="DVD"></option><option value="Digital Purchase"></option></datalist></div><button id="delete-btn" type="button" class="btn btn-danger btn-full modal-delete-button hidden">Delete</button></form></div></div>
 
   <script>
   "use strict";
@@ -2265,36 +2265,37 @@
   }
 
   let episodeCountsForForm={},releasedEpisodesForForm={};
-  function refreshEpisodeOptions(){
-    const season=Number($("cur-season").value||0),available=releasedEpisodesForForm[season]||[],max=available.length?Math.max(...available):Number(episodeCountsForForm[season]||0);
-    const options=$("episode-options"),episodeInput=$("cur-ep");
-    if(season===0){
-      if(options)options.innerHTML='<option value="0">Not started</option>';
-      episodeInput.min="0";episodeInput.max="0";episodeInput.value="0";
-      return;
-    }
-    if(options)options.innerHTML=max?`<option value="0">Not started</option>${(available.length?available:Array.from({length:max},(_,i)=>i+1)).map(n=>`<option value="${n}">Episode ${n}</option>`).join("")}`:'<option value="0">Not started</option>';
-    episodeInput.min="0";
-    if(max)episodeInput.max=String(max);else episodeInput.removeAttribute("max");
+  function refreshEpisodeOptions(requestedEpisode=$("cur-ep").value){
+    const season=Number($("cur-season").value||0),available=season?(releasedEpisodesForForm[season]||[]):[];
+    const episodeInput=$("cur-ep"),requested=Number(requestedEpisode)||0;
+    episodeInput.innerHTML='<option value="0">0 — None watched</option>'+available.map(n=>`<option value="${n}">Episode ${n}</option>`).join("");
+    episodeInput.value=String(available.includes(requested)?requested:0);
+    episodeInput.disabled=available.length===0;
   }
 
-  function configureProgressOptions(result){
+  function configureProgressOptions(result,progress={season:$("cur-season").value,episode:$("cur-ep").value}){
     const verifiedEpisodes=result?.episodeScheduleAvailable===true;
-    episodeCountsForForm=verifiedEpisodes?(result?.airedEpisodeCounts||{}):(Object.keys(result?.airedEpisodeCounts||{}).length?result.airedEpisodeCounts:(result?.episodeCounts||{}));
-    releasedEpisodesForForm=verifiedEpisodes?normalizeReleasedEpisodeMap(result?.releasedEpisodes||Object.fromEntries(Object.entries(episodeCountsForForm).map(([season,count])=>[season,Array.from({length:Number(count)||0},(_,i)=>i+1)]))):{};
+    episodeCountsForForm=result?.airedEpisodeCounts||{};
+    const releases=result?.releasedEpisodes;
+    releasedEpisodesForForm=normalizeReleasedEpisodeMap(releases&&Object.keys(releases).length?releases:Object.fromEntries(Object.entries(episodeCountsForForm).map(([season,count])=>[season,Array.from({length:Math.max(0,Number(count)||0)},(_,i)=>i+1)])));
+    // Retain saved progress while an older record's episode schedule is loading.
+    const savedSeason=Number(progress.season)||0,savedEpisode=Number(progress.episode)||0;
+    if(!verifiedEpisodes&&savedSeason>0&&savedEpisode>0&&!releasedEpisodesForForm[savedSeason]?.length)releasedEpisodesForForm[savedSeason]=[savedEpisode];
     const highest=Number(result?.highest||0);
-    const latestReleased=verifiedEpisodes?Math.max(0,Number(result?.latestAired||0)):highest;
+    const seasons=Object.keys(releasedEpisodesForForm).map(Number).filter(n=>n>0&&releasedEpisodesForForm[n].length).sort((a,b)=>a-b);
+    const latestReleased=Math.max(0,...seasons);
     const fullyReleased=verifiedEpisodes?Math.min(latestReleased,Math.max(0,Number(result?.completedSeasons||0))):highest;
-    const seasonOptions=$("season-options");
-    if(seasonOptions)seasonOptions.innerHTML=`<option value="0">Not started</option>${latestReleased?Array.from({length:latestReleased},(_,i)=>`<option value="${i+1}">Season ${i+1}</option>`).join(""):""}`;
+    const seasonSelect=$("cur-season");
+    seasonSelect.innerHTML='<option value="0">0 — Not started</option>'+seasons.map(n=>`<option value="${n}">Season ${n}</option>`).join("");
+    seasonSelect.value=String(seasons.includes(savedSeason)?savedSeason:0);
     if(verifiedEpisodes){
-      $("cur-season").max=String(latestReleased);$("watched-seasons").max=String(fullyReleased);
+      $("watched-seasons").max=String(fullyReleased);
     }else if(highest){
-      $("cur-season").max=String(highest);$("watched-seasons").max=String(highest);
+      $("watched-seasons").max=String(highest);
     }else{
-      $("cur-season").removeAttribute("max");$("watched-seasons").removeAttribute("max");
+      $("watched-seasons").removeAttribute("max");
     }
-    refreshEpisodeOptions();
+    refreshEpisodeOptions(savedEpisode);
     if(!progressVerifyNote)return;
     if(result?.airing){
       const a=result.airing,next=a.nextEpisode;
@@ -2304,7 +2305,7 @@
       progressVerifyNote.textContent=`Latest released season: ${result.latestAired}${count?` • ${count} known episodes`:""}. Your watched progress remains editable.`;
     }else if(result?.upcoming){
       progressVerifyNote.textContent=`No episodes have been released yet. Keep Current Season and Episode at 0 until Season ${result.upcoming.number} begins.`;
-    }else progressVerifyNote.textContent="No released episode schedule was found; enter your progress manually.";
+    }else progressVerifyNote.textContent="Choose a show to load its released seasons and episodes. New shows start at 0 watched.";
   }
 
   function clearAiringFields(){
@@ -2353,29 +2354,26 @@
     if(r.imdbId)$("imdb-id").value=r.imdbId;
     updateSeasonVerifyNote(r);
     $("total-seasons").value=r.highest??"";
+    let season=Number($("cur-season").value)||0,episode=Number($("cur-ep").value)||0;
     if(!preserveProgress){
       const hasReleasedSeason=Boolean(r.airing?.season||r.latestAired);
-      const currentSeason=hasReleasedSeason?(r.airing?.season??r.latestAired):0;
-      $("cur-season").value=currentSeason;
-      $("cur-ep").value=hasReleasedSeason?(r.currentEpisode??0):0;
-      $("watched-seasons").value=hasReleasedSeason&&Number.isFinite(Number(r.completedSeasons))?r.completedSeasons:0;
+      season=0;episode=0;
+      $("watched-seasons").value="0";
       if(!hasReleasedSeason&&r.upcoming)$("status").value="Planned";
     }else if(r.episodeScheduleAvailable){
       const completedMax=Math.max(0,Number(r.completedSeasons||0)),latestMax=Math.max(0,Number(r.latestAired||0));
       const savedWatched=Math.max(0,Number($("watched-seasons").value||0));
       const correctedWatched=Math.min(savedWatched,completedMax);
       if(savedWatched!==correctedWatched)$("watched-seasons").value=String(correctedWatched);
-      let savedSeason=Math.max(0,Number($("cur-season").value||0));
+      let savedSeason=season;
       if(savedSeason>latestMax){
-        savedSeason=Math.min(latestMax,correctedWatched);
-        $("cur-season").value=String(savedSeason);
-        $("cur-ep").value=String(savedSeason?Number(r.airedEpisodeCounts?.[savedSeason]||0):0);
+        season=0;episode=0;
       }else{
         const released=(r.releasedEpisodes?.[savedSeason]||Array.from({length:Math.max(0,Number(r.airedEpisodeCounts?.[savedSeason]||0))},(_,i)=>i+1)),requested=Number($("cur-ep").value||0);
-        $("cur-ep").value=String(Math.max(0,...released.filter(episode=>episode<=requested)));
+        episode=Math.max(0,...released.filter(episode=>episode<=requested));
       }
     }
-    configureProgressOptions(r);
+    configureProgressOptions(r,{season,episode});
     updateAiringFields(r);
     if(!r.upcoming){
       $("next-season-num").value="";$("next-season-date").value="";
@@ -2391,13 +2389,17 @@
 
   async function fillSeasonData(showId,title,{preserveProgress=false,imdbId="",year="",platform="",shouldApply=()=>true}={}){
     const canApply=typeof shouldApply==="function"?shouldApply:()=>true;
+    if(!preserveProgress&&canApply()){
+      $("watched-seasons").value="0";
+      configureProgressOptions({}, {season:0,episode:0});
+    }
     let pending=null;
     const promise=verifiedSeasonData(showId,title,{
       imdbId,year,platform,
       onProgress:preview=>{
         if(pending){pending.resolvedShowId=String(preview.resolvedShowId||"");pending.resolvedImdbId=String(preview.imdbId||"");}
         if(!canApply())return;
-        applySeasonDataResult(preview,{preserveProgress,remember:false});
+        applySeasonDataResult(preview,{preserveProgress:true,remember:false});
       }
     });
     pending={type:"Series",title:normalizeTitle(title),imdbId:String(imdbId||""),showId:String(showId||""),resolvedImdbId:"",resolvedShowId:"",year:String(year||""),platform:normalizeTitle(platform),promise};
@@ -2405,7 +2407,7 @@
     try{
       const result=await promise;
       pending.resolvedShowId=String(result.resolvedShowId||pending.resolvedShowId||"");pending.resolvedImdbId=String(result.imdbId||pending.resolvedImdbId||"");
-      if(canApply())applySeasonDataResult(result,{preserveProgress,remember:true});
+      if(canApply())applySeasonDataResult(result,{preserveProgress:true,remember:true});
       return result;
     }finally{
       if(editorVerificationInFlight===pending)editorVerificationInFlight=null;
@@ -2433,7 +2435,7 @@
       return candidates[0]?.score>=700?candidates[0].show:null;
     }catch(_){return null;}
   }
-  $("cur-season").addEventListener("input",refreshEpisodeOptions);
+  $("cur-season").addEventListener("change",()=>refreshEpisodeOptions(0));
   function isWeakFilmRecord(item){
     if(item?.type!=="Film")return false;
     const genericPlatform=["","film","movie"].includes(normalizeTitle(item.platform||""));
@@ -3483,8 +3485,9 @@ function duplicateCleanupMessage(cleanup){
   function openAdd(){
     clearTimeout(searchTimer);cancelSuggestionProgress();activeCatalogueController?.abort();activeCatalogueController=null;searchRequestId++;editorApplyRevision++;activeTitleSearchKey="";titleSuggestionsWanted=false;editorVerification=null;editorVerificationInFlight=null;hideDuplicateWarning();
     mediaForm.reset();
+    $("watched-seasons").value="0";$("status").value="Planned";
     $("item-id").value="";$("tvmaze-id").value="";$("imdb-id").value="";$("release-year").value="";filmReleaseSource.value="";
-    clearAiringFields();configureProgressOptions({highest:null,episodeCounts:{},latestAired:null});
+    clearAiringFields();configureProgressOptions({highest:null,episodeCounts:{},latestAired:null},{season:0,episode:0});
     if(seasonVerifyNote)seasonVerifyNote.textContent="IMDb, TVMaze and Wikipedia are checked for announced seasons.";
     if(filmVerifyNote)filmVerifyNote.textContent="Films and series are checked through multiple sources.";
     $("modal-title").textContent="Log Title";deleteBtn.classList.add("hidden");
@@ -3500,7 +3503,7 @@ function duplicateCleanupMessage(cleanup){
     $("total-seasons").value=item.totalSeasons??"";$("watched-seasons").value=item.watchedSeasons??"";$("cur-season").value=item.curSeason??"";$("cur-ep").value=item.curEp??"";
     $("next-season-num").value=item.nextSeasonNum??"";$("next-season-date").value=item.nextSeasonDate?toLocalInput(item.nextSeasonDate):"";
     filmReleaseDate.value=item.filmReleaseDate||"";filmReleaseSource.value=item.filmReleaseSource||"";$("platform").value=item.platform||"";
-    configureProgressOptions({highest:item.totalSeasons,episodeCounts:item.episodeCounts||{},airedEpisodeCounts:item.airedEpisodeCounts||{[item.curSeason]:item.currentSeasonEpisodeCount||0},releasedEpisodes:item.releasedEpisodes||{},latestAired:item.curSeason,currentEpisode:item.curEp,completedSeasons:item.verifiedCompletedSeasons,episodeScheduleAvailable:item.episodeScheduleVerified===true||Boolean(Object.keys(item.airedEpisodeCounts||{}).length)});
+    configureProgressOptions({highest:item.totalSeasons,episodeCounts:item.episodeCounts||{},airedEpisodeCounts:item.airedEpisodeCounts||{[item.curSeason]:item.currentSeasonEpisodeCount||0},releasedEpisodes:item.releasedEpisodes||{},latestAired:item.curSeason,currentEpisode:item.curEp,completedSeasons:item.verifiedCompletedSeasons,episodeScheduleAvailable:item.episodeScheduleVerified===true||Boolean(Object.keys(item.airedEpisodeCounts||{}).length)},{season:item.curSeason,episode:item.curEp});
     loadStoredAiringFields(item);
     const film=item.type==="Film";seriesSection.style.display=film?"none":"flex";upcomingSection.style.display=film?"none":"flex";filmSection.style.display=film?"flex":"none";if(film)clearAiringFields();
     $("modal-title").textContent="Edit Title";deleteBtn.classList.remove("hidden");modal.classList.remove("hidden");
