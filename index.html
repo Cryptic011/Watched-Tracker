@@ -108,6 +108,12 @@
     .library-maintenance strong::before{content:"";width:7px;height:7px;flex-shrink:0;border-radius:50%;background:currentColor}
     .library-maintenance p{margin:4px 0 0;color:var(--text);font-size:.76rem;overflow-wrap:anywhere}
   </style>
+  <style>
+    .whats-new-button{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 22px;padding:15px 17px;text-align:left;border:1px solid var(--border);border-radius:14px;background:var(--card);color:var(--text);cursor:pointer}
+    .whats-new-button strong{display:block;font-size:.92rem;font-weight:750}.whats-new-button small{display:block;margin-top:3px;font-size:.76rem;color:var(--muted)}.whats-new-button>span:last-child{color:var(--blue2);font-size:1.5rem}.whats-new-button:active{background:var(--inner)}
+    .changelog-dialog{position:fixed;inset:auto 0 0;width:min(100%,540px);max-height:80vh;max-height:80dvh;margin:0 auto;padding:0;border:1px solid var(--border);border-bottom:0;border-radius:22px 22px 0 0;background:var(--card);color:var(--text);overflow:hidden}
+    .changelog-dialog[open]{display:flex;flex-direction:column}.changelog-dialog::backdrop{background:rgba(0,0,0,.65)}.changelog-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:17px 20px;border-bottom:1px solid var(--border);flex-shrink:0}.changelog-heading h2{font-size:1.3rem}.changelog-body{overflow-y:auto;overscroll-behavior:contain;padding:6px 20px calc(20px + env(safe-area-inset-bottom,0px))}.changelog-entry{padding:15px 0;border-bottom:1px solid var(--border)}.changelog-entry:last-child{border-bottom:0}.changelog-entry summary{cursor:pointer;font-size:.86rem;font-weight:750;color:var(--blue2)}.changelog-entry ul{margin:12px 0 0;padding-left:19px}.changelog-entry li{font-size:.85rem;line-height:1.5;margin:7px 0;overflow-wrap:anywhere}.changelog-open{overflow:hidden}
+  </style>
   <div class="top-nav">
     <div class="nav-header"><div id="user-pill" class="user-pill"><div class="user-dot"></div><span id="nav-name">Guest</span></div></div>
     <h1>Watched Logger</h1>
@@ -227,6 +233,43 @@
   maintenanceAdminSection.id="maintenance-admin-section";maintenanceAdminSection.className="maintenance-admin hidden";
   maintenanceAdminSection.innerHTML='<div class="section-label">Maintenance</div><div class="profile-card"><div class="maintenance-toggle-row"><div class="maintenance-toggle-copy"><strong>Maintenance mode</strong><span>Blocks new logins and account creation</span></div><input id="maintenance-enabled" class="maintenance-switch" type="checkbox" aria-label="Enable maintenance mode" /></div><div class="form-group"><label for="maintenance-message">Login screen message</label><textarea id="maintenance-message" class="maintenance-message" maxlength="240"></textarea></div><button id="save-maintenance" class="btn btn-secondary btn-full" type="button">Save Maintenance Setting</button><div id="maintenance-admin-status" class="maintenance-admin-status" aria-live="polite"></div></div>';
   settingsView.appendChild(maintenanceAdminSection);
+  const whatsNewButton=document.createElement("button");
+  whatsNewButton.id="whats-new-button";whatsNewButton.type="button";whatsNewButton.className="whats-new-button";
+  whatsNewButton.setAttribute("aria-haspopup","dialog");whatsNewButton.setAttribute("aria-controls","changelog-dialog");
+  whatsNewButton.innerHTML='<span><strong>What’s new</strong><small>Recent fixes and improvements</small></span><span aria-hidden="true">›</span>';
+  maintenanceAdminSection.before(whatsNewButton);
+  const changelogDialog=document.createElement("dialog");
+  changelogDialog.id="changelog-dialog";changelogDialog.className="changelog-dialog";changelogDialog.setAttribute("aria-labelledby","changelog-title");
+  changelogDialog.innerHTML='<header class="changelog-heading"><h2 id="changelog-title">What’s new</h2><button class="close-btn" id="close-changelog" type="button" aria-label="Close change log" autofocus>&times;</button></header><div class="changelog-body" id="changelog-body"></div>';
+  document.body.appendChild(changelogDialog);
+  // Add plain-language notes here when an update ships. Do not list pending fixes.
+  const APP_CHANGELOG=[
+    {number:7,title:"Change log menu",date:"2026-09-11",changes:["Added What’s new above Maintenance in Settings.","Select an update number to see only the changes from that push."]},
+    {number:6,title:"Simpler platform choices",date:"2026-09-11",commit:"8e78b6fab6f31bc916f288cc3325b7d77ebbe6f4",changes:["Combined subscription tiers into one entry per service.","Put subscription services first, followed by free, rental and purchase options."]},
+    {number:5,title:"Library maintenance notice",date:"2026-09-11",commit:"bc735627ff016f3dc4da417faeb5f6f52f89ef23",changes:["Added a compact maintenance notice at the top of Library.","The notice shows your maintenance message and disappears when maintenance is off."]},
+    {number:4,title:"UK platform matching",date:"2026-09-11",commit:"87d2242a52a2ef5ef6179f601e7ef1c06a68b7a9",changes:["Added UK streaming checks that work without a TMDB token.","Matched IMDb IDs to prevent different shows with the same name being mixed up.","Excluded disc-only offers from streaming results."]},
+    {number:3,title:"UK platform selector",date:"2026-09-11",commit:"b1e5bd415ceaad01275bcae780f172d97586673d",changes:["Added UK platform choices at the bottom of Edit.","Kept manual entry for where you previously watched a title.","Show N/A only when a successful check finds no UK providers."]},
+    {number:2,title:"Season and episode choices",date:"2026-09-08",commit:"942e01f63b83fc41b1fbf14659db3d0c9a4aef52",changes:["Added season and episode dropdowns when editing shows.","New shows start at zero watched.","Episode choices match the selected season’s released episodes."]},
+    {number:1,title:"Progress sync and reminders",date:"2026-09-06",commit:"16e1012bbcf63f77584650566e3b557cf7836cfb",changes:["Improved progress syncing between devices.","Fixed release-time reminders when episode schedules update.","Preserved reminder times when editing a title."]}
+  ];
+  for(const entry of APP_CHANGELOG){
+    const details=document.createElement("details");details.className="changelog-entry";
+    details.setAttribute("name","app-updates");
+    const summary=document.createElement("summary");
+    summary.textContent=`Update ${entry.number} · ${entry.title}`;
+    const date=document.createElement("p");date.className="small-note";date.style.marginTop="10px";
+    date.textContent=new Intl.DateTimeFormat(navigator.language||"en-GB",{day:"numeric",month:"long",year:"numeric"}).format(new Date(entry.date+"T12:00:00"));
+    const list=document.createElement("ul");
+    for(const change of entry.changes){const item=document.createElement("li");item.textContent=change;list.appendChild(item);}
+    details.append(summary,date,list);
+    if(entry.commit){const link=document.createElement("a");link.className="small-note";link.textContent="View push · "+entry.commit.slice(0,7);link.href="https://github.com/Cryptic011/Watched-Tracker/commit/"+entry.commit;link.target="_blank";link.rel="noopener noreferrer";details.appendChild(link);}
+    details.addEventListener("toggle",()=>{if(details.open)for(const other of $("changelog-body").children)if(other!==details)other.open=false;});
+    $("changelog-body").appendChild(details);
+  }
+  whatsNewButton.onclick=()=>{changelogDialog.showModal();document.documentElement.classList.add("changelog-open");};
+  $("close-changelog").onclick=()=>changelogDialog.close();
+  changelogDialog.addEventListener("click",event=>{if(event.target===changelogDialog)changelogDialog.close();});
+  changelogDialog.addEventListener("close",()=>{document.documentElement.classList.remove("changelog-open");whatsNewButton.focus();});
   const maintenanceEnabled=$("maintenance-enabled"),maintenanceMessage=$("maintenance-message"),saveMaintenance=$("save-maintenance"),maintenanceAdminStatus=$("maintenance-admin-status");
   const mediaList = $("media-list"), emptyState = $("empty-state"), searchInput = $("search-input"), sortMode = $("sort-mode"), modal = $("modal"), addBtn = $("add-btn"), closeModal = $("close-modal"), mediaForm = $("media-form"), deleteBtn = $("delete-btn"), saveBtn = $("save-btn"), typeSelect = $("type"), seriesSection = $("series-section"), progressVerifyNote = $("progress-verify-note"), airingSection = $("airing-section"), airingNote = $("airing-note"), upcomingSection = $("upcoming-section"), seasonVerifyNote = $("season-verify-note"), filmSection = $("film-section"), filmVerifyNote = $("film-verify-note"), filmReleaseDate = $("film-release-date"), filmReleaseSource = $("film-release-source"), titleInput = $("title"), suggestList = $("suggest-list");
   const duplicateWarning=document.createElement("div");
