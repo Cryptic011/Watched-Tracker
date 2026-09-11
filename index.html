@@ -102,6 +102,12 @@
     </div>
   </div>
 
+  <style>
+    .library-maintenance{margin:0 0 14px;padding:11px 13px;border:1px solid rgba(251,191,36,.32);border-radius:12px;background:rgba(251,191,36,.08);line-height:1.4}
+    .library-maintenance strong{display:flex;align-items:center;gap:8px;color:var(--amber);font-size:.8rem;font-weight:750}
+    .library-maintenance strong::before{content:"";width:7px;height:7px;flex-shrink:0;border-radius:50%;background:currentColor}
+    .library-maintenance p{margin:4px 0 0;color:var(--text);font-size:.76rem;overflow-wrap:anywhere}
+  </style>
   <div class="top-nav">
     <div class="nav-header"><div id="user-pill" class="user-pill"><div class="user-dot"></div><span id="nav-name">Guest</span></div></div>
     <h1>Watched Logger</h1>
@@ -205,6 +211,16 @@
   const $ = id => document.getElementById(id);
   const authScreen = $("auth-screen"), authForm = $("auth-form"), authTitle = $("auth-title"), authSub = $("auth-sub"), authNameGroup = $("auth-name-group"), authEmail = $("auth-email"), authPin = $("auth-pin"), authName = $("auth-name"), authSubmit = $("auth-submit"), authToggle = $("auth-toggle"), authMessage = $("auth-message"), maintenanceBanner = $("maintenance-banner"), maintenanceBannerMessage = $("maintenance-banner-message"), maintenanceOwnerAccessButton = $("maintenance-owner-access");
   const navName = $("nav-name"), userPill = $("user-pill"), libraryView = $("library-view"), settingsView = $("settings-view"), profileName = $("profile-name"), profileEmail = $("profile-email"), avatar = $("avatar"), syncDot = $("sync-dot"), syncStatus = $("sync-status"), syncNowBtn = $("sync-now"), changePinBtn = $("change-pin"), newPinInput = $("new-pin"), logoutBtn = $("logout-btn");
+  const libraryMaintenance=document.createElement("div");
+  libraryMaintenance.id="library-maintenance";libraryMaintenance.className="library-maintenance hidden";
+  libraryMaintenance.setAttribute("role","status");libraryMaintenance.setAttribute("aria-live","polite");
+  libraryMaintenance.innerHTML='<strong>Under maintenance</strong><p id="library-maintenance-message"></p>';
+  document.querySelector(".nav-header").after(libraryMaintenance);
+  function renderLibraryMaintenance(){
+    const visible=Boolean(currentUser&&currentTab==="library"&&publicMaintenance.enabled);
+    libraryMaintenance.classList.toggle("hidden",!visible);
+    $("library-maintenance-message").textContent=visible?publicMaintenance.message:"";
+  }
   const backgroundReminderStatus=$("background-reminder-status"),enableBackgroundReminders=$("enable-background-reminders"),disableBackgroundReminders=$("disable-background-reminders");
   const notificationTestSettings=$("notification-test-settings"),notificationTestStatus=$("notification-test-status"),sendPlannedTest=$("send-planned-test");
   const maintenanceAdminSection=document.createElement("section");
@@ -630,6 +646,7 @@
   }
 
   function renderAuthMaintenance(){
+    renderLibraryMaintenance();
     const enabled=publicMaintenance.enabled===true;
     if(!enabled)maintenanceOwnerAccess=false;
     maintenanceBanner.classList.toggle("hidden",!enabled);
@@ -660,6 +677,7 @@
       maintenanceEnabled.checked=result.maintenance===true;
       maintenanceMessage.value=String(result.message||publicMaintenance.message);
       publicMaintenance={enabled:result.maintenance===true,message:maintenanceMessage.value};
+      renderLibraryMaintenance();
       maintenanceAdminStatus.textContent=result.maintenance?"Maintenance is ON. New logins are blocked.":"Maintenance is OFF. Logins are open.";
       maintenanceAdminSection.classList.remove("hidden");
       return true;
@@ -675,6 +693,7 @@
     try{
       const result=await pinApi("set_maintenance",{enabled:maintenanceEnabled.checked,message});
       publicMaintenance={enabled:result.maintenance===true,message:String(result.message||message)};
+      renderLibraryMaintenance();
       maintenanceEnabled.checked=publicMaintenance.enabled;maintenanceMessage.value=publicMaintenance.message;
       maintenanceAdminStatus.textContent=publicMaintenance.enabled?"Maintenance is ON. New logins are blocked.":"Maintenance is OFF. Logins are open.";
       showAppToast(publicMaintenance.enabled?"Maintenance mode enabled.":"Maintenance mode disabled.",publicMaintenance.enabled?"warn":"success");
@@ -1044,7 +1063,7 @@
     }catch(error){console.warn("Automatic cloud retry postponed",error);}
   }
   window.addEventListener("online",()=>{void retryPendingCloudSave();void refreshLibraryEpisodeMetadata({force:true});});
-  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){void retryPendingCloudSave();void refreshLibraryEpisodeMetadata();}});
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){void refreshPublicMaintenance();void retryPendingCloudSave();void refreshLibraryEpisodeMetadata();}});
 
   function commitRefreshedLibrary(){
     const cleanup=cleanLibraryRecords(mediaItems);mediaItems=cleanup.items;
@@ -1181,7 +1200,7 @@
     return task;
   }
 
-  setInterval(()=>{if(document.visibilityState==="visible")void refreshLibraryEpisodeMetadata();},SERIES_RELEASE_CHECK_MS);
+  setInterval(()=>{if(document.visibilityState==="visible"){void refreshPublicMaintenance();void refreshLibraryEpisodeMetadata();}},SERIES_RELEASE_CHECK_MS);
 
   function storePinSession(account,token,expiresAt,revision=cloudRevision){safeWriteJSON(PIN_SESSION_KEY,{token,expiresAt,account,revision});}
   function applyAccount(account){
@@ -1733,7 +1752,7 @@
     for(const item of mediaItems){if(item.status==="Planned"||item.status==="Saved")planned++;else if(item.status==="Watching")watching++;else if(item.status==="Watched")watched++;}
     $("count-planned").textContent=planned;$("count-watching").textContent=watching;$("count-watched").textContent=watched;
   }
-  function updateFloatingAddVisibility(){addBtn.classList.toggle("hidden",!(currentUser&&currentTab==="library"&&activeFilter==="All"));}
+  function updateFloatingAddVisibility(){renderLibraryMaintenance();addBtn.classList.toggle("hidden",!(currentUser&&currentTab==="library"&&activeFilter==="All"));}
   function switchTab(tab){currentTab=tab;tabBtns.forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));const settings=tab==="settings";libraryView.classList.toggle("hidden",settings);settingsView.classList.toggle("hidden",!settings);updateFloatingAddVisibility();if(!settings){$("list-label").textContent=tab==="watchlist"?"Upcoming Premieres":tab==="history"?"Watch History":"Titles";render();}}
   tabBtns.forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
   pillBtns.forEach(b=>b.onclick=()=>{pillBtns.forEach(x=>x.classList.remove("active"));b.classList.add("active");activeFilter=b.dataset.filter;render();});
