@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {getUKAvailability,ukProviders} from '../supabase/functions/watchlog-pin/uk-availability.mjs';
+import {getTMDBAvailability as getUKAvailability,ukProviders} from '../supabase/functions/watchlog-pin/uk-availability.mjs';
 
 test('UK providers exclude US-only services and distinguish rent from subscription',()=>{
   assert.deepEqual(ukProviders({results:{US:{flatrate:[{provider_id:1,provider_name:'US only'}]},GB:{flatrate:[{provider_id:2,provider_name:'UK service'}],rent:[{provider_id:2,provider_name:'UK service'}]}}}),[{name:'UK service',types:['Subscription','Rent']}]);

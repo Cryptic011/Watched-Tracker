@@ -260,15 +260,16 @@
         for(const row of result.providers||[]){
           const option=document.createElement("option");option.value=row.name;option.textContent=row.name+" — "+row.types.join(" / ");ukPlatform.appendChild(option);
         }
-        ukPlatform.disabled=false;ukPlatformNote.textContent="UK availability by JustWatch via TMDB. Series availability may vary by season.";
+        ukPlatform.disabled=false;ukPlatformNote.textContent=(result.identityMatched?"IMDb ID matched. ":"")+"UK availability by JustWatch"+(result.source==="JustWatch"?"":" via TMDB")+". Series availability may vary by season.";
       }else if(result.state==="none"){
         const option=document.createElement("option");option.value="N/A";option.textContent="N/A — No UK providers found";ukPlatform.appendChild(option);
-        ukPlatform.disabled=false;ukPlatformNote.textContent="N/A — No current UK availability found by JustWatch via TMDB. You can keep a previous platform below.";
+        ukPlatform.disabled=false;ukPlatformNote.textContent="N/A — No current UK streaming providers found. You can keep a previous platform below.";
       }else{
         ukPlatform.innerHTML='<option value="">UK availability not confirmed</option>';
-        ukPlatformNote.textContent=result.state==="unconfigured"?"Automatic UK lookup is not connected yet. Check JustWatch UK, then enter your platform below.":"UK availability could not be confirmed for this title. Check JustWatch UK or enter your platform below.";
+        ukPlatformNote.textContent="The exact title could not be matched. Choose its IMDb search result or check JustWatch UK below.";
       }
-      if(result.link&&/^https:\/\/www\.themoviedb\.org\//.test(result.link)){ukPlatformLink.href=result.link;ukPlatformLink.textContent="View JustWatch availability via TMDB";}
+      if(result.link&&/^https:\/\/www\.justwatch\.com\/uk\//.test(result.link)){ukPlatformLink.href=result.link;ukPlatformLink.textContent="View this title on JustWatch UK";}
+      else if(result.link&&/^https:\/\/www\.themoviedb\.org\//.test(result.link)){ukPlatformLink.href=result.link;ukPlatformLink.textContent="View JustWatch availability via TMDB";}
       else ukPlatformLink.textContent="Check on JustWatch UK";
     }catch(error){
       if(revision!==ukAvailabilityRevision||controller.signal.aborted)return;
@@ -578,7 +579,7 @@
   async function pinApi(action,payload={},token=cloudSessionToken,preparedBody="",externalSignal=null){
     const headers={"Content-Type":"application/json"};
     if(token)headers["X-WatchLog-Session"]=token;
-    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),CLOUD_REQUEST_TIMEOUT_MS);
+    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),action==="uk_availability"?20000:CLOUD_REQUEST_TIMEOUT_MS);
     const abortFromExternal=()=>controller.abort();
     if(externalSignal){if(externalSignal.aborted)controller.abort();else externalSignal.addEventListener("abort",abortFromExternal,{once:true});}
     try{
