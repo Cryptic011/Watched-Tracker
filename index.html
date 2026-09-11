@@ -262,6 +262,27 @@
     ukPlatformNote.textContent="Choose from UK availability, or enter where you watched it below.";
     ukPlatformLink.href="https://www.justwatch.com/uk/search?q="+encodeURIComponent($("title").value.trim());
   }
+  function ukServiceChoices(providers){
+    const services=new Map();
+    for(const provider of providers||[]){
+      const raw=String(provider.name||"").trim();if(!raw)continue;
+      let name=raw;
+      if(/^paramount\s*(plus|\+)/i.test(raw))name="Paramount+";
+      else if(/^(amazon\s+)?prime\s+video\b|^amazon video$/i.test(raw))name="Prime Video";
+      else if(/^netflix\b/i.test(raw))name="Netflix";
+      else if(/^itvx\b/i.test(raw))name="ITVX";
+      else if(/^disney\s*(plus|\+)/i.test(raw))name="Disney+";
+      else if(/^apple tv(?:\b|\+)/i.test(raw))name="Apple TV";
+      else if(/^now(?: tv)?(?: cinema| entertainment)?$/i.test(raw))name="NOW";
+      else name=raw.replace(/\s+(?:Amazon|Apple TV|Roku)\s+Channel$/i,"").replace(/\s+(?:Premium|Basic|Standard)(?: with Ads)?$|\s+with Ads$/i,"").trim();
+      const types=Array.isArray(provider.types)?provider.types:[];
+      const rank=types.includes("Subscription")?0:types.some(t=>t==="Free"||t==="With adverts")?1:types.includes("Rent")?2:3;
+      const channel=/\bchannel\b/i.test(raw)?1:0;
+      const existing=services.get(name.toLowerCase());
+      if(!existing||rank<existing.rank||(rank===existing.rank&&channel<existing.channel))services.set(name.toLowerCase(),{name,rank,channel});
+    }
+    return [...services.values()].sort((a,b)=>a.rank-b.rank||a.channel-b.channel||a.name.localeCompare(b.name,"en-GB"));
+  }
   async function loadUKAvailability(){
     resetUKAvailability();
     const title=$("title").value.trim();if(!title)return;
@@ -273,10 +294,10 @@
       if(revision!==ukAvailabilityRevision)return;
       ukPlatform.innerHTML='<option value="">Select where you watched it</option>';
       if(result.state==="available"){
-        for(const row of result.providers||[]){
-          const option=document.createElement("option");option.value=row.name;option.textContent=row.name+" — "+row.types.join(" / ");ukPlatform.appendChild(option);
+        for(const row of ukServiceChoices(result.providers)){
+          const option=document.createElement("option");option.value=row.name;option.textContent=row.name;ukPlatform.appendChild(option);
         }
-        ukPlatform.disabled=false;ukPlatformNote.textContent=(result.identityMatched?"IMDb ID matched. ":"")+"UK availability by JustWatch"+(result.source==="JustWatch"?"":" via TMDB")+". Series availability may vary by season.";
+        ukPlatform.disabled=false;ukPlatformNote.textContent="Subscription services first. Availability and included seasons vary by service. Source: JustWatch"+(result.source==="JustWatch"?".":" via TMDB.");
       }else if(result.state==="none"){
         const option=document.createElement("option");option.value="N/A";option.textContent="N/A — No UK providers found";ukPlatform.appendChild(option);
         ukPlatform.disabled=false;ukPlatformNote.textContent="N/A — No current UK streaming providers found. You can keep a previous platform below.";
