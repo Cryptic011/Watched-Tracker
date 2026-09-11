@@ -109,7 +109,8 @@
     .library-maintenance p{margin:4px 0 0;color:var(--text);font-size:.76rem;overflow-wrap:anywhere}
   </style>
   <style>
-    .whats-new-button{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 22px;padding:15px 17px;text-align:left;border:1px solid var(--border);border-radius:14px;background:var(--card);color:var(--text);cursor:pointer}
+    #settings-view{padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+    .whats-new-button{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;margin:22px 0;padding:15px 17px;text-align:left;border:1px solid var(--border);border-radius:14px;background:var(--card);color:var(--text);cursor:pointer}
     .whats-new-button strong{display:block;font-size:.92rem;font-weight:750}.whats-new-button small{display:block;margin-top:3px;font-size:.76rem;color:var(--muted)}.whats-new-button>span:last-child{color:var(--blue2);font-size:1.5rem}.whats-new-button:active{background:var(--inner)}
     .changelog-dialog{position:fixed;inset:auto 0 0;width:min(100%,540px);max-height:80vh;max-height:80dvh;margin:0 auto;padding:0;border:1px solid var(--border);border-bottom:0;border-radius:22px 22px 0 0;background:var(--card);color:var(--text);overflow:hidden}
     .changelog-dialog[open]{display:flex;flex-direction:column}.changelog-dialog::backdrop{background:rgba(0,0,0,.65)}.changelog-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:17px 20px;border-bottom:1px solid var(--border);flex-shrink:0}.changelog-heading h2{font-size:1.3rem}.changelog-body{overflow-y:auto;overscroll-behavior:contain;padding:6px 20px calc(20px + env(safe-area-inset-bottom,0px))}.changelog-entry{padding:15px 0;border-bottom:1px solid var(--border)}.changelog-entry:last-child{border-bottom:0}.changelog-entry summary{cursor:pointer;font-size:.86rem;font-weight:750;color:var(--blue2)}.changelog-entry ul{margin:12px 0 0;padding-left:19px}.changelog-entry li{font-size:.85rem;line-height:1.5;margin:7px 0;overflow-wrap:anywhere}.changelog-open{overflow:hidden}
@@ -244,6 +245,7 @@
   document.body.appendChild(changelogDialog);
   // Add plain-language notes here when an update ships. Do not list pending fixes.
   const APP_CHANGELOG=[
+    {number:8,title:"Settings spacing",date:"2026-09-11",changes:["Separated What’s new from the account card.","Added bottom clearance so the last Settings controls can scroll above the navigation bar."]},
     {number:7,title:"Change log menu",date:"2026-09-11",changes:["Added What’s new above Maintenance in Settings.","Select an update number to see only the changes from that push."]},
     {number:6,title:"Simpler platform choices",date:"2026-09-11",commit:"8e78b6fab6f31bc916f288cc3325b7d77ebbe6f4",changes:["Combined subscription tiers into one entry per service.","Put subscription services first, followed by free, rental and purchase options."]},
     {number:5,title:"Library maintenance notice",date:"2026-09-11",commit:"bc735627ff016f3dc4da417faeb5f6f52f89ef23",changes:["Added a compact maintenance notice at the top of Library.","The notice shows your maintenance message and disappears when maintenance is off."]},
