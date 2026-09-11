@@ -226,6 +226,56 @@
   const episodeTrackerTitle=$("episode-tracker-title"),episodeTrackerProgress=$("episode-tracker-progress"),episodeTrackerRelease=$("episode-tracker-release"),episodeTrackerSeason=$("episode-tracker-season"),episodeTrackerSeasonSummary=$("episode-tracker-season-summary"),episodeTrackerGrid=$("episode-tracker-grid"),episodeTrackerLast=$("episode-tracker-last"),episodeTrackerEdit=$("episode-tracker-edit"),closeEpisodeTracker=$("close-episode-tracker");
   const pillBtns = document.querySelectorAll(".pill-btn"), tabBtns = document.querySelectorAll(".tab-btn");
   const markEditorUserChange=event=>{if(event.isTrusted){editorApplyRevision++;editorVerification=null;}};
+  const ukPlatformGroup=document.createElement("div");
+  ukPlatformGroup.className="form-group";
+  ukPlatformGroup.innerHTML='<label for="uk-platform">Currently available in the UK</label><select id="uk-platform" aria-describedby="uk-platform-note"><option value="">Choose a title first</option></select><p id="uk-platform-note" class="small-note" role="status"></p><a id="uk-platform-link" class="small-note" target="_blank" rel="noopener noreferrer">Check on JustWatch UK</a>';
+  const watchedPlatformGroup=$("platform").closest(".form-group");
+  watchedPlatformGroup.before(ukPlatformGroup);
+  watchedPlatformGroup.querySelector("label").textContent="Where you watched it";
+  $("platform").placeholder="Choose above or enter a previous platform";
+  const ukPlatform=$("uk-platform"),ukPlatformNote=$("uk-platform-note"),ukPlatformLink=$("uk-platform-link");
+  let ukAvailabilityRevision=0,ukAvailabilityController=null;
+  ukPlatform.addEventListener("change",()=>{
+    if(!ukPlatform.value)return;
+    $("platform").value=ukPlatform.value;
+    $("platform").dispatchEvent(new Event("input",{bubbles:true}));
+  });
+  function resetUKAvailability(){
+    ukAvailabilityRevision++;ukAvailabilityController?.abort();ukAvailabilityController=null;
+    ukPlatform.innerHTML='<option value="">Choose a title first</option>';ukPlatform.disabled=true;
+    ukPlatformNote.textContent="Choose from UK availability, or enter where you watched it below.";
+    ukPlatformLink.href="https://www.justwatch.com/uk/search?q="+encodeURIComponent($("title").value.trim());
+  }
+  async function loadUKAvailability(){
+    resetUKAvailability();
+    const title=$("title").value.trim();if(!title)return;
+    const revision=ukAvailabilityRevision,controller=new AbortController();ukAvailabilityController=controller;
+    ukPlatform.innerHTML='<option value="">Checking UK availability…</option>';
+    ukPlatformNote.textContent="Checking subscription, free, rental and purchase options…";
+    try{
+      const result=await pinApi("uk_availability",{title,type:$("type").value,imdbId:$("imdb-id").value,year:$("release-year").value},cloudSessionToken,"",controller.signal);
+      if(revision!==ukAvailabilityRevision)return;
+      ukPlatform.innerHTML='<option value="">Select where you watched it</option>';
+      if(result.state==="available"){
+        for(const row of result.providers||[]){
+          const option=document.createElement("option");option.value=row.name;option.textContent=row.name+" — "+row.types.join(" / ");ukPlatform.appendChild(option);
+        }
+        ukPlatform.disabled=false;ukPlatformNote.textContent="UK availability by JustWatch via TMDB. Series availability may vary by season.";
+      }else if(result.state==="none"){
+        const option=document.createElement("option");option.value="N/A";option.textContent="N/A — No UK providers found";ukPlatform.appendChild(option);
+        ukPlatform.disabled=false;ukPlatformNote.textContent="N/A — No current UK availability found by JustWatch via TMDB. You can keep a previous platform below.";
+      }else{
+        ukPlatform.innerHTML='<option value="">UK availability not confirmed</option>';
+        ukPlatformNote.textContent=result.state==="unconfigured"?"Automatic UK lookup is not connected yet. Check JustWatch UK, then enter your platform below.":"UK availability could not be confirmed for this title. Check JustWatch UK or enter your platform below.";
+      }
+      if(result.link&&/^https:\/\/www\.themoviedb\.org\//.test(result.link)){ukPlatformLink.href=result.link;ukPlatformLink.textContent="View JustWatch availability via TMDB";}
+      else ukPlatformLink.textContent="Check on JustWatch UK";
+    }catch(error){
+      if(revision!==ukAvailabilityRevision||controller.signal.aborted)return;
+      ukPlatform.innerHTML='<option value="">UK availability unavailable</option>';
+      ukPlatformNote.textContent="Could not check UK availability. Use JustWatch UK or enter your platform below.";
+    }
+  }
   mediaForm.addEventListener("input",markEditorUserChange);
   mediaForm.addEventListener("change",markEditorUserChange);
 
@@ -3403,6 +3453,7 @@ function duplicateCleanupMessage(cleanup){
     const shouldApply=()=>selectionRequestId===searchRequestId&&selectionApplyRevision===editorApplyRevision&&titleInput.value===item.title&&!modal.classList.contains("hidden");
     const selectedImdbId=item.imdbId||(item.source==="imdb"?item.externalId:"");
     $("imdb-id").value=selectedImdbId||"";$("release-year").value=item.year||"";typeSelect.value=item.format;
+    void loadUKAvailability();
     const film=item.format==="Film";seriesSection.style.display=film?"none":"flex";if(film)clearAiringFields();upcomingSection.style.display=film?"none":"flex";filmSection.style.display=film?"flex":"none";
     if(film){
       $("total-seasons").value="";$("watched-seasons").value="";$("cur-season").value="";$("cur-ep").value="";$("next-season-num").value="";$("next-season-date").value="";filmReleaseDate.value="";filmReleaseSource.value="";
@@ -3422,6 +3473,7 @@ function duplicateCleanupMessage(cleanup){
   });
 
   titleInput.addEventListener("input",()=>{
+    resetUKAvailability();
     clearTimeout(searchTimer);cancelSuggestionProgress();activeCatalogueController?.abort();activeCatalogueController=null;
     editorVerification=null;editorVerificationInFlight=null;hideDuplicateWarning();
     $("tvmaze-id").value="";$("imdb-id").value="";$("release-year").value="";
@@ -3457,6 +3509,7 @@ function duplicateCleanupMessage(cleanup){
   });
   document.addEventListener("click",e=>{if(!titleInput.contains(e.target)&&!suggestList.contains(e.target)){clearTimeout(searchTimer);titleSuggestionsWanted=false;activeTitleSearchKey="";activeCatalogueController?.abort();activeCatalogueController=null;cancelSuggestionProgress();suggestList.classList.add("hidden");}});
   typeSelect.onchange=()=>{
+    resetUKAvailability();
     clearTimeout(searchTimer);searchRequestId++;activeTitleSearchKey="";titleSuggestionsWanted=false;activeCatalogueController?.abort();activeCatalogueController=null;cancelSuggestionProgress();editorVerification=null;editorVerificationInFlight=null;hideDuplicateWarning();
     const film=typeSelect.value==="Film";
     seriesSection.style.display=film?"none":"flex";
@@ -3485,6 +3538,7 @@ function duplicateCleanupMessage(cleanup){
   function openAdd(){
     clearTimeout(searchTimer);cancelSuggestionProgress();activeCatalogueController?.abort();activeCatalogueController=null;searchRequestId++;editorApplyRevision++;activeTitleSearchKey="";titleSuggestionsWanted=false;editorVerification=null;editorVerificationInFlight=null;hideDuplicateWarning();
     mediaForm.reset();
+    resetUKAvailability();
     $("watched-seasons").value="0";$("status").value="Planned";
     $("item-id").value="";$("tvmaze-id").value="";$("imdb-id").value="";$("release-year").value="";filmReleaseSource.value="";
     clearAiringFields();configureProgressOptions({highest:null,episodeCounts:{},latestAired:null},{season:0,episode:0});
@@ -3503,6 +3557,7 @@ function duplicateCleanupMessage(cleanup){
     $("total-seasons").value=item.totalSeasons??"";$("watched-seasons").value=item.watchedSeasons??"";$("cur-season").value=item.curSeason??"";$("cur-ep").value=item.curEp??"";
     $("next-season-num").value=item.nextSeasonNum??"";$("next-season-date").value=item.nextSeasonDate?toLocalInput(item.nextSeasonDate):"";
     filmReleaseDate.value=item.filmReleaseDate||"";filmReleaseSource.value=item.filmReleaseSource||"";$("platform").value=item.platform||"";
+    void loadUKAvailability();
     configureProgressOptions({highest:item.totalSeasons,episodeCounts:item.episodeCounts||{},airedEpisodeCounts:item.airedEpisodeCounts||{[item.curSeason]:item.currentSeasonEpisodeCount||0},releasedEpisodes:item.releasedEpisodes||{},latestAired:item.curSeason,currentEpisode:item.curEp,completedSeasons:item.verifiedCompletedSeasons,episodeScheduleAvailable:item.episodeScheduleVerified===true||Boolean(Object.keys(item.airedEpisodeCounts||{}).length)},{season:item.curSeason,episode:item.curEp});
     loadStoredAiringFields(item);
     const film=item.type==="Film";seriesSection.style.display=film?"none":"flex";upcomingSection.style.display=film?"none":"flex";filmSection.style.display=film?"flex":"none";if(film)clearAiringFields();
@@ -3521,6 +3576,7 @@ function duplicateCleanupMessage(cleanup){
     }
   }
   function closeEditor(){
+    resetUKAvailability();
     hideDuplicateWarning();clearTimeout(searchTimer);activeCatalogueController?.abort();activeCatalogueController=null;cancelSuggestionProgress();searchRequestId++;
     editorApplyRevision++;editorVerificationInFlight=null;titleSuggestionsWanted=false;
     activeTitleSearchKey="";suggestList.classList.add("hidden");modal.classList.add("hidden");

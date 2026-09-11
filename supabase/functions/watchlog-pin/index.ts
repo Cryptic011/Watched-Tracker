@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.112.4";
+import { getUKAvailability } from "./uk-availability.mjs";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -350,6 +351,15 @@ Deno.serve(async (req: Request) => {
       }
       const maintenance = await readMaintenance(true);
       return json({ ok: true, canManage: true, maintenance: maintenance.enabled, message: maintenance.message, updatedAt: maintenance.updatedAt });
+    }
+
+    if (action === "uk_availability") {
+      try {
+        const availability = await getUKAvailability(body, Deno.env.get("TMDB_API_READ_TOKEN"));
+        return json({ ok: true, ...availability });
+      } catch (_) {
+        return json({ error: "UK availability could not be checked. Try again shortly.", code: "availability_unavailable" }, 503);
+      }
     }
 
     if (action === "catalog_search") {
