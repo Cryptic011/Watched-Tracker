@@ -204,6 +204,16 @@ test("Reminder backend refreshes schedules before scanning and uses revision che
   assert.match(source,/releasedEpisodes,/);
 });
 
+test("Reminder migrations provision the service-role push schema", () => {
+  const migration = fs.readFileSync(path.join(root, "supabase/migrations/20260908000100_create_push_backend.sql"), "utf8");
+  for (const table of ["watchlog_push_config", "watchlog_push_subscriptions", "watchlog_push_deliveries", "watchlog_push_tests"]) {
+    assert.match(migration, new RegExp(`create table if not exists public\\.${table}`));
+    assert.match(migration, new RegExp(`grant all on table public\\.${table} to service_role`));
+  }
+  assert.match(migration, /unique \(subscription_id, event_key\)/);
+  assert.match(migration, /insert into public\.watchlog_push_config/);
+});
+
 test("Production surface contains no executable third-party catalogue scripts", () => {
   assert.doesNotMatch(html, /document\.createElement\(["']script["']\)/);
   assert.doesNotMatch(html, /sg\.media-imdb\.com|itunes\.apple\.com/);
