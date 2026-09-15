@@ -10,15 +10,15 @@ window.WatchLogGallery=(()=>{
   async function fetchArt(item){
     const signal=AbortSignal.timeout(6500);
     if(!isFilm(item)&&/^\d+$/.test(String(item.tvmazeShowId||''))){
-      const response=await fetch(`https://api.tvmaze.com/shows/${item.tvmazeShowId}`,{signal});
-      if(!response.ok)return '';const show=await response.json();
-      if(item.imdbId&&show.externals?.imdb!==item.imdbId)return '';
-      return safeImage(show.image?.medium||show.image?.original);
+      try{const response=await fetch(`https://api.tvmaze.com/shows/${item.tvmazeShowId}`,{signal});
+        if(response.ok){const show=await response.json();if(!item.imdbId||show.externals?.imdb===item.imdbId)return safeImage(show.image?.original||show.image?.medium);}
+      }catch(_){/* Try the IMDb source below. */}
     }
-    if(!/^tt\d+$/.test(item.imdbId||''))return '';
-    const response=await fetch(`https://v3.sg.media-imdb.com/suggestion/titles/x/${item.imdbId}.json`,{signal});
-    if(!response.ok)return '';const data=await response.json();
-    return safeImage(data.d?.find(row=>row.id===item.imdbId)?.i?.imageUrl);
+    const query=encodeURIComponent(String(item.title||'').trim());if(!query)return '';
+    try{const response=await fetch(`https://v3.sg.media-imdb.com/suggestion/titles/x/${query}.json`,{signal});
+      if(response.ok){const data=await response.json(),match=data.d?.find(row=>row.id===item.imdbId)||data.d?.find(row=>String(row.l||'').toLowerCase()===String(item.title||'').toLowerCase());const image=safeImage(match?.i?.imageUrl);if(image)return image;}
+    }catch(_){/* Keep a readable local teaser poster. */}
+    return '';
   }
   function pump(){while(active<3&&queue.length){const item=queue.shift(),id=key(item);active++;fetchArt(item).catch(()=>'').then(url=>{
     cache.set(id,url);if(cache.size>250)cache.delete(cache.keys().next().value);
@@ -32,7 +32,7 @@ window.WatchLogGallery=(()=>{
   }
   function art(item,badge=''){
     const initials=String(item.title||'?').split(/\s+/).slice(0,2).map(s=>s[0]).join('');
-    return `<div class="gallery-art"><span aria-hidden="true">${esc(initials)}</span><img hidden alt="" data-art="${esc(key(item))}" decoding="async">${badge}</div>`;
+    return `<div class="gallery-art"><span aria-hidden="true">${esc(initials)}</span><div class="gallery-art-title">${esc(item.title||'Untitled')}</div><div class="gallery-art-meta">${esc(isFilm(item)?'FILM':'SERIES')} · ${esc(item.releaseYear||'WATCHED LOGGER')}</div><img hidden alt="" data-art="${esc(key(item))}" decoding="async">${badge}</div>`;
   }
   function releaseTime(item){const value=isFilm(item)?item.filmReleaseDate:item.seriesReleaseDate;const time=Date.parse(value||'');return Number.isFinite(time)?time:0;}
   function releasedByYear(item,now){return /^\d{4}$/.test(String(item.releaseYear||''))&&Number(item.releaseYear)<new Date(now).getFullYear();}
