@@ -9,15 +9,23 @@ window.WatchLogGallery=(()=>{
   function applyImage(img,url){if(!url)return;img.onload=()=>{img.hidden=false;};img.onerror=()=>{img.hidden=true;};img.src=url;}
   async function fetchArt(item){
     const signal=AbortSignal.timeout(6500);
-    if(!isFilm(item)&&/^\d+$/.test(String(item.tvmazeShowId||''))){
-      try{const response=await fetch(`https://api.tvmaze.com/shows/${item.tvmazeShowId}`,{signal});
-        if(response.ok){const show=await response.json();if(!item.imdbId||show.externals?.imdb===item.imdbId)return safeImage(show.image?.original||show.image?.medium);}
-      }catch(_){/* Try the IMDb source below. */}
+    const title=String(item.title||'').trim(),query=encodeURIComponent(title);
+    const normalized=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+    if(!isFilm(item)){
+      const ids=[String(item.tvmazeShowId||'').trim()];
+      for(const id of ids)if(/^\d+$/.test(id)){
+        try{const response=await fetch(`https://api.tvmaze.com/shows/${id}`,{signal});if(response.ok){const show=await response.json();if(!item.imdbId||show.externals?.imdb===item.imdbId){const image=safeImage(show.image?.original||show.image?.medium);if(image)return image;}}}catch(_){}
+      }
+      if(query)try{const response=await fetch(`https://api.tvmaze.com/singlesearch/shows?q=${query}`,{signal});if(response.ok){const show=await response.json();const image=safeImage(show.image?.original||show.image?.medium);if(image)return image;}}catch(_){}
     }
-    const query=encodeURIComponent(String(item.title||'').trim());if(!query)return '';
-    try{const response=await fetch(`https://v3.sg.media-imdb.com/suggestion/x/${query}.json`,{signal});
-      if(response.ok){const data=await response.json(),match=data.d?.find(row=>row.id===item.imdbId)||data.d?.find(row=>String(row.l||'').toLowerCase()===String(item.title||'').toLowerCase());const image=safeImage(match?.i?.imageUrl);if(image)return image;}
-    }catch(_){/* Keep a readable local teaser poster. */}
+    if(!query)return '';
+    const imdbQueries=[query,/^tt\d+$/.test(String(item.imdbId||''))?encodeURIComponent(item.imdbId):''].filter(Boolean);
+    for(const imdbQuery of imdbQueries)try{
+      const response=await fetch(`https://v3.sg.media-imdb.com/suggestion/x/${imdbQuery}.json`,{signal});if(!response.ok)continue;
+      const data=await response.json(),rows=Array.isArray(data.d)?data.d:[],wanted=normalized(title);
+      const match=rows.find(row=>row.id===item.imdbId)||rows.find(row=>normalized(row.l)===wanted)||rows.find(row=>Number(row.y||0)===Number(item.releaseYear||0)&&row.i?.imageUrl)||rows.find(row=>row.i?.imageUrl);
+      const image=safeImage(match?.i?.imageUrl);if(image)return image;
+    }catch(_){}
     return '';
   }
   function pump(){while(active<3&&queue.length){const item=queue.shift(),id=key(item);active++;fetchArt(item).catch(()=>'').then(url=>{
