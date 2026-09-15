@@ -140,7 +140,7 @@
 
   <link rel="stylesheet" href="library-gallery.css?v=16">
   <script src="build-info.js"></script>
-  <script src="library-gallery.js?v=20"></script>
+  <script src="library-gallery.js?v=21"></script>
   <script>
   "use strict";
 
@@ -1259,7 +1259,10 @@
       mediaItems[index]=migratePlannedStatuses([refreshed]).rows[0];
       if(!deferCommit)commitRefreshedLibrary();
       return true;
-    })().catch(error=>{console.warn("Background title refresh postponed",error);return false;}).finally(()=>metadataRefreshInFlight.delete(id));
+    })().catch(error=>{console.warn("Background title refresh postponed",error);return false;}).finally(()=>{
+      metadataRefreshInFlight.delete(id);
+      if(activeEpisodeTrackerId===id)updateEpisodeTracker();
+    });
     metadataRefreshInFlight.set(id,task);
     return task;
   }
@@ -1799,6 +1802,7 @@
     if(episodeMetadataNeedsRefresh(item)){
       episodeTrackerRelease.textContent=`${episodeTrackerRelease.textContent} · Checking for new episodes…`;
       void scheduleMetadataRefresh(item);
+      updateEpisodeTracker();
     }
     setTimeout(()=>{(activeEpisodeTrackerSeason?episodeTrackerSeason:closeEpisodeTracker).focus();},0);
   }

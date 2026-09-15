@@ -11,6 +11,7 @@ window.WatchLogGallery=(()=>{
     const signal=AbortSignal.timeout(6500);
     const direct=safeImage(item.posterUrl||item.imageUrl||item.poster||item.image?.original||item.image?.medium);if(direct)return direct;
     const title=String(item.title||'').trim(),query=encodeURIComponent(title);
+    let artworkImdbId=String(item.imdbId||'').trim();
     const normalized=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
     if(!isFilm(item)){
       const imdbId=String(item.imdbId||'').trim(),showId=String(item.tvmazeShowId||'').trim();
@@ -20,7 +21,7 @@ window.WatchLogGallery=(()=>{
         return normalized(show?.name)===normalized(title)&&(!item.releaseYear||String(show?.premiered||'').slice(0,4)===String(item.releaseYear));
       };
       const url=/^\d+$/.test(showId)?`https://api.tvmaze.com/shows/${showId}`:/^tt\d+$/.test(imdbId)?`https://api.tvmaze.com/lookup/shows?imdb=${encodeURIComponent(imdbId)}`:'';
-      if(url)try{const response=await fetch(url,{signal});if(response.ok){const show=await response.json();if(matches(show)){const image=safeImage(show.image?.original||show.image?.medium);if(image)return image;}}}catch(_){}
+      if(url)try{const response=await fetch(url,{signal});if(response.ok){const show=await response.json();if(matches(show)){if(/^tt\d+$/.test(String(show.externals?.imdb||'')))artworkImdbId=show.externals.imdb;const image=safeImage(show.image?.original||show.image?.medium);if(image)return image;}}}catch(_){}
       // Never replace a known identity with the first same-name search result.
       if(!imdbId&&!showId&&query)try{
         const response=await fetch(`https://api.tvmaze.com/search/shows?q=${query}`,{signal});
@@ -29,12 +30,16 @@ window.WatchLogGallery=(()=>{
       }catch(_){}
     }
     if(!query)return '';
+    // A known TVMaze show must never fall back to a different title identity.
+    if(!isFilm(item)&&item.tvmazeShowId&&!artworkImdbId)return '';
     // IMDb suggestion responses do not grant browser CORS access. Use the
     // existing authenticated catalogue endpoint and match identity, not rank.
     if(api?.artwork)try{
-      const rows=await api.artwork(item);
+      const rows=await api.artwork(artworkImdbId?{...item,imdbId:artworkImdbId}:item);
       const candidates=Array.isArray(rows)?rows:[];
-      const match=item.imdbId?candidates.find(row=>row.imdbId===item.imdbId):candidates.find(row=>normalized(row.title)===normalized(title)&&row.format===(isFilm(item)?'Film':'Series')&&(!item.releaseYear||String(row.year)===String(item.releaseYear)));
+      const matches=candidates.filter(row=>artworkImdbId?row.imdbId===artworkImdbId:normalized(row.title)===normalized(title)&&row.format===(isFilm(item)?'Film':'Series')&&(!item.releaseYear||String(row.year)===String(item.releaseYear)));
+      const identities=new Set(matches.map(row=>row.imdbId||row.externalId||row.tvmazeId||''));
+      const match=identities.size===1?matches.find(row=>safeImage(row.posterUrl)):null;
       const image=safeImage(match?.posterUrl);if(image)return image;
     }catch(_){}
     return '';
