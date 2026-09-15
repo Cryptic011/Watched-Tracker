@@ -20,12 +20,13 @@ window.WatchLogGallery=(()=>{
       if(query)try{const response=await fetch(`https://api.tvmaze.com/singlesearch/shows?q=${query}`,{signal});if(response.ok){const show=await response.json();const image=safeImage(show.image?.original||show.image?.medium);if(image)return image;}}catch(_){}
     }
     if(!query)return '';
-    const imdbQueries=[query,/^tt\d+$/.test(String(item.imdbId||''))?encodeURIComponent(item.imdbId):''].filter(Boolean);
-    for(const imdbQuery of imdbQueries)try{
-      const response=await fetch(`https://v3.sg.media-imdb.com/suggestion/x/${imdbQuery}.json`,{signal});if(!response.ok)continue;
-      const data=await response.json(),rows=Array.isArray(data.d)?data.d:[],wanted=normalized(title);
-      const match=rows.find(row=>row.id===item.imdbId)||rows.find(row=>normalized(row.l)===wanted);
-      const image=safeImage(match?.i?.imageUrl);if(image)return image;
+    // IMDb suggestion responses do not grant browser CORS access. Use the
+    // existing authenticated catalogue endpoint and match identity, not rank.
+    if(api?.artwork)try{
+      const rows=await api.artwork(item);
+      const candidates=Array.isArray(rows)?rows:[];
+      const match=item.imdbId?candidates.find(row=>row.imdbId===item.imdbId):candidates.find(row=>normalized(row.title)===normalized(title)&&row.format===(isFilm(item)?'Film':'Series')&&(!item.releaseYear||String(row.year)===String(item.releaseYear)));
+      const image=safeImage(match?.posterUrl);if(image)return image;
     }catch(_){}
     return '';
   }
@@ -35,8 +36,8 @@ window.WatchLogGallery=(()=>{
   }).finally(()=>{active--;pending.delete(id);pump();});}}
   function observe(root,items){
     const byKey=new Map(items.map(item=>[key(item),item]));
-    if(!observer)observer=new IntersectionObserver(entries=>{for(const entry of entries){if(!entry.isIntersecting)continue;const img=entry.target;observer.unobserve(img);const item=img._galleryItem;if(!item)continue;const id=key(item);if(cache.has(id)){applyImage(img,cache.get(id));continue;}if(!pending.has(id)){pending.add(id);queue.push(item);pump();}}},{rootMargin:'160px'});
-    const images=[...root.querySelectorAll('[data-art]')];images.forEach(img=>{img._galleryItem=byKey.get(img.dataset.art);if(cache.has(img.dataset.art))applyImage(img,cache.get(img.dataset.art));else if(observer)observer.observe(img);else if(!pending.has(img.dataset.art)){pending.add(img.dataset.art);queue.push(img._galleryItem);}});if(!observer)pump();
+    if(!observer&&typeof IntersectionObserver!=="undefined")observer=new IntersectionObserver(entries=>{for(const entry of entries){if(!entry.isIntersecting)continue;const box=entry.target;observer.unobserve(box);const img=box.querySelector("img[data-art]");if(!img)return;const item=img._galleryItem;if(!item)continue;const id=key(item);if(cache.has(id)){applyImage(img,cache.get(id));continue;}if(!pending.has(id)){pending.add(id);queue.push(item);pump();}}},{rootMargin:'160px'});
+    const images=[...root.querySelectorAll('[data-art]')];images.forEach(img=>{img._galleryItem=byKey.get(img.dataset.art);if(cache.has(img.dataset.art))applyImage(img,cache.get(img.dataset.art));else if(observer)observer.observe(img.parentElement);else if(!pending.has(img.dataset.art)){pending.add(img.dataset.art);queue.push(img._galleryItem);}});if(!observer)pump();
   }
   function art(item){
     const initials=String(item.title||'?').split(/\s+/).slice(0,2).map(s=>s[0]).join('');

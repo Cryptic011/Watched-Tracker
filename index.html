@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://okkwteywtgfsnlrjdyhv.supabase.co https://api.tvmaze.com https://en.wikipedia.org https://www.wikidata.org https://v3.sg.media-imdb.com; img-src 'self' data: https://static.tvmaze.com https://m.media-amazon.com https://images-na.ssl-images-amazon.com; manifest-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://okkwteywtgfsnlrjdyhv.supabase.co https://api.tvmaze.com https://en.wikipedia.org https://www.wikidata.org; img-src 'self' data: https://static.tvmaze.com https://m.media-amazon.com https://images-na.ssl-images-amazon.com; manifest-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
   <title>Watched Logger</title>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -140,7 +140,7 @@
 
   <link rel="stylesheet" href="library-gallery.css?v=16">
   <script src="build-info.js"></script>
-  <script src="library-gallery.js?v=17"></script>
+  <script src="library-gallery.js?v=18"></script>
   <script>
   "use strict";
 
@@ -176,12 +176,19 @@
   let activeFilter = "All";
   let currentTab = "library";
   let globalSwipeX=0,globalSwipeY=0,globalSwipeAt=0,globalSwipeTarget=null,globalSwipeHandledAt=0;
+  let swipeActive=false,swipeComplete=false,swipeVertical=false;
+  function beginSwipe(x,y,target){
+    globalSwipeX=x;globalSwipeY=y;globalSwipeAt=Date.now();globalSwipeTarget=target;
+    swipeActive=!target?.closest?.('input,textarea,select,[contenteditable="true"]');
+    swipeComplete=false;swipeVertical=false;
+  }
   function handleGlobalSwipe(endX,endY,event){
+    if(!swipeActive||swipeComplete||swipeVertical)return;
     const now=Date.now(),dx=endX-globalSwipeX,dy=endY-globalSwipeY;
-    if(event?.__watchLoggerSwipeHandled||now-globalSwipeAt>900||now-globalSwipeHandledAt<450||dx>-72||Math.abs(dx)<Math.abs(dy)*1.2)return;
-    if(globalSwipeTarget?.closest?.("input,textarea,select,[contenteditable=\"true\"]"))return;
-    globalSwipeHandledAt=now;
-    event.__watchLoggerSwipeHandled=true;
+    if(Math.abs(dy)>18&&Math.abs(dy)>Math.abs(dx)*1.2){swipeVertical=true;return;}
+    if(now-globalSwipeAt>1500||dx>-55||Math.abs(dx)<Math.abs(dy)*1.5)return;
+    swipeComplete=true;globalSwipeHandledAt=now;
+    if(event.cancelable)event.preventDefault();
     const openDialog=document.querySelector("dialog[open]");
     if(openDialog){openDialog.close();return;}
     if(!episodeTrackerModal.classList.contains("hidden")){closeEpisodeTrackerSheet();return;}
@@ -189,10 +196,14 @@
     if(currentTab!=="library"){switchTab("library");return;}
     window.WatchLogGallery?.back?.();
   }
-  document.addEventListener("touchstart",event=>{const t=event.changedTouches?.[0];if(!t)return;globalSwipeX=t.clientX;globalSwipeY=t.clientY;globalSwipeAt=Date.now();globalSwipeTarget=event.target;},{passive:true});
-  document.addEventListener("touchend",event=>{const t=event.changedTouches?.[0];if(t)handleGlobalSwipe(t.clientX,t.clientY,event);},{passive:true});
-  document.addEventListener("pointerdown",event=>{if(event.pointerType!=="touch")return;globalSwipeX=event.clientX;globalSwipeY=event.clientY;globalSwipeAt=Date.now();globalSwipeTarget=event.target;},{passive:true});
-  document.addEventListener("pointerup",event=>{if(event.pointerType!=="touch")return;handleGlobalSwipe(event.clientX,event.clientY,event);},{passive:true});
+  document.addEventListener("touchstart",event=>{if(event.touches?.length>1){swipeActive=false;return;}const t=event.changedTouches?.[0];if(t)beginSwipe(t.clientX,t.clientY,event.target);},{passive:true,capture:true});
+  document.addEventListener("touchmove",event=>{const t=event.changedTouches?.[0];if(!t)return;const dx=t.clientX-globalSwipeX,dy=t.clientY-globalSwipeY;if(swipeActive&&!swipeVertical&&dx<-12&&Math.abs(dx)>Math.abs(dy)*1.5&&event.cancelable)event.preventDefault();handleGlobalSwipe(t.clientX,t.clientY,event);},{passive:false,capture:true});
+  document.addEventListener("touchend",event=>{const t=event.changedTouches?.[0];if(t)handleGlobalSwipe(t.clientX,t.clientY,event);swipeActive=false;},{passive:false,capture:true});
+  document.addEventListener("touchcancel",()=>{swipeActive=false;},{passive:true,capture:true});
+  document.addEventListener("pointerdown",event=>{if(event.isPrimary===false||event.button>0)return;beginSwipe(event.clientX,event.clientY,event.target);},{passive:true,capture:true});
+  document.addEventListener("pointermove",event=>{if(event.pointerType!=="touch")handleGlobalSwipe(event.clientX,event.clientY,event);},{passive:false,capture:true});
+  document.addEventListener("pointerup",event=>{if(event.pointerType!=="touch"){handleGlobalSwipe(event.clientX,event.clientY,event);swipeActive=false;}},{passive:false,capture:true});
+  document.addEventListener("click",event=>{if(swipeComplete&&Date.now()-globalSwipeHandledAt<500){event.preventDefault();event.stopImmediatePropagation();}},{capture:true});
   let searchQuery = "";
   let activeSort = "current";
   let searchTimer = null;
@@ -1926,7 +1937,7 @@
     const {rows,groups}=currentVisibleMediaRows();emptyState.classList.toggle("hidden",rows.length>0);
     if(currentTab==="library"&&window.WatchLogGallery){
       $("list-label").textContent="Library";
-      window.WatchLogGallery.mount(mediaList,rows,{upcoming:upcomingSortInfo,last:item=>isEpisodeTrackable(item)?lastLoggedEpisode(item):null,date:formatLocalDate,dateTime:formatLocalDateTime,reminder:reminderMarkup,edit:openEdit,track:openEpisodeTracker,render,back:()=>{if(currentTab!=="library"){currentTab="library";render();}},items:()=>mediaItems});
+      window.WatchLogGallery.mount(mediaList,rows,{upcoming:upcomingSortInfo,last:item=>isEpisodeTrackable(item)?lastLoggedEpisode(item):null,date:formatLocalDate,dateTime:formatLocalDateTime,reminder:reminderMarkup,edit:openEdit,track:openEpisodeTracker,render,back:()=>{if(currentTab!=="library"){currentTab="library";render();}},artwork:async item=>(await pinApi("catalog_search",{query:item.imdbId||item.title,country:"gb"})).results,items:()=>mediaItems});
       updateEpisodeTracker();return;
     }
     mediaList.classList.remove("gallery-active");

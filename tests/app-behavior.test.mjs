@@ -207,7 +207,7 @@ test("Reminder backend refreshes schedules before scanning and uses revision che
 test("Production surface contains no executable third-party catalogue scripts", () => {
   assert.doesNotMatch(html, /document\.createElement\(["']script["']\)/);
   const policy=html.match(/Content-Security-Policy" content="([^"]+)/)[1];
-  assert.match(policy, /connect-src[^;]*https:\/\/v3\.sg\.media-imdb\.com/);
+  assert.doesNotMatch(policy, /sg\.media-imdb\.com/);
   assert.doesNotMatch(policy.match(/script-src[^;]*/)[0], /https:/);
   assert.match(html, /Content-Security-Policy/);
   assert.match(html, /pinApi\("catalog_search"/);

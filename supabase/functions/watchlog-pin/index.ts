@@ -83,6 +83,7 @@ function imdbSuggestion(row: any) {
   else if (/video game|videogame|game/.test(kind)) format = "Game";
   return {
     source: "imdb", externalId: id, imdbId: id,
+    posterUrl: /^https:\/\/m\.media-amazon\.com\//.test(String(row?.i?.imageUrl || "")) ? String(row.i.imageUrl).slice(0, 2000) : "",
     title: catalogText(row?.l || row?.title), format,
     year: Number.isFinite(Number(row?.y)) ? String(row.y).slice(0, 4) : "",
     releaseDate: "", platform: "", detail: catalogText(row?.q || row?.qid || format, 64).replace(/_/g, " "),
