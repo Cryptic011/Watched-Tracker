@@ -28,6 +28,11 @@ jobs:
     steps:
       - name: Check out site
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Generate version from Git history
+        run: node scripts/build-info.mjs
 
       - name: Check application behavior
         run: node --test tests/*.test.mjs
@@ -38,7 +43,7 @@ jobs:
       - name: Stage runtime site
         run: |
           mkdir -p _site
-          cp index.html library-gallery.js library-gallery.css manifest.webmanifest sw.js _site/
+          cp index.html build-info.js library-gallery.js library-gallery.css manifest.webmanifest sw.js _site/
 
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v5

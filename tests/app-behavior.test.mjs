@@ -206,7 +206,9 @@ test("Reminder backend refreshes schedules before scanning and uses revision che
 
 test("Production surface contains no executable third-party catalogue scripts", () => {
   assert.doesNotMatch(html, /document\.createElement\(["']script["']\)/);
-  assert.doesNotMatch(html, /sg\.media-imdb\.com|itunes\.apple\.com/);
+  const policy=html.match(/Content-Security-Policy" content="([^"]+)/)[1];
+  assert.match(policy, /connect-src[^;]*https:\/\/v3\.sg\.media-imdb\.com/);
+  assert.doesNotMatch(policy.match(/script-src[^;]*/)[0], /https:/);
   assert.match(html, /Content-Security-Policy/);
   assert.match(html, /pinApi\("catalog_search"/);
 });
@@ -221,7 +223,7 @@ test("HTML ids are unique and Pages uploads only runtime files", () => {
   assert.match(workflow, /uses: actions\/upload-pages-artifact@v5/);
   assert.match(workflow, /uses: actions\/deploy-pages@v5/);
   assert.match(workflow, /path: _site/);
-  assert.match(workflow, /cp index\.html library-gallery\.js library-gallery\.css manifest\.webmanifest sw\.js _site\//);
+  assert.match(workflow, /cp index\.html build-info\.js library-gallery\.js library-gallery\.css manifest\.webmanifest sw\.js _site\//);
 });
 
 test("Backend requires revisions and provides an owned catalogue gateway", () => {
