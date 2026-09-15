@@ -71,7 +71,7 @@ window.WatchLogGallery=(()=>{
     if(window.__watchLogGallerySwipe)return;window.__watchLogGallerySwipe=true;
     let startX=0,startY=0,startAt=0;
     document.addEventListener('touchstart',event=>{const t=event.changedTouches?.[0];if(!t)return;startX=t.clientX;startY=t.clientY;startAt=Date.now();},{passive:true});
-    document.addEventListener('touchend',event=>{const t=event.changedTouches?.[0];if(!t)return;const dx=t.clientX-startX,dy=t.clientY-startY;if(Date.now()-startAt>700||dx>-72||Math.abs(dx)<Math.abs(dy)*1.25)return;if(event.target?.closest?.('input,textarea,select,[contenteditable="true"]'))return;if(dialog?.open){dialog.close();return;}if(category){category='';api?.render?.();return;}api?.back?.();},{passive:true});
+    document.addEventListener('touchend',event=>{const t=event.changedTouches?.[0];if(!t)return;const dx=t.clientX-startX,dy=t.clientY-startY;if(Date.now()-startAt>700||dx>-72||Math.abs(dx)<Math.abs(dy)*1.25)return;if(event.target?.closest?.('input,textarea,select,[contenteditable="true"]'))return;if(event.__watchLoggerSwipeHandled)return;event.__watchLoggerSwipeHandled=true;if(dialog?.open){dialog.close();return;}if(category){category='';api?.render?.();return;}api?.back?.();},{passive:true});
   }
   function mount(element,rows,callbacks){
     host=element;api=callbacks;enableSwipe();observer?.disconnect();host.classList.add('gallery-active');
