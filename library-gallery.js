@@ -86,5 +86,5 @@ window.WatchLogGallery=(()=>{
     else{const items=rows.filter(item=>category==='Film'?isFilm(item):!isFilm(item)),parts=sections(items,api.upcoming);host.innerHTML=`<div class="gallery-nav"><button type="button" class="gallery-back" data-gallery-back aria-label="Back to Library">‹</button><h2>${category==='Film'?'Films':'Series'}</h2></div>${section('Upcoming',parts.future,true)}${section('Released',parts.released)}${section('Other titles',parts.remaining)}${items.length?'':'<p class="gallery-empty">No titles match your search or filter.</p>'}`;}
     observe(host,rows);
   }
-  return {mount,sections,back};
+  return {mount,sections,back,hasCategory:()=>Boolean(category)};
 })();
