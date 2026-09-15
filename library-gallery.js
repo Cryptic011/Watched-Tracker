@@ -13,11 +13,20 @@ window.WatchLogGallery=(()=>{
     const title=String(item.title||'').trim(),query=encodeURIComponent(title);
     const normalized=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
     if(!isFilm(item)){
-      const ids=[String(item.tvmazeShowId||'').trim()];
-      for(const id of ids)if(/^\d+$/.test(id)){
-        try{const response=await fetch(`https://api.tvmaze.com/shows/${id}`,{signal});if(response.ok){const show=await response.json();if(!item.imdbId||show.externals?.imdb===item.imdbId){const image=safeImage(show.image?.original||show.image?.medium);if(image)return image;}}}catch(_){}
-      }
-      if(query)try{const response=await fetch(`https://api.tvmaze.com/singlesearch/shows?q=${query}`,{signal});if(response.ok){const show=await response.json();const image=safeImage(show.image?.original||show.image?.medium);if(image)return image;}}catch(_){}
+      const imdbId=String(item.imdbId||'').trim(),showId=String(item.tvmazeShowId||'').trim();
+      const matches=show=>{
+        if(imdbId)return show?.externals?.imdb===imdbId;
+        if(showId)return String(show?.id)===showId;
+        return normalized(show?.name)===normalized(title)&&(!item.releaseYear||String(show?.premiered||'').slice(0,4)===String(item.releaseYear));
+      };
+      const url=/^\d+$/.test(showId)?`https://api.tvmaze.com/shows/${showId}`:/^tt\d+$/.test(imdbId)?`https://api.tvmaze.com/lookup/shows?imdb=${encodeURIComponent(imdbId)}`:'';
+      if(url)try{const response=await fetch(url,{signal});if(response.ok){const show=await response.json();if(matches(show)){const image=safeImage(show.image?.original||show.image?.medium);if(image)return image;}}}catch(_){}
+      // Never replace a known identity with the first same-name search result.
+      if(!imdbId&&!showId&&query)try{
+        const response=await fetch(`https://api.tvmaze.com/search/shows?q=${query}`,{signal});
+        if(response.ok){const rows=await response.json(),candidates=Array.isArray(rows)?rows.map(row=>row.show).filter(matches):[];
+          if(candidates.length===1){const image=safeImage(candidates[0].image?.original||candidates[0].image?.medium);if(image)return image;}}
+      }catch(_){}
     }
     if(!query)return '';
     // IMDb suggestion responses do not grant browser CORS access. Use the

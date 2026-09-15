@@ -26,6 +26,11 @@ test('Posters also load when IntersectionObserver is unavailable',async()=>{
   const app=gallery({observer:false,results:[{imdbId:'tt1877830',posterUrl:poster}]});
   await new Promise(setImmediate);assert.equal(app.img.url,poster);
 });
+test('Ambiguous same-name series do not borrow another show poster',async()=>{
+  const app=gallery({results:[]});
+  await new Promise(setImmediate);
+  assert.equal(app.img.url,undefined);
+});
 test('A different IMDb identity cannot supply a films poster',async()=>{
   const app=gallery({results:[{imdbId:'tt0000000',title:'The Batman',posterUrl:poster}]});
   await new Promise(setImmediate);assert.equal(app.img.url,undefined);

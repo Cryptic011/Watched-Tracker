@@ -140,7 +140,7 @@
 
   <link rel="stylesheet" href="library-gallery.css?v=16">
   <script src="build-info.js"></script>
-  <script src="library-gallery.js?v=19"></script>
+  <script src="library-gallery.js?v=20"></script>
   <script>
   "use strict";
 
@@ -1802,15 +1802,21 @@
     }
     setTimeout(()=>{(activeEpisodeTrackerSeason?episodeTrackerSeason:closeEpisodeTracker).focus();},0);
   }
+  function episodeTrackerEmptyState(item){
+    if(metadataRefreshInFlight.has(String(item.id)))return {summary:"Checking episode schedule…",message:"Loading episode details. Please wait."};
+    if(item.episodeScheduleVerified===true)return {summary:"No released episodes yet",message:"No released episodes are available for this series yet."};
+    return {summary:"Episode schedule unavailable",message:"The episode schedule could not be verified. Open Edit show details to check the selected series and refresh its details."};
+  }
   function updateEpisodeTracker(){
     if(!activeEpisodeTrackerId||episodeTrackerModal.classList.contains("hidden"))return;
     const item=mediaItems.find(row=>String(row.id)===String(activeEpisodeTrackerId));if(!item){closeEpisodeTrackerSheet();return;}
     const releases=releasedEpisodeMap(item),counts=releasedEpisodeCounts(item),releasedSeasons=Object.keys(releases).map(Number).sort((a,b)=>a-b),latestSeason=releasedSeasons[releasedSeasons.length-1]||0;
     const watchedMap=watchedEpisodeMap(item,releases),highest=highestWatchedEpisode(watchedMap),feedback=episodeLogFeedback?.itemId===String(item.id)?episodeLogFeedback:null;
     if(!releasedSeasons.includes(activeEpisodeTrackerSeason))activeEpisodeTrackerSeason=releasedSeasons.includes(Number(item.curSeason||0))?Number(item.curSeason):latestSeason;
+    const emptySchedule=episodeTrackerEmptyState(item);
     episodeTrackerTitle.textContent=item.title||"Show";
     episodeTrackerProgress.textContent=highest?`S${highest.season} E${highest.episode}`:"Not started";
-    episodeTrackerRelease.textContent=latestSeason?`Released through S${latestSeason} E${counts[latestSeason]}`:"No released episode schedule found";
+    episodeTrackerRelease.textContent=latestSeason?`Released through S${latestSeason} E${counts[latestSeason]}`:emptySchedule.summary;
     episodeTrackerSeason.innerHTML=releasedSeasons.length?releasedSeasons.map(season=>`<option value="${season}"${season===activeEpisodeTrackerSeason?" selected":""}>Season ${season}</option>`).join(""):'<option value="">No seasons</option>';
     episodeTrackerSeason.disabled=!releasedSeasons.length;
     const available=releases[activeEpisodeTrackerSeason]||[],watched=new Set(watchedMap[activeEpisodeTrackerSeason]||[]),busy=episodeLogBusy.has(String(item.id));
@@ -1818,7 +1824,7 @@
     episodeTrackerGrid.innerHTML=available.length?available.map(episode=>{
       const isWatched=watched.has(episode),isSaving=busy&&feedback?.season===activeEpisodeTrackerSeason&&feedback?.episode===episode;
       return`<button class="episode-tick${isWatched?" watched":""}" type="button" data-season="${activeEpisodeTrackerSeason}" data-episode="${episode}" aria-pressed="${isWatched}" aria-label="Season ${activeEpisodeTrackerSeason} episode ${episode}, ${isWatched?"watched":"not watched"}"${busy?" disabled":""}>${isSaving?"…":`${isWatched?"✓ ":""}E${episode}`}</button>`;
-    }).join(""):'<div class="episode-tracker-grid-empty">No released episodes are available for this show yet.</div>';
+    }).join(""):`<div class="episode-tracker-grid-empty">${esc(emptySchedule.message)}</div>`;
     const watchedTotal=Object.values(watchedMap).reduce((total,episodes)=>total+episodes.length,0);
     episodeTrackerLast.classList.toggle("unmarked",!watchedTotal&&!feedback);
     episodeTrackerLast.textContent=feedback?.label||(watchedTotal?`✓ ${watchedTotal} episode${watchedTotal===1?"":"s"} marked watched`:"No episodes have been marked watched yet.");
