@@ -15,7 +15,7 @@ window.WatchLogGallery=(()=>{
       }catch(_){/* Try the IMDb source below. */}
     }
     const query=encodeURIComponent(String(item.title||'').trim());if(!query)return '';
-    try{const response=await fetch(`https://v3.sg.media-imdb.com/suggestion/titles/x/${query}.json`,{signal});
+    try{const response=await fetch(`https://v3.sg.media-imdb.com/suggestion/x/${query}.json`,{signal});
       if(response.ok){const data=await response.json(),match=data.d?.find(row=>row.id===item.imdbId)||data.d?.find(row=>String(row.l||'').toLowerCase()===String(item.title||'').toLowerCase());const image=safeImage(match?.i?.imageUrl);if(image)return image;}
     }catch(_){/* Keep a readable local teaser poster. */}
     return '';
@@ -59,8 +59,14 @@ window.WatchLogGallery=(()=>{
     const track=dialog.querySelector('[data-gallery-track]');if(track)track.onclick=()=>{dialog.close();api.track(item.id);};
     observe(dialog,[item]);dialog.showModal();
   }
+  function enableSwipe(){
+    if(window.__watchLogGallerySwipe)return;window.__watchLogGallerySwipe=true;
+    let startX=0,startY=0,startAt=0;
+    document.addEventListener('touchstart',event=>{const t=event.changedTouches?.[0];if(!t)return;startX=t.clientX;startY=t.clientY;startAt=Date.now();},{passive:true});
+    document.addEventListener('touchend',event=>{const t=event.changedTouches?.[0];if(!t)return;const dx=t.clientX-startX,dy=t.clientY-startY;if(Date.now()-startAt>700||dx>-72||Math.abs(dx)<Math.abs(dy)*1.25)return;const target=event.target;if(target?.closest?.('input,textarea,select,button,[contenteditable="true"]')&&!target.closest?.('.gallery-detail'))return;if(dialog?.open){dialog.close();return;}if(category){category='';api?.render?.();return;}api?.back?.();},{passive:true});
+  }
   function mount(element,rows,callbacks){
-    host=element;api=callbacks;observer?.disconnect();host.classList.add('gallery-active');
+    host=element;api=callbacks;enableSwipe();observer?.disconnect();host.classList.add('gallery-active');
     if(!host._galleryEvents){host._galleryEvents=true;host.addEventListener('click',event=>{
       const cat=event.target.closest('[data-gallery-category]');if(cat){category=cat.dataset.galleryCategory;api.render();host.querySelector('.gallery-back')?.focus();return;}
       if(event.target.closest('[data-gallery-back]')){category='';api.render();host.querySelector('.gallery-category')?.focus();return;}
