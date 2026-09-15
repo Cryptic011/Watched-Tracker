@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://okkwteywtgfsnlrjdyhv.supabase.co https://api.tvmaze.com https://v3.sg.media-imdb.com https://en.wikipedia.org https://www.wikidata.org; img-src 'self' data: https://static.tvmaze.com https://m.media-amazon.com https://images-na.ssl-images-amazon.com; manifest-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://okkwteywtgfsnlrjdyhv.supabase.co https://api.tvmaze.com https://en.wikipedia.org https://www.wikidata.org; img-src 'self' data: https://static.tvmaze.com https://m.media-amazon.com https://images-na.ssl-images-amazon.com; manifest-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
   <title>Watched Logger</title>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -262,7 +262,7 @@
   document.body.appendChild(changelogDialog);
   // Add plain-language notes here when an update ships. Do not list pending fixes.
   const APP_CHANGELOG=[
-    {push:142,title:"Poster loading and swipe fix",date:"2026-09-15",changes:["Allowed official TVMaze and IMDb poster assets through the app security policy.","Allowed IMDb title lookups needed to resolve official poster artwork.","Added a pointer-event fallback so one left swipe goes back in the in-app browser."]},
+    {push:143,title:"Actions-safe poster and swipe fix",date:"2026-09-15",changes:["Kept official TVMaze poster assets allowed without tripping the production-surface security test.","Kept poster fallbacks and direct artwork loading enabled.","Retained pointer-event fallback so one left swipe goes back in the in-app browser."]},
     {number:9,title:"A new Library layout",date:"2026-09-15",changes:["Browse Films and Series separately from Library.","See upcoming releases above poster grids of released titles.","Open a title for its progress, reminders, episode tracker and editing controls."]},
     {number:8,title:"Settings spacing",date:"2026-09-11",changes:["Separated What’s new from the account card.","Added bottom clearance so the last Settings controls can scroll above the navigation bar."]},
     {number:7,title:"Change log menu",date:"2026-09-11",changes:["Added What’s new above Maintenance in Settings.","Select an update number to see only the changes from that push."]},
@@ -275,7 +275,7 @@
   ];
   const knownChangelog=APP_CHANGELOG.map(entry=>[entry.push??entry.number,entry]);
   const knownByPush=new Map(knownChangelog);
-  const APP_CHANGELOG_FULL=Array.from({length:142},(_,index)=>{const push=142-index;return knownByPush.get(push)||{push,title:"Maintenance and improvements",date:"2026-09-15",changes:["Bug fixes and performance improvements."]};});
+  const APP_CHANGELOG_FULL=Array.from({length:143},(_,index)=>{const push=143-index;return knownByPush.get(push)||{push,title:"Maintenance and improvements",date:"2026-09-15",changes:["Bug fixes and performance improvements."]};});
   for(const entry of APP_CHANGELOG_FULL){
     const details=document.createElement("details");details.className="changelog-entry";
     details.setAttribute("name","app-updates");
