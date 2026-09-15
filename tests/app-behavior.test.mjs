@@ -221,7 +221,7 @@ test("HTML ids are unique and Pages uploads only runtime files", () => {
   assert.match(workflow, /uses: actions\/upload-pages-artifact@v5/);
   assert.match(workflow, /uses: actions\/deploy-pages@v5/);
   assert.match(workflow, /path: _site/);
-  assert.match(workflow, /cp index\.html manifest\.webmanifest sw\.js _site\//);
+  assert.match(workflow, /cp index\.html library-gallery\.js library-gallery\.css manifest\.webmanifest sw\.js _site\//);
 });
 
 test("Backend requires revisions and provides an owned catalogue gateway", () => {
