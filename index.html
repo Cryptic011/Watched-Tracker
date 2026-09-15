@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://okkwteywtgfsnlrjdyhv.supabase.co https://api.tvmaze.com https://en.wikipedia.org https://www.wikidata.org; img-src 'self' data:; manifest-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://okkwteywtgfsnlrjdyhv.supabase.co https://api.tvmaze.com https://v3.sg.media-imdb.com https://en.wikipedia.org https://www.wikidata.org; img-src 'self' data: https://static.tvmaze.com https://m.media-amazon.com https://images-na.ssl-images-amazon.com; manifest-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
   <title>Watched Logger</title>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -138,8 +138,8 @@
 
   <div id="modal" class="modal-overlay hidden"><div class="modal-content"><div class="modal-header"><h2 id="modal-title">Log Title</h2><div class="modal-header-actions"><button id="save-btn" class="header-save-btn" type="submit" form="media-form">Save</button><button id="close-modal" class="close-btn" type="button" aria-label="Close editor">&times;</button></div></div><form id="media-form"><input id="item-id" type="hidden" /><input id="tvmaze-id" type="hidden" /><input id="imdb-id" type="hidden" /><input id="release-year" type="hidden" /><input id="film-release-source" type="hidden" /><div class="form-group suggest-wrap"><label for="title">Title</label><input id="title" type="text" required autocomplete="off" placeholder="e.g. Black Mirror" /><div id="suggest-list" class="suggest-list hidden"></div></div><div class="form-row"><div class="form-group"><label for="type">Format</label><select id="type"><option>Series</option><option>Film</option><option>Anime</option><option>Game</option></select></div><div class="form-group"><label for="status">Status</label><select id="status"><option>Watched</option><option>Watching</option><option>Planned</option></select></div></div><div id="series-section" class="section-box"><span class="section-title">Seasons & Progress</span><div class="form-row"><div class="form-group"><label for="total-seasons">Known / Announced Seasons</label><input id="total-seasons" type="number" min="1" /></div><div class="form-group"><label for="watched-seasons">Fully Watched Seasons</label><input id="watched-seasons" type="number" min="0" /></div></div><div class="form-row"><div class="form-group"><label for="cur-season">Season Watched</label><select id="cur-season"><option value="0">0 — Not started</option></select></div><div class="form-group"><label for="cur-ep">Episode Watched To</label><select id="cur-ep"><option value="0">0 — None watched</option></select></div></div><p id="progress-verify-note" class="small-note">Choose a series to autofill released episodes and valid progress ranges.</p></div><div id="airing-section" class="section-box" style="display:none"><span class="section-title">📺 Currently Airing</span><p id="airing-note" class="small-note">Current episodes are checked against IMDb, TVMaze and Wikipedia.</p><div class="form-row"><div class="form-group"><label for="airing-season">Airing Season</label><input id="airing-season" type="number" readonly /></div><div class="form-group"><label for="latest-episode">Latest Available</label><input id="latest-episode" type="text" readonly /></div></div><div class="form-row"><div class="form-group"><label for="next-episode">Next Episode</label><input id="next-episode" type="text" readonly /></div><div class="form-group"><label for="next-episode-date">Release Date / Time</label><input id="next-episode-date" type="datetime-local" readonly /></div></div><input id="latest-episode-num" type="hidden" /><input id="latest-episode-title" type="hidden" /><input id="next-episode-num" type="hidden" /><input id="next-episode-title" type="hidden" /></div><div id="upcoming-section" class="section-box"><span class="section-title">🔔 Verified Upcoming Season</span><p id="season-verify-note" class="small-note">IMDb, TVMaze and Wikipedia are checked for announced seasons.</p><div class="form-row"><div class="form-group"><label for="next-season-num">Upcoming Season #</label><input id="next-season-num" type="number" /></div><div class="form-group"><label for="next-season-date">Premiere Date / Time</label><input id="next-season-date" type="datetime-local" /></div></div></div><div id="film-section" class="section-box" style="display:none"><span class="section-title">🎬 Verified Film Release</span><p id="film-verify-note" class="small-note">Films and series are checked through multiple sources.</p><div class="form-group"><label for="film-release-date">Release Date</label><input id="film-release-date" type="date" /></div></div><div class="form-group"><label for="platform">Watched / Streaming Source</label><input id="platform" type="text" list="platform-options" placeholder="Theatre, Netflix, Apple TV+, etc." /><datalist id="platform-options"><option value="Theatre"></option><option value="Netflix"></option><option value="Disney+"></option><option value="Prime Video"></option><option value="Apple TV+"></option><option value="Max"></option><option value="Hulu"></option><option value="Paramount+"></option><option value="Peacock"></option><option value="BBC iPlayer"></option><option value="ITVX"></option><option value="Channel 4"></option><option value="Blu-ray"></option><option value="DVD"></option><option value="Digital Purchase"></option></datalist></div><button id="delete-btn" type="button" class="btn btn-danger btn-full modal-delete-button hidden">Delete</button></form></div></div>
 
-  <link rel="stylesheet" href="library-gallery.css?v=15">
-  <script src="library-gallery.js?v=15"></script>
+  <link rel="stylesheet" href="library-gallery.css?v=16">
+  <script src="library-gallery.js?v=16"></script>
   <script>
   "use strict";
 
@@ -174,9 +174,21 @@
   let publicMaintenance = {enabled:false,message:"Watched Logger is currently under maintenance. Please try again shortly."};
   let activeFilter = "All";
   let currentTab = "library";
-  let globalSwipeX=0,globalSwipeY=0,globalSwipeAt=0;
-  document.addEventListener("touchstart",event=>{const t=event.changedTouches?.[0];if(!t)return;globalSwipeX=t.clientX;globalSwipeY=t.clientY;globalSwipeAt=Date.now();},{passive:true});
-  document.addEventListener("touchend",event=>{const t=event.changedTouches?.[0];if(!t)return;const dx=t.clientX-globalSwipeX,dy=t.clientY-globalSwipeY;if(event.__watchLoggerSwipeHandled||Date.now()-globalSwipeAt>700||dx>-72||Math.abs(dx)<Math.abs(dy)*1.25)return;if(event.target?.closest?.("input,textarea,select,[contenteditable=\"true\"]"))return;const openDialog=document.querySelector("dialog[open]");if(openDialog){openDialog.close();return;}if(currentTab!=="library")switchTab("library");},{passive:true});
+  let globalSwipeX=0,globalSwipeY=0,globalSwipeAt=0,globalSwipeTarget=null,globalSwipeHandledAt=0;
+  function handleGlobalSwipe(endX,endY,event){
+    const now=Date.now(),dx=endX-globalSwipeX,dy=endY-globalSwipeY;
+    if(event?.__watchLoggerSwipeHandled||now-globalSwipeAt>900||now-globalSwipeHandledAt<450||dx>-72||Math.abs(dx)<Math.abs(dy)*1.2)return;
+    if(globalSwipeTarget?.closest?.("input,textarea,select,[contenteditable=\"true\"]"))return;
+    globalSwipeHandledAt=now;
+    const openDialog=document.querySelector("dialog[open]");
+    if(openDialog){openDialog.close();return;}
+    if(currentTab!=="library"){switchTab("library");return;}
+    event.__watchLoggerSwipeHandled=true;
+  }
+  document.addEventListener("touchstart",event=>{const t=event.changedTouches?.[0];if(!t)return;globalSwipeX=t.clientX;globalSwipeY=t.clientY;globalSwipeAt=Date.now();globalSwipeTarget=event.target;},{passive:true});
+  document.addEventListener("touchend",event=>{const t=event.changedTouches?.[0];if(t)handleGlobalSwipe(t.clientX,t.clientY,event);},{passive:true});
+  document.addEventListener("pointerdown",event=>{if(event.pointerType!=="touch")return;globalSwipeX=event.clientX;globalSwipeY=event.clientY;globalSwipeAt=Date.now();globalSwipeTarget=event.target;},{passive:true});
+  document.addEventListener("pointerup",event=>{if(event.pointerType!=="touch")return;handleGlobalSwipe(event.clientX,event.clientY,event);},{passive:true});
   let searchQuery = "";
   let activeSort = "current";
   let searchTimer = null;
@@ -250,7 +262,7 @@
   document.body.appendChild(changelogDialog);
   // Add plain-language notes here when an update ships. Do not list pending fixes.
   const APP_CHANGELOG=[
-    {push:141,title:"Swipe and poster fix",date:"2026-09-15",changes:["Left-swipe now works across cards, dialogs, and app sections.","Official poster loading is started directly and no longer relies on optional browser observers.","Every changelog slot is now numbered continuously by GitHub push."]},
+    {push:142,title:"Poster loading and swipe fix",date:"2026-09-15",changes:["Allowed official TVMaze and IMDb poster assets through the app security policy.","Allowed IMDb title lookups needed to resolve official poster artwork.","Added a pointer-event fallback so one left swipe goes back in the in-app browser."]},
     {number:9,title:"A new Library layout",date:"2026-09-15",changes:["Browse Films and Series separately from Library.","See upcoming releases above poster grids of released titles.","Open a title for its progress, reminders, episode tracker and editing controls."]},
     {number:8,title:"Settings spacing",date:"2026-09-11",changes:["Separated What’s new from the account card.","Added bottom clearance so the last Settings controls can scroll above the navigation bar."]},
     {number:7,title:"Change log menu",date:"2026-09-11",changes:["Added What’s new above Maintenance in Settings.","Select an update number to see only the changes from that push."]},
@@ -263,7 +275,7 @@
   ];
   const knownChangelog=APP_CHANGELOG.map(entry=>[entry.push??entry.number,entry]);
   const knownByPush=new Map(knownChangelog);
-  const APP_CHANGELOG_FULL=Array.from({length:141},(_,index)=>{const push=141-index;return knownByPush.get(push)||{push,title:"Maintenance and improvements",date:"2026-09-15",changes:["Bug fixes and performance improvements."]};});
+  const APP_CHANGELOG_FULL=Array.from({length:142},(_,index)=>{const push=142-index;return knownByPush.get(push)||{push,title:"Maintenance and improvements",date:"2026-09-15",changes:["Bug fixes and performance improvements."]};});
   for(const entry of APP_CHANGELOG_FULL){
     const details=document.createElement("details");details.className="changelog-entry";
     details.setAttribute("name","app-updates");
