@@ -179,14 +179,15 @@
   let swipeActive=false,swipeComplete=false,swipeVertical=false;
   function beginSwipe(x,y,target){
     globalSwipeX=x;globalSwipeY=y;globalSwipeAt=Date.now();globalSwipeTarget=target;
-    swipeActive=!target?.closest?.('input,textarea,select,[contenteditable="true"]');
+    // Horizontal poster rows own their gestures in both directions, even at an end.
+    swipeActive=!target?.closest?.('input,textarea,select,[contenteditable="true"],.gallery-carousel');
     swipeComplete=false;swipeVertical=false;
   }
   function handleGlobalSwipe(endX,endY,event){
     if(!swipeActive||swipeComplete||swipeVertical)return;
     const now=Date.now(),dx=endX-globalSwipeX,dy=endY-globalSwipeY;
     if(Math.abs(dy)>18&&Math.abs(dy)>Math.abs(dx)*1.2){swipeVertical=true;return;}
-    if(now-globalSwipeAt>1500||dx>-55||Math.abs(dx)<Math.abs(dy)*1.5)return;
+    if(now-globalSwipeAt>1500||dx<55||Math.abs(dx)<Math.abs(dy)*1.5)return;
     swipeComplete=true;globalSwipeHandledAt=now;
     if(event.cancelable)event.preventDefault();
     const openDialog=document.querySelector("dialog[open]");
@@ -197,7 +198,7 @@
     window.WatchLogGallery?.back?.();
   }
   document.addEventListener("touchstart",event=>{if(event.touches?.length>1){swipeActive=false;return;}const t=event.changedTouches?.[0];if(t)beginSwipe(t.clientX,t.clientY,event.target);},{passive:true,capture:true});
-  document.addEventListener("touchmove",event=>{const t=event.changedTouches?.[0];if(!t)return;const dx=t.clientX-globalSwipeX,dy=t.clientY-globalSwipeY;if(swipeActive&&!swipeVertical&&dx<-12&&Math.abs(dx)>Math.abs(dy)*1.5&&event.cancelable)event.preventDefault();handleGlobalSwipe(t.clientX,t.clientY,event);},{passive:false,capture:true});
+  document.addEventListener("touchmove",event=>{const t=event.changedTouches?.[0];if(!t)return;const dx=t.clientX-globalSwipeX,dy=t.clientY-globalSwipeY;if(swipeActive&&!swipeVertical&&dx>12&&Math.abs(dx)>Math.abs(dy)*1.5&&event.cancelable)event.preventDefault();handleGlobalSwipe(t.clientX,t.clientY,event);},{passive:false,capture:true});
   document.addEventListener("touchend",event=>{const t=event.changedTouches?.[0];if(t)handleGlobalSwipe(t.clientX,t.clientY,event);swipeActive=false;},{passive:false,capture:true});
   document.addEventListener("touchcancel",()=>{swipeActive=false;},{passive:true,capture:true});
   document.addEventListener("pointerdown",event=>{if(event.isPrimary===false||event.button>0)return;beginSwipe(event.clientX,event.clientY,event.target);},{passive:true,capture:true});
