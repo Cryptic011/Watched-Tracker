@@ -278,6 +278,7 @@
   document.body.appendChild(changelogDialog);
   // Add plain-language notes here when an update ships. Do not list pending fixes.
   const APP_CHANGELOG=[
+    {commit:"f2b07bbf6c593374ffb52856491b232f1f46304e",title:"Reminder backend deployment (PR #1)",date:"2026-09-17",changes:["Added reproducible database setup for background reminders.","Preserved existing subscriptions and configuration.","Deployed and verified the reminder migration."]},
     {push:143,title:"Actions-safe poster and swipe fix",date:"2026-09-15",changes:["Kept official TVMaze poster assets allowed without tripping the production-surface security test.","Kept poster fallbacks and direct artwork loading enabled.","Retained pointer-event fallback so one left swipe goes back in the in-app browser."]},
     {number:9,title:"A new Library layout",date:"2026-09-15",changes:["Browse Films and Series separately from Library.","See upcoming releases above poster grids of released titles.","Open a title for its progress, reminders, episode tracker and editing controls."]},
     {number:8,title:"Settings spacing",date:"2026-09-11",changes:["Separated What’s new from the account card.","Added bottom clearance so the last Settings controls can scroll above the navigation bar."]},
@@ -290,18 +291,24 @@
     {number:1,title:"Progress sync and reminders",date:"2026-09-06",commit:"16e1012bbcf63f77584650566e3b557cf7836cfb",changes:["Improved progress syncing between devices.","Fixed release-time reminders when episode schedules update.","Preserved reminder times when editing a title."]}
   ];
   const APP_CHANGELOG_FULL=window.WATCHLOG_BUILD?.commits||APP_CHANGELOG.filter(entry=>entry.commit);
+  const currentBuild=window.WATCHLOG_BUILD;
+  if(currentBuild?.count){
+    const version=document.createElement("p");version.className="small-note";
+    version.textContent=`GitHub push ${currentBuild.count} · ${currentBuild.sha.slice(0,7)}`;
+    $("changelog-body").appendChild(version);
+  }
   for(const entry of APP_CHANGELOG_FULL){
     const details=document.createElement("details");details.className="changelog-entry";
     details.setAttribute("name","app-updates");
     const summary=document.createElement("summary");
-    summary.textContent=`GitHub push ${entry.push??entry.number} · ${entry.title}`;
+    summary.textContent=`GitHub push ${entry.push??entry.number??entry.commit?.slice(0,7)} · ${entry.title}`;
     const date=document.createElement("p");date.className="small-note";date.style.marginTop="10px";
     date.textContent=new Intl.DateTimeFormat(navigator.language||"en-GB",{day:"numeric",month:"long",year:"numeric"}).format(new Date(entry.date+"T12:00:00"));
     const list=document.createElement("ul");
     for(const change of entry.changes){const item=document.createElement("li");item.textContent=change;list.appendChild(item);}
     details.append(summary,date,list);
     if(entry.commit){const link=document.createElement("a");link.className="small-note";link.textContent="View push · "+entry.commit.slice(0,7);link.href="https://github.com/Cryptic011/Watched-Tracker/commit/"+entry.commit;link.target="_blank";link.rel="noopener noreferrer";details.appendChild(link);}
-    details.addEventListener("toggle",()=>{if(details.open)for(const other of $("changelog-body").children)if(other!==details)other.open=false;});
+    details.addEventListener("toggle",()=>{if(details.open)for(const other of $("changelog-body").children)if(other!==details&&other.tagName==="DETAILS")other.open=false;});
     $("changelog-body").appendChild(details);
   }
   whatsNewButton.onclick=()=>{changelogDialog.showModal();document.documentElement.classList.add("changelog-open");};

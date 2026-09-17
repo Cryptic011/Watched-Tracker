@@ -1,0 +1,10 @@
+{
+  "f2b07bbf6c593374ffb52856491b232f1f46304e": {
+    "title": "Reminder backend deployment (PR #1)",
+    "changes": [
+      "Added the database setup needed to reproduce background reminders in new environments.",
+      "Preserved existing reminder subscriptions and configuration.",
+      "Deployed the reminder migration and verified database access permissions."
+    ]
+  }
+}
