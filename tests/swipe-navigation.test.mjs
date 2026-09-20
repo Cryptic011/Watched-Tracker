@@ -1,8 +1,9 @@
+import { readAppSource } from "./app-source.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
-const html=fs.readFileSync(process.env.SWIPE_SOURCE||new URL('../index.html',import.meta.url),'utf8');
+const html = readAppSource();
 const source=html.slice(html.indexOf('  let globalSwipeX='),html.indexOf('  let searchQuery ='));
 function setup(view,{carousel=false}={}){
   const calls=[],listeners={};let now=1000;

@@ -1,3 +1,4 @@
+import { readAppSource } from "./app-source.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -7,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 process.env.TZ = "Europe/London";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+const html = readAppSource();
 
 function extractFunction(source, name) {
   const marker = `function ${name}(`;

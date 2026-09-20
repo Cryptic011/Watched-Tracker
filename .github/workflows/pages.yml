@@ -44,6 +44,7 @@ jobs:
         run: |
           mkdir -p _site
           cp index.html build-info.js library-gallery.js library-gallery.css manifest.webmanifest sw.js _site/
+          cp -R assets _site/
 
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v5

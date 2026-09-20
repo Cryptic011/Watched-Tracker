@@ -876,6 +876,51 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, enabled: Boolean(data?.enabled) });
     }
 
+    if (action === "private_history") {
+      const { data: account, error: accountError } = await db
+        .from("watchlog_pin_accounts")
+        .select("email")
+        .eq("id", session.accountId)
+        .single();
+      if (accountError) throw accountError;
+      const accountHash = await sha256(
+        `watchlog-notification-test:${normalizeEmail(account.email)}`,
+      );
+      if (!safeEqual(accountHash, PRIVATE_TEST_ACCOUNT_HASH)) {
+        return json({ error: "Reminder activity is not enabled for this account." }, 403);
+      }
+
+      // Authorize the session's account before reading any activity. Never
+      // accept an account ID from the request body or expose push credentials.
+      const [deliveries, tests, library, subscriptions] = await Promise.all([
+        db.from("watchlog_push_deliveries").select("item_id,event_key,scheduled_for,status,attempts,next_attempt_at,sent_at,last_error,updated_at").eq("account_id", session.accountId).order("updated_at", { ascending: false }).limit(50),
+        db.from("watchlog_push_tests").select("title,due_at,status,attempts,next_attempt_at,sent_at,last_error,updated_at").eq("account_id", session.accountId).order("updated_at", { ascending: false }).limit(20),
+        db.from("watchlog_pin_library").select("items").eq("account_id", session.accountId).maybeSingle(),
+        db.from("watchlog_push_subscriptions").select("time_zone").eq("account_id", session.accountId).eq("enabled", true),
+      ]);
+      for (const result of [deliveries, tests, library, subscriptions]) if (result.error) throw result.error;
+      const items = (Array.isArray(library.data?.items) ? library.data.items : []) as Record<string, unknown>[];
+      const titles = new Map(items.map(item => [String(item.id), String(item.title || "Tracked title")]));
+      const history = [
+        ...(deliveries.data || []).map(row => ({ ...row, title: titles.get(String(row.item_id)) || "Removed title", label: String(row.event_key).match(/episode:s\d+e\d+/)?.[0].replace("episode:", "") || "Release reminder", event_key: undefined })),
+        ...(tests.data || []).map(row => ({ ...row, scheduled_for: row.due_at, label: "Private test" })),
+      ].sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at)).slice(0, 50);
+      const now = Date.now(), upcoming = [], seen = new Set<string>();
+      for (const subscription of subscriptions.data || []) for (const item of items) for (const event of reminderEvents(item)) {
+        if (event.kind !== "episode" && !["Planned", "Saved"].includes(String(item.status))) continue;
+        const release = scheduledEventTime(event.raw, subscription.time_zone);
+        for (const lead of event.kind === "episode" ? [24, 6, 0] : [24, 6]) {
+          const due = release - lead * 3600000;
+          if (!Number.isFinite(due) || due <= now || due >= now + 7 * 86400000) continue;
+          const key = `${item.id}:${event.kind}:${event.raw}:${event.number}:${due}`;
+          if (seen.has(key)) continue; seen.add(key);
+          upcoming.push({title: String(item.title || "Tracked title"), scheduled_for: new Date(due).toISOString(), label: `${event.kind === "episode" ? "Episode " + event.number : event.kind === "season" ? "Season " + event.number : "Film"} · ${lead ? lead + " hours before" : "At release"}`});
+        }
+      }
+      upcoming.sort((a,b) => Date.parse(a.scheduled_for) - Date.parse(b.scheduled_for));
+      return json({ok: true, history, upcoming: upcoming.slice(0, 100), enabledDevices: subscriptions.data?.length || 0});
+    }
+
     if (action === "schedule_private_test") {
       const { data: account, error: accountError } = await db
         .from("watchlog_pin_accounts")

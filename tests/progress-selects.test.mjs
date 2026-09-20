@@ -1,9 +1,10 @@
+import { readAppSource } from "./app-source.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
 
-const html=fs.readFileSync(new URL("../index.html",import.meta.url),"utf8");
+const html = readAppSource();
 const suite=fs.readFileSync(new URL("./app-behavior.test.mjs",import.meta.url),"utf8");
 const helper=suite.slice(suite.indexOf("function extractFunction"),suite.indexOf('test("Current'));
 const {extractFunction}=new Function("html","assert","vm",helper+"\nreturn {extractFunction};")(html,assert,vm);

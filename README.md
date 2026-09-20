@@ -6,10 +6,10 @@ Watched Logger is an installable web app for tracking films and television episo
 
 | Path | Purpose |
 | --- | --- |
-| `index.html` | The complete website interface and browser-side app logic. GitHub Pages requires this conventional entry-point name. |
+| `index.html` | The website shell. Browser logic and styling live in `assets/`; script order is explicit and startup runs last. |
 | `manifest.webmanifest` | Installation details used when the site is added to a phone or computer as an app. |
 | `sw.js` | The service worker that receives episode-release notifications and opens notification links only inside Watched Logger. Its short conventional name is referenced by the app. |
-| `.github/workflows/pages.yml` | Stages the three runtime website files and publishes only those files to GitHub Pages with the Node.js 24-compatible checkout, Pages, artifact, and deploy actions. |
+| `.github/workflows/pages.yml` | Stages the runtime website files and assets and publishes only those files to GitHub Pages with the Node.js 24-compatible checkout, Pages, artifact, and deploy actions. |
 | `supabase/functions/watchlog-pin/` | Handles secure PIN access, revision-checked syncing, maintenance enforcement, and the safe title-search gateway. The directory name is also the function's public endpoint name. |
 | `supabase/functions/watchlog-reminders/` | Stores notification subscriptions and sends scheduled episode reminders. The directory name is also the function's public endpoint name. |
 | `supabase/migrations/` | Reproduces the PIN and background-reminder backends and records maintenance, atomic lockout, and conflict-safe sync changes. |
@@ -43,10 +43,25 @@ Every tracked file is part of the running app, its deployment, or the reproducib
 
 ## Deployment
 
-Changes pushed to `main` are automatically deployed to GitHub Pages. During deployment, the workflow creates a temporary `_site` directory containing only `index.html`, `manifest.webmanifest`, and `sw.js`; repository documentation, workflow configuration, and Supabase source files are not included in the website artifact.
+Changes pushed to `main` are automatically deployed to GitHub Pages. During deployment, the workflow creates a temporary `_site` directory containing the HTML shell, generated build metadata, gallery files, `assets/`, manifest, and notification worker; repository documentation, workflow configuration, and Supabase source files are not included in the website artifact.
 
 The Supabase functions and migrations are backend components and are deployed through Supabase separately. They are never part of the GitHub Pages upload.
 
 The push-backend migration creates the four private reminder tables and seeds one configuration row. Existing configuration, VAPID keys, and subscriptions are preserved. The first `public_key` request generates VAPID keys. For a new environment, configure a scheduler to POST `{"action":"process"}` to `watchlog-reminders` every minute, with `x-watchlog-cron` set to the configuration row's generated `cron_secret`. Keep that secret in the scheduler's private configuration. The migration does not create a scheduled job. Existing installations with manually provisioned tables should compare their schema before applying it: `CREATE TABLE IF NOT EXISTS` does not reconcile existing column or constraint differences.
 
 Run the application checks with `node --test tests/*.test.mjs`. The deployment workflow runs these checks before publishing.
+
+## Browser code
+
+The files in `assets/js/` are ordered classic scripts sharing the existing app scope. Keep their order in `index.html`; `editor.js` starts the application after all definitions load.
+
+- `app-core.js`: state, DOM references, navigation, dates, appearance and common helpers.
+- `reminders.js`: notification setup, maintenance, and local cache primitives.
+- `sync.js`: persistence queues, conflict handling, account sessions, metadata refresh and sorting.
+- `library.js`: released/watched episode rules, episode tracker, library rendering and filters.
+- `catalogue.js`: title identity, search providers and release verification.
+- `dashboard.js`: next released episode, seven-day calendar and private reminder activity.
+- `editor.js`: title search interaction, editing and startup.
+- `assets/css/`: base app styles and dashboard styles.
+
+The dashboard uses the tracker's released-episode map and never treats announced episode totals as released. The calendar shows today plus six days, preserves unknown times and labels saved platforms separately from confirmed UK availability. Private reminder activity is authorized by the existing owner hash in the reminder function, after session validation; every query is scoped to that session account. No schema change is required. Send success means accepted by the push service, not confirmed phone delivery.

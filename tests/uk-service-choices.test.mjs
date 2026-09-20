@@ -1,8 +1,9 @@
+import { readAppSource } from "./app-source.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const html = readAppSource();
 const start=html.indexOf('  function ukServiceChoices('),end=html.indexOf('  async function loadUKAvailability',start);
 const context=vm.createContext({});vm.runInContext(html.slice(start,end),context);
 test('UK choices collapse subscription tiers and channel variants into one service',()=>{
