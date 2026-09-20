@@ -72,7 +72,7 @@ async function refreshPrivateReminderHistory(){
   if(!token||!accountId)return;
   const hash=await sha256(`watchlog-notification-test:${normalizeEmail(currentProfile?.email||'')}`);
   if(token!==cloudSessionToken||accountId!==currentUser?.id||hash!==NOTIFICATION_TEST_ACCOUNT_HASH)return;
-  panel.classList.remove('hidden');body.textContent='Loading reminder activity…';
+  panel.classList.remove('hidden');
   try{
     const result=await reminderApi('private_history',{},token);
     if(token!==cloudSessionToken||accountId!==currentUser?.id)return;
@@ -82,4 +82,5 @@ async function refreshPrivateReminderHistory(){
     body.innerHTML=`<p class="dashboard-note">${result.enabledDevices} enabled device(s). A successful send means the push service accepted it; phone delivery is not confirmed.</p><h3>Upcoming reminders</h3>${upcoming||'<p>No scheduled reminders for enabled devices in the next seven days.</p>'}<h3>Recent activity</h3>${history||'<p>No reminder attempts recorded yet.</p>'}`;
   }catch(error){if(token===cloudSessionToken&&accountId===currentUser?.id)body.textContent=error.message||'Could not load reminder history.';}
 }
-document.getElementById('refresh-reminder-history').onclick=refreshPrivateReminderHistory;
+document.getElementById('refresh-reminder-history').onclick=async()=>{const dialog=document.getElementById('reminder-history-dialog'),body=document.getElementById('reminder-history-body');body.textContent='Loading reminder activity…';dialog.showModal();await refreshPrivateReminderHistory();};
+document.getElementById('close-reminder-history').onclick=()=>document.getElementById('reminder-history-dialog').close();
