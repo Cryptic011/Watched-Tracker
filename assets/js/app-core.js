@@ -143,12 +143,13 @@
 
   const $ = id => document.getElementById(id);
   const authScreen = $("auth-screen"), authForm = $("auth-form"), authTitle = $("auth-title"), authSub = $("auth-sub"), authNameGroup = $("auth-name-group"), authEmail = $("auth-email"), authPin = $("auth-pin"), authName = $("auth-name"), authSubmit = $("auth-submit"), authToggle = $("auth-toggle"), authMessage = $("auth-message"), maintenanceBanner = $("maintenance-banner"), maintenanceBannerMessage = $("maintenance-banner-message"), maintenanceOwnerAccessButton = $("maintenance-owner-access");
-  const navName = $("nav-name"), userPill = $("user-pill"), libraryView = $("library-view"), settingsView = $("settings-view"), profileName = $("profile-name"), profileEmail = $("profile-email"), avatar = $("avatar"), syncDot = $("sync-dot"), syncStatus = $("sync-status"), syncNowBtn = $("sync-now"), changePinBtn = $("change-pin"), newPinInput = $("new-pin"), logoutBtn = $("logout-btn");
+  const navName = $("nav-name"), userPill = $("user-pill"), refreshAppBtn = $("refresh-app"), libraryView = $("library-view"), settingsView = $("settings-view"), profileName = $("profile-name"), profileEmail = $("profile-email"), avatar = $("avatar"), syncDot = $("sync-dot"), syncStatus = $("sync-status"), syncNowBtn = $("sync-now"), changePinBtn = $("change-pin"), newPinInput = $("new-pin"), logoutBtn = $("logout-btn");
   const libraryMaintenance=document.createElement("div");
   libraryMaintenance.id="library-maintenance";libraryMaintenance.className="library-maintenance hidden";
   libraryMaintenance.setAttribute("role","status");libraryMaintenance.setAttribute("aria-live","polite");
   libraryMaintenance.innerHTML='<strong>Under maintenance</strong><p id="library-maintenance-message"></p>';
   document.querySelector(".nav-header").after(libraryMaintenance);
+  refreshAppBtn?.addEventListener("click",()=>{if(appHasUnsavedWork()){pendingAppUpdate=true;showAppToast("Refresh will run after your current edit or save finishes.","success");return;}window.location.reload();});
   function renderLibraryMaintenance(){
     const visible=Boolean(currentUser&&currentTab==="library"&&publicMaintenance.enabled);
     libraryMaintenance.classList.toggle("hidden",!visible);
