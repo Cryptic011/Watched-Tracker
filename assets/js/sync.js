@@ -1,7 +1,12 @@
+  let librarySaveStatusTimer=null;
   function setSync(text,state="ok"){
+    clearTimeout(librarySaveStatusTimer);librarySaveStatusTimer=null;
     syncStatus.textContent=text;syncDot.className=`sync-dot ${state==="ok"?"ok":state==="warn"?"warn":""}`;
     const visible=document.getElementById("library-save-status");
-    if(visible){visible.textContent=text;visible.dataset.state=state;visible.classList.toggle("hidden",!currentUser);}
+    if(visible){
+      visible.textContent=text;visible.dataset.state=state;visible.classList.toggle("hidden",!currentUser);
+      if(currentUser&&state==="ok")librarySaveStatusTimer=setTimeout(()=>{visible.classList.add("hidden");librarySaveStatusTimer=null;},3000);
+    }
   }
 
   async function readLegacyLocalSnapshotById(id){

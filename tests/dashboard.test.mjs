@@ -23,9 +23,12 @@ test('Calendar includes every batch episode, deduplicates next episode, preserve
  const result=c.calendarEvents(items,now);assert.equal(result.events.length,3);assert.equal(result.events[0].dateOnly,true);assert.equal(result.unknown.length,1);
 });
 test('Library save indicator uses the persistence status and hides for signed-out users',()=>{
- const element={classList:{toggle(name,value){this.hidden=value}},dataset:{}},c=vm.createContext({document:{getElementById:()=>element},syncStatus:{},syncDot:{},currentUser:{id:'me'}});
+ const timers=new Map();let nextTimer=0;
+ const element={classList:{toggle(name,value){this.hidden=value},add(){this.hidden=true}},dataset:{}},c=vm.createContext({document:{getElementById:()=>element},syncStatus:{},syncDot:{},currentUser:{id:'me'},librarySaveStatusTimer:null,setTimeout:(fn,ms)=>{assert.equal(ms,3000);timers.set(++nextTimer,fn);return nextTimer;},clearTimeout:id=>timers.delete(id)});
  vm.runInContext(extractFunction(html,'setSync'),c);c.setSync('Saved on this device · Syncing to cloud…','warn');assert.equal(element.dataset.state,'warn');assert.match(element.textContent,/Syncing/);
- c.setSync('Synced','ok');assert.equal(element.dataset.state,'ok');c.currentUser=null;c.setSync('');assert.equal(element.classList.hidden,true);
+ c.setSync('Synced','ok');assert.equal(element.dataset.state,'ok');assert.equal(element.classList.hidden,false);timers.values().next().value();assert.equal(element.classList.hidden,true);timers.clear();
+ c.setSync('Synced','ok');c.setSync('Sync pending','warn');assert.equal(timers.size,0);assert.equal(element.classList.hidden,false);
+ c.currentUser=null;c.setSync('');assert.equal(element.classList.hidden,true);
 });
 const backend=stripTypeScriptTypes(fs.readFileSync(new URL('../supabase/functions/watchlog-reminders/index.ts',import.meta.url),'utf8').replace(/^import[\s\S]*?;\n/gm,''));
 async function requestHistory({session=true,owner=false}={}){
