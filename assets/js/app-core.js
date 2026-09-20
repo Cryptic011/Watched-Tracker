@@ -109,11 +109,12 @@
       (latestLocalSnapshot && activePersistenceContext(latestLocalSnapshot) &&
         latestLocalSnapshot.json!==lastLocalLibraryJSON && latestLocalSnapshot.json!==lastCloudLibraryJSON) ||
       document.getElementById("save-btn")?.disabled ||
-      !document.getElementById("modal")?.classList.contains("hidden")
+      !document.getElementById("modal")?.classList.contains("hidden") ||
+      document.getElementById("episode-tracker-modal")?.classList?.contains("hidden")===false
     );
   }
   function applyPendingAppUpdate(){
-    if(!pendingAppUpdate||appHasUnsavedWork())return false;
+    if(!pendingAppUpdate||document.visibilityState==="hidden"||appHasUnsavedWork())return false;
     pendingAppUpdate=false;
     window.location.reload();
     return true;
@@ -122,7 +123,7 @@
     if(appUpdateCheckInFlight||!navigator.onLine||!currentDeploymentSha)return appUpdateCheckInFlight;
     appUpdateCheckInFlight=(async()=>{
       try{
-        const response=await fetch(`./build-info.js?update=${Date.now()}`,{cache:"no-store"});
+        const response=await fetch(`./build-info.js?update=${Date.now()}`,{cache:"no-store",signal:AbortSignal.timeout(10000)});
         if(!response.ok)return;
         const source=await response.text();
         const match=source.match(/"sha":"([0-9a-f]{7,40})"/i);
@@ -137,6 +138,14 @@
   }
   document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){applyPendingAppUpdate()||void checkForAppUpdate();}});
   window.addEventListener("focus",()=>{applyPendingAppUpdate()||void checkForAppUpdate();});
+  window.addEventListener("online",()=>{applyPendingAppUpdate()||void checkForAppUpdate();});
+  // The public message is only a hint. Ignore its contents for reload decisions
+  // and read metadata from our own origin. A join also catches missed signals.
+  window.WatchLogDeployment?.start(async sha=>{
+    if(sha===currentDeploymentSha)return;
+    if(appUpdateCheckInFlight){await appUpdateCheckInFlight;if(!sha)return;}
+    await checkForAppUpdate();
+  });
 
   let episodeLogFeedback = null;
   let activeEpisodeTrackerId = "";

@@ -15,6 +15,14 @@ function gallery({observer=true,results=[],item={id:'film',type:'Film',title:'Th
   return {img,box,observed,lookups};
 }
 const poster='https://m.media-amazon.com/images/M/batman.jpg';
+test('Saved teaser artwork is replaced by the current poster for the exact IMDb identity',async()=>{
+  const app=gallery({item:{id:'film',type:'Film',title:'The Batman',imdbId:'tt1877830',posterUrl:'https://m.media-amazon.com/teaser.jpg'},results:[{imdbId:'tt1877830',posterUrl:poster}]});
+  await new Promise(setImmediate);assert.equal(app.img.url,poster);assert.deepEqual(app.lookups,['tt1877830']);
+});
+test('A saved poster survives a provider failure or a mismatched search result',async()=>{
+  const app=gallery({item:{id:'film',type:'Film',title:'The Batman',imdbId:'tt1877830',posterUrl:poster},results:[{imdbId:'tt0000000',posterUrl:'https://m.media-amazon.com/wrong.jpg'}]});
+  await new Promise(setImmediate);assert.equal(app.img.url,poster);
+});
 test('Hidden images load when their visible poster cards enter the viewport',async()=>{
   const app=gallery({results:[{imdbId:'tt1877830',posterUrl:poster}]});
   await new Promise(setImmediate);

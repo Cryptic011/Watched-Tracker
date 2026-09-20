@@ -142,7 +142,7 @@
       if(saved)setTimeout(()=>{if(episodeLogFeedback?.eventId===event.id){episodeLogFeedback=null;render();}},1500);
     }
   }
-  function closeEpisodeTrackerSheet(){activeEpisodeTrackerId="";activeEpisodeTrackerSeason=0;episodeTrackerModal.classList.add("hidden");}
+  function closeEpisodeTrackerSheet(){activeEpisodeTrackerId="";activeEpisodeTrackerSeason=0;episodeTrackerModal.classList.add("hidden");setTimeout(applyPendingAppUpdate,0);}
   function openEpisodeTracker(id){
     const item=mediaItems.find(row=>String(row.id)===String(id));if(!isEpisodeTrackable(item))return;
     const releases=releasedEpisodeMap(item),seasons=Object.keys(releases).map(Number).sort((a,b)=>a-b),current=Number(item.curSeason||0);
@@ -331,4 +331,3 @@
     const row=event.target.closest(".title-item[data-item-id]");
     if(row&&(event.key==="Enter"||event.key===" ")){event.preventDefault();openMediaRow(row.dataset.itemId);}
   });
-

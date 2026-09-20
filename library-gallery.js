@@ -2,6 +2,8 @@
 window.WatchLogGallery=(()=>{
   let category='',api=null,host=null,observer=null,dialog=null,active=0;
   const cache=new Map(),pending=new Set(),queue=[];
+  const ARTWORK_CACHE_MS=6*60*60*1000;
+  const freshArt=id=>{const entry=cache.get(id);return entry&&Date.now()-entry.checkedAt<ARTWORK_CACHE_MS?entry.url:'';};
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const isFilm=item=>item.type==='Film';
   const key=item=>`${item.type}:${item.imdbId||item.tvmazeShowId||item.id}`;
@@ -9,7 +11,9 @@ window.WatchLogGallery=(()=>{
   function applyImage(img,url){if(!url)return;img.onload=()=>{img.hidden=false;};img.onerror=()=>{img.hidden=true;};img.src=url;}
   async function fetchArt(item){
     const signal=AbortSignal.timeout(6500);
-    const direct=safeImage(item.posterUrl||item.imageUrl||item.poster||item.image?.original||item.image?.medium);if(direct)return direct;
+    // Saved artwork may be an early teaser. Check the same title's provider
+    // identity again, retaining the saved image only when no update is available.
+    const direct=safeImage(item.posterUrl||item.imageUrl||item.poster||item.image?.original||item.image?.medium);
     const title=String(item.title||'').trim(),query=encodeURIComponent(title);
     let artworkImdbId=String(item.imdbId||'').trim();
     const normalized=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
@@ -29,9 +33,9 @@ window.WatchLogGallery=(()=>{
           if(candidates.length===1){const image=safeImage(candidates[0].image?.original||candidates[0].image?.medium);if(image)return image;}}
       }catch(_){}
     }
-    if(!query)return '';
+    if(!query)return direct;
     // A known TVMaze show must never fall back to a different title identity.
-    if(!isFilm(item)&&item.tvmazeShowId&&!artworkImdbId)return '';
+    if(!isFilm(item)&&item.tvmazeShowId&&!artworkImdbId)return direct;
     // IMDb suggestion responses do not grant browser CORS access. Use the
     // existing authenticated catalogue endpoint and match identity, not rank.
     if(api?.artwork)try{
@@ -42,16 +46,16 @@ window.WatchLogGallery=(()=>{
       const match=identities.size===1?matches.find(row=>safeImage(row.posterUrl)):null;
       const image=safeImage(match?.posterUrl);if(image)return image;
     }catch(_){}
-    return '';
+    return direct;
   }
   function pump(){while(active<3&&queue.length){const item=queue.shift(),id=key(item);active++;fetchArt(item).catch(()=>'').then(url=>{
-    if(url)cache.set(id,url);if(cache.size>250)cache.delete(cache.keys().next().value);
+    if(url)cache.set(id,{url,checkedAt:Date.now()});if(cache.size>250)cache.delete(cache.keys().next().value);
     document.querySelectorAll('.gallery-art img').forEach(img=>{if(img.dataset.art===id)applyImage(img,url);});
   }).finally(()=>{active--;pending.delete(id);pump();});}}
   function observe(root,items){
     const byKey=new Map(items.map(item=>[key(item),item]));
-    if(!observer&&typeof IntersectionObserver!=="undefined")observer=new IntersectionObserver(entries=>{for(const entry of entries){if(!entry.isIntersecting)continue;const box=entry.target;observer.unobserve(box);const img=box.querySelector("img[data-art]");if(!img)return;const item=img._galleryItem;if(!item)continue;const id=key(item);if(cache.has(id)){applyImage(img,cache.get(id));continue;}if(!pending.has(id)){pending.add(id);queue.push(item);pump();}}},{rootMargin:'160px'});
-    const images=[...root.querySelectorAll('[data-art]')];images.forEach(img=>{img._galleryItem=byKey.get(img.dataset.art);if(cache.has(img.dataset.art))applyImage(img,cache.get(img.dataset.art));else if(observer)observer.observe(img.parentElement);else if(!pending.has(img.dataset.art)){pending.add(img.dataset.art);queue.push(img._galleryItem);}});if(!observer)pump();
+    if(!observer&&typeof IntersectionObserver!=="undefined")observer=new IntersectionObserver(entries=>{for(const entry of entries){if(!entry.isIntersecting)continue;const box=entry.target;observer.unobserve(box);const img=box.querySelector("img[data-art]");if(!img)return;const item=img._galleryItem;if(!item)continue;const id=key(item),cached=freshArt(id);if(cached){applyImage(img,cached);continue;}if(!pending.has(id)){pending.add(id);queue.push(item);pump();}}},{rootMargin:'160px'});
+    const images=[...root.querySelectorAll('[data-art]')];images.forEach(img=>{img._galleryItem=byKey.get(img.dataset.art);const cached=freshArt(img.dataset.art);if(cached)applyImage(img,cached);else if(observer)observer.observe(img.parentElement);else if(img._galleryItem&&!pending.has(img.dataset.art)){pending.add(img.dataset.art);queue.push(img._galleryItem);}});if(!observer)pump();
   }
   function art(item){
     const initials=String(item.title||'?').split(/\s+/).slice(0,2).map(s=>s[0]).join('');

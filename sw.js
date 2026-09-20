@@ -24,14 +24,12 @@ self.addEventListener("push",event=>{
     if(event.data)payload.body=event.data.text()||payload.body;
   }
 
-  // Keep episode-release alerts short and consistent on the lock screen.
-  // Accept both the legacy backend wording and the current wording so an
-  // already queued notification still displays the requested copy.
+  // Preserve the actual show and episode from the backend. Replacing this
+  // with generic text makes simultaneous release reminders indistinguishable.
   const body=String(payload.body||"");
   const episodeReleased=/episode\s+\d+\s+(?:is\s+available\s+now|is\s+out\s+now)\.?/i.test(body);
   if(episodeReleased){
-    payload.title="Watched log reminder";
-    payload.body="Show episode is out now";
+    payload.title="Watched Logger reminder";
   }
 
   event.waitUntil(
