@@ -99,7 +99,6 @@
   const EXTERNAL_REQUEST_TIMEOUT_MS = 8 * 1000;
   const MAX_STALE_SERIES_PER_SWEEP = 5;
   const MAX_METADATA_REFRESH_WORKERS = 2;
-  const APP_UPDATE_CHECK_MS = 60 * 1000;
   let pendingAppUpdate = false;
   let appUpdateCheckInFlight = null;
   const currentDeploymentSha = String(window.WATCHLOG_BUILD?.sha||"");
@@ -134,7 +133,6 @@
     })();
     return appUpdateCheckInFlight;
   }
-  setInterval(()=>{if(document.visibilityState==="visible")void checkForAppUpdate();},APP_UPDATE_CHECK_MS);
   document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){applyPendingAppUpdate()||void checkForAppUpdate();}});
   window.addEventListener("focus",()=>{applyPendingAppUpdate()||void checkForAppUpdate();});
 
