@@ -99,6 +99,45 @@
   const EXTERNAL_REQUEST_TIMEOUT_MS = 8 * 1000;
   const MAX_STALE_SERIES_PER_SWEEP = 5;
   const MAX_METADATA_REFRESH_WORKERS = 2;
+  const APP_UPDATE_CHECK_MS = 60 * 1000;
+  let pendingAppUpdate = false;
+  let appUpdateCheckInFlight = null;
+  const currentDeploymentSha = String(window.WATCHLOG_BUILD?.sha||"");
+
+  function appHasUnsavedWork(){
+    return Boolean(
+      localSaveInFlight || cloudSaveInFlight || queuedLocalSnapshot || queuedCloudSnapshot ||
+      (typeof saveBtn!=="undefined" && saveBtn?.disabled) ||
+      (typeof modal!=="undefined" && modal && !modal.classList.contains("hidden"))
+    );
+  }
+  function applyPendingAppUpdate(){
+    if(!pendingAppUpdate||appHasUnsavedWork())return false;
+    pendingAppUpdate=false;
+    window.location.reload();
+    return true;
+  }
+  async function checkForAppUpdate(){
+    if(appUpdateCheckInFlight||!navigator.onLine||!currentDeploymentSha)return appUpdateCheckInFlight;
+    appUpdateCheckInFlight=(async()=>{
+      try{
+        const response=await fetch(`./build-info.js?update=${Date.now()}`,{cache:"no-store"});
+        if(!response.ok)return;
+        const source=await response.text();
+        const match=source.match(/"sha":"([0-9a-f]{7,40})"/i);
+        if(match&&match[1]!==currentDeploymentSha){
+          pendingAppUpdate=true;
+          applyPendingAppUpdate();
+        }
+      }catch(error){console.debug("App update check failed",error);}
+      finally{appUpdateCheckInFlight=null;}
+    })();
+    return appUpdateCheckInFlight;
+  }
+  setInterval(()=>{if(document.visibilityState==="visible")void checkForAppUpdate();},APP_UPDATE_CHECK_MS);
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){applyPendingAppUpdate()||void checkForAppUpdate();}});
+  window.addEventListener("focus",()=>{applyPendingAppUpdate()||void checkForAppUpdate();});
+
   let episodeLogFeedback = null;
   let activeEpisodeTrackerId = "";
   let activeEpisodeTrackerSeason = 0;
