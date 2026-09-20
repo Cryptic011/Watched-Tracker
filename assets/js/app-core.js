@@ -106,8 +106,8 @@
   function appHasUnsavedWork(){
     return Boolean(
       localSaveInFlight || cloudSaveInFlight || queuedLocalSnapshot || queuedCloudSnapshot ||
-      (typeof saveBtn!=="undefined" && saveBtn?.disabled) ||
-      (typeof modal!=="undefined" && modal && !modal.classList.contains("hidden"))
+      document.getElementById("save-btn")?.disabled ||
+      !document.getElementById("modal")?.classList.contains("hidden")
     );
   }
   function applyPendingAppUpdate(){
