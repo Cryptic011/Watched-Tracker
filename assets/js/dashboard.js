@@ -68,10 +68,9 @@ document.getElementById('library-dashboard').addEventListener('click',event=>{
 async function refreshPrivateReminderHistory(){
   const panel=document.getElementById('private-reminder-history'),body=document.getElementById('reminder-history-body');
   const token=cloudSessionToken,accountId=currentUser?.id;
-  panel.classList.add('hidden');
-  if(!token||!accountId)return;
+  if(!token||!accountId){panel.classList.add('hidden');return;}
   const hash=await sha256(`watchlog-notification-test:${normalizeEmail(currentProfile?.email||'')}`);
-  if(token!==cloudSessionToken||accountId!==currentUser?.id||hash!==NOTIFICATION_TEST_ACCOUNT_HASH)return;
+  if(token!==cloudSessionToken||accountId!==currentUser?.id||hash!==NOTIFICATION_TEST_ACCOUNT_HASH){panel.classList.add('hidden');return;}
   panel.classList.remove('hidden');
   try{
     const result=await reminderApi('private_history',{},token);
