@@ -247,3 +247,30 @@ test("Backend requires revisions and provides an owned catalogue gateway", () =>
   assert.match(migration, /add column if not exists revision bigint/);
   assert.match(migration, /create or replace function public\.watchlog_record_pin_failure/);
 });
+
+
+test("Reminder reconciliation migration matches the production migration history", () => {
+  const migrations = fs.readdirSync(path.join(root, "supabase/migrations"));
+  assert.ok(migrations.includes("20260920012827_reconcile_reminder_backend_schema.sql"));
+  assert.ok(!migrations.includes("20260920004500_reconcile_reminder_backend.sql"));
+});
+
+test("App update checks are event-driven and preserve active edits", () => {
+  const source = fs.readFileSync(path.join(root, "assets/js/app-core.js"), "utf8");
+  assert.doesNotMatch(source, /APP_UPDATE_CHECK_MS|setInterval\([^\n]*checkForAppUpdate/);
+  assert.match(source, /visibilitychange/);
+  assert.match(source, /window\.addEventListener\("focus"/);
+  assert.match(source, /appHasUnsavedWork\(\)/);
+  assert.match(source, /pendingAppUpdate=true/);
+  assert.match(source, /window\.location\.reload\(\)/);
+});
+
+test("Reminder activity stays compact and opens in a dialog below maintenance", () => {
+  const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  const core = fs.readFileSync(path.join(root, "assets/js/app-core.js"), "utf8");
+  const dashboard = fs.readFileSync(path.join(root, "assets/js/dashboard.js"), "utf8");
+  assert.match(index, /id="refresh-reminder-history"[^>]*>View activity<\/button>/);
+  assert.match(index, /id="reminder-history-dialog"/);
+  assert.match(dashboard, /reminder-history-dialog[\s\S]*showModal\(\)/);
+  assert.match(core, /settingsView\.appendChild\(maintenanceAdminSection\);[\s\S]*settingsView\.appendChild\(reminderActivitySection\)/);
+});
