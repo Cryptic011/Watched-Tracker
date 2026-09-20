@@ -50,7 +50,7 @@ function harness(extra={}){
     latestLocalSnapshot:null,queuedLocalSnapshot:null,queuedCloudSnapshot:null,
     localSaveInFlight:null,cloudSaveInFlight:null,lastCloudAccountId:"",lastLocalAccountId:"",
     lastCloudLibraryJSON:"",lastLocalLibraryJSON:"",CLOUD_SAVE_COALESCE_MS:0,
-    nowISO:()=>"2026-09-05T10:00:00.000Z",render(){},setSync(){},
+    nowISO:()=>"2026-09-05T10:00:00.000Z",render(){},setSync(){},applyPendingAppUpdate(){},
     markPending(value,id="account"){if(value)pending.add(id);else pending.delete(id);},
     hasPending:(id="account")=>pending.has(id),
     migratePlannedStatuses:items=>({rows:items}),cleanLibraryRecords:items=>({items}),
@@ -152,5 +152,22 @@ test("A timed-out or incomplete successful response cannot acknowledge a save",a
     const app=harness({PIN_API:"https://example.test",CLOUD_REQUEST_TIMEOUT_MS:1000,fetch:async()=>response});
     vm.runInContext(declaration("pinApi"),app);
     await assert.rejects(app.pinApi("save"),error=>["timeout","invalid_response"].includes(error.code));
+  }
+});
+
+test("A deferred refresh resumes after the save queue drains, but waits after a failed save",async()=>{
+  for(const fails of [false,true]){
+    let reloads=0;
+    const items=[{id:"a",title:"A"}],db=memoryDB({});
+    const app=harness({cacheDB:db,mediaItems:items,pendingAppUpdate:true,
+      document:{getElementById:id=>id==='modal'?{classList:{contains:()=>true}}:{disabled:false}},
+      window:{location:{reload:()=>reloads++}},
+      pinApi:async()=>{if(fails)throw new Error('Offline');return {ok:true,revision:1};}});
+    vm.runInContext(declaration('appHasUnsavedWork')+'\n'+declaration('applyPendingAppUpdate'),app);
+    await app.persistLibrary(items);
+    await new Promise(resolve=>setTimeout(resolve,10));
+    assert.equal(reloads,fails?0:1);
+    assert.equal(app.pendingAppUpdate,fails);
+    assert.equal(Boolean(app.queuedCloudSnapshot),fails);
   }
 });
