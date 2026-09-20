@@ -9,4 +9,8 @@ writeFileSync('build-info.js',script);
 const html=readFileSync('index.html','utf8');
 const marker='<script src="build-info.js"></script>';
 if(!html.includes(marker))throw new Error('Build metadata script marker missing');
-writeFileSync('index.html',html.replace(marker,()=>'<script>'+script+'</script>'));
+// Each deployment must request its own scripts/styles, including files whose
+// hand-written query version was not changed. Keep external URLs untouched.
+const versionedHtml=html.replace(/\b(src|href)="([^"?#]+\.(?:js|css))(?:\?[^"#]*)?"/g,(attribute,name,path)=>
+  /^(?:[a-z]+:|\/\/)/i.test(path)?attribute:`${name}="${path}?v=${commits[0].commit}"`);
+writeFileSync('index.html',versionedHtml.replace(`<script src="build-info.js?v=${commits[0].commit}"></script>`,()=>'<script>'+script+'</script>'));

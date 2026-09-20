@@ -286,6 +286,7 @@
     })().finally(()=>{
       cloudSaveInFlight=null;
       if(queuedCloudSnapshot&&!saveFailed)void queueCloudLibrarySave(queuedCloudSnapshot);
+      setTimeout(()=>applyPendingAppUpdate(),0);
     });
     return cloudSaveInFlight;
   }

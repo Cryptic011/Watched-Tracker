@@ -338,6 +338,8 @@
     hideDuplicateWarning();clearTimeout(searchTimer);activeCatalogueController?.abort();activeCatalogueController=null;cancelSuggestionProgress();searchRequestId++;
     editorApplyRevision++;editorVerificationInFlight=null;titleSuggestionsWanted=false;
     activeTitleSearchKey="";suggestList.classList.add("hidden");modal.classList.add("hidden");
+    // Let the submit handler enqueue its save before considering a reload.
+    setTimeout(()=>applyPendingAppUpdate(),0);
   }
   addBtn.onclick=openAdd;closeModal.onclick=closeEditor;modal.addEventListener("click",e=>{if(e.target===modal)closeEditor();});
 

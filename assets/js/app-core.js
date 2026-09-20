@@ -106,6 +106,8 @@
   function appHasUnsavedWork(){
     return Boolean(
       localSaveInFlight || cloudSaveInFlight || queuedLocalSnapshot || queuedCloudSnapshot ||
+      (latestLocalSnapshot && activePersistenceContext(latestLocalSnapshot) &&
+        latestLocalSnapshot.json!==lastLocalLibraryJSON && latestLocalSnapshot.json!==lastCloudLibraryJSON) ||
       document.getElementById("save-btn")?.disabled ||
       !document.getElementById("modal")?.classList.contains("hidden")
     );
@@ -435,4 +437,3 @@
   }
   appearanceQuery.addEventListener?.("change",()=>{if(savedAppearance()==="system")applyAppearance("system");});
   async function sha256(value){const bytes=new TextEncoder().encode(String(value));const digest=await crypto.subtle.digest("SHA-256",bytes);return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,"0")).join("");}
-
