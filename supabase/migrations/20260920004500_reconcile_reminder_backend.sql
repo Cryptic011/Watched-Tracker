@@ -113,12 +113,9 @@ begin
       '* * * * *',
       'select public.watchlog_trigger_reminder_scan();'
     );
-  else
-    update cron.job
-       set schedule = '* * * * *',
-           command = 'select public.watchlog_trigger_reminder_scan();',
-           active = true
-     where jobid = existing_job;
+  -- Existing jobs are deliberately left alone here: Supabase protects
+  -- cron.job from direct UPDATE. A fresh environment gets the canonical job,
+  -- while production already has this exact active schedule.
   end if;
 end
 $$;
