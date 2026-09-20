@@ -23,19 +23,31 @@ function calendarEvents(items,now=new Date()){
       if(item.nextEpisodeNum)candidates.push({raw:item.nextEpisodeDate,label:`S${item.airingSeason||item.nextSeasonNum||'?'} E${item.nextEpisodeNum}`,season:Number(item.airingSeason||item.nextSeasonNum),episode:Number(item.nextEpisodeNum)});
       if(item.nextSeasonNum&&!candidates.some(e=>e.season===Number(item.nextSeasonNum)&&e.episode===1))candidates.push({raw:item.nextSeasonDate,label:`Season ${item.nextSeasonNum}`});
     }
-    let dated=false;
+    const undated=[];
     for(const candidate of candidates){
-      if(!candidate.raw)continue;
+      if(!candidate.raw){undated.push(candidate);continue;}
       const dateOnly=/^\d{4}-\d{2}-\d{2}$/.test(candidate.raw);
       const date=new Date(dateOnly?`${candidate.raw}T12:00:00`:candidate.raw);
       if(!Number.isFinite(date.getTime()))continue;
-      dated=true;
       if(date<start||date>=end)continue;
       const key=`${item.id}:${candidate.label}:${localISODate(date)}`;
       if(seen.has(key))continue;seen.add(key);
       events.push({...candidate,item,date,dateOnly});
     }
-    if(!dated&&(item.status==='Planned'||item.status==='Saved'||item.nextSeasonNum||item.nextEpisodeNum))unknown.push(item);
+    // Watch status describes the user's intent, never release availability.
+    // Only an explicit unreleased episode/season or a future release year
+    // supports an announcement. Missing metadata alone is not a TBA release.
+    const releases=isEpisodeTrackable(item)?releasedEpisodeMap(item):{};
+    const announcements=undated.filter(candidate=>{
+      if(item.type==='Film')return false;
+      if(candidate.episode)return !(releases[candidate.season]||[]).includes(candidate.episode);
+      return !Object.keys(releases).some(season=>Number(season)>=Number(item.nextSeasonNum));
+    }).map(candidate=>candidate.label);
+    if(!announcements.length&&Number(item.releaseYear)>now.getFullYear()&&
+      !Object.values(releases).some(episodes=>episodes.length)&&
+      !(item.type==='Film'?item.filmReleaseDate:item.seriesReleaseDate)&&
+      !candidates.some(candidate=>candidate.raw))announcements.push(item.type==='Film'?'Film release':'Series premiere');
+    if(announcements.length)unknown.push({...item,announcement:[...new Set(announcements)].join(' / ')});
   }
   return{start,end,events:events.sort((a,b)=>a.date-b.date||a.item.title.localeCompare(b.item.title)),unknown};
 }
@@ -63,7 +75,7 @@ function renderDashboard(){
     const rows=eventsByDay.get(localISODate(date))||[];
     days+=`<div class="calendar-day"><h3>${esc(offset===0?'Today':date.toLocaleDateString(USER_LOCALE,{weekday:'short',day:'numeric',month:'short'}))}</h3>${rows.length?rows.map(event=>`<button type="button" class="dashboard-title" data-dashboard-open="${esc(event.item.id)}"><strong>${esc(event.item.title)}</strong><small>${esc(event.label)} · ${event.dateOnly?'Time TBA':esc(event.date.toLocaleTimeString(USER_LOCALE,{hour:'2-digit',minute:'2-digit'}))}</small><small>${esc(event.item.platform?`Saved platform: ${event.item.platform}`:'UK availability not confirmed')}</small></button>`).join(''):'<p>No listed releases</p>'}</div>`;
   }
-  updateDashboardMarkup(root,`<section class="dashboard-section"><h2>This week’s releases</h2><p class="dashboard-note">Today and the next six days. Times are local; broadcast and listed film dates may differ from UK streaming availability.</p>${days}${unknown.length?`<details data-dashboard-section="unknown"><summary>Dates to be announced (${unknown.length})</summary>${unknown.map(item=>`<button type="button" class="dashboard-title" data-dashboard-open="${esc(item.id)}">${esc(item.title)} · Date TBA</button>`).join('')}</details>`:''}</section><section class="dashboard-section"><h2>Next to watch</h2>${next.length?next.slice(0,5).map(row).join(''):'<p class="dashboard-note">No confirmed released episodes left to watch. Schedules refresh automatically.</p>'}${next.length>5?`<details data-dashboard-section="next"><summary>Show ${next.length-5} more</summary>${next.slice(5).map(row).join('')}</details>`:''}</section>`);
+  updateDashboardMarkup(root,`<section class="dashboard-section"><h2>This week’s releases</h2><p class="dashboard-note">Today and the next six days. Times are local; broadcast and listed film dates may differ from UK streaming availability.</p>${days}${unknown.length?`<details data-dashboard-section="unknown"><summary>Dates to be announced (${unknown.length})</summary>${unknown.map(item=>`<button type="button" class="dashboard-title" data-dashboard-open="${esc(item.id)}">${esc(item.title)} · ${esc(item.announcement)} · Date TBA</button>`).join('')}</details>`:''}</section><section class="dashboard-section"><h2>Next to watch</h2>${next.length?next.slice(0,5).map(row).join(''):'<p class="dashboard-note">No confirmed released episodes left to watch. Schedules refresh automatically.</p>'}${next.length>5?`<details data-dashboard-section="next"><summary>Show ${next.length-5} more</summary>${next.slice(5).map(row).join('')}</details>`:''}</section>`);
 }
 
 document.getElementById('library-dashboard').addEventListener('click',event=>{

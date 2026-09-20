@@ -10,7 +10,7 @@ const helper=suite.slice(suite.indexOf('function extractFunction'),suite.indexOf
 const {extractFunction}=new Function('html','assert','vm',helper+'\nreturn {extractFunction};')(html,assert,vm);
 function app(){
  const c=vm.createContext({Date,console});
- vm.runInContext(['isEpisodeTrackable','normalizeReleasedEpisodeMap','positiveEpisodeMap','releasedEpisodeMap','normalizeWatchedEpisodeMap','legacyWatchedEpisodeMap','watchedEpisodeMap','nextWatchEpisode','calendarEvents','localISODate'].map(n=>extractFunction(html,n)).join('\n'),c);return c;
+ vm.runInContext(['toMillis','isEpisodeTrackable','normalizeReleasedEpisodeMap','positiveEpisodeMap','releasedEpisodeMap','normalizeWatchedEpisodeMap','legacyWatchedEpisodeMap','watchedEpisodeMap','nextWatchEpisode','calendarEvents','localISODate'].map(n=>extractFunction(html,n)).join('\n'),c);return c;
 }
 test('Next to watch selects released gaps before later seasons and ignores announced totals',()=>{
  const c=app(),item={type:'Series',episodeScheduleVerified:true,releasedEpisodes:{1:[1,2,4],2:[1]},watchedEpisodes:{1:[1,4]},episodeCounts:{1:20}};
@@ -19,7 +19,7 @@ test('Next to watch selects released gaps before later seasons and ignores annou
  assert.equal(c.nextWatchEpisode({type:'Film'}),null);
 });
 test('Calendar includes every batch episode, deduplicates next episode, preserves date-only and excludes eighth day',()=>{
- const c=app(),now=new Date(2026,8,20,18),items=[{id:'s',title:'Show',type:'Series',airingSeason:1,nextEpisodeNum:2,nextEpisodeDate:'2026-09-21T20:00:00',scheduledEpisodeReleases:[{season:1,number:2,raw:'2026-09-21T20:00:00'},{season:1,number:3,raw:'2026-09-21T20:00:00'}]},{id:'f',title:'Film',type:'Film',filmReleaseDate:'2026-09-20'},{id:'out',title:'Outside',type:'Film',filmReleaseDate:'2026-09-27'},{id:'tba',title:'Unknown',type:'Film',status:'Planned'}];
+ const c=app(),now=new Date(2026,8,20,18),items=[{id:'s',title:'Show',type:'Series',airingSeason:1,nextEpisodeNum:2,nextEpisodeDate:'2026-09-21T20:00:00',scheduledEpisodeReleases:[{season:1,number:2,raw:'2026-09-21T20:00:00'},{season:1,number:3,raw:'2026-09-21T20:00:00'}]},{id:'f',title:'Film',type:'Film',filmReleaseDate:'2026-09-20'},{id:'out',title:'Outside',type:'Film',filmReleaseDate:'2026-09-27'},{id:'tba',title:'Unknown',type:'Film',status:'Planned',releaseYear:'2027'}];
  const result=c.calendarEvents(items,now);assert.equal(result.events.length,3);assert.equal(result.events[0].dateOnly,true);assert.equal(result.unknown.length,1);
 });
 test('Library save indicator uses the persistence status and hides for signed-out users',()=>{
@@ -61,4 +61,25 @@ test('Next to watch handles long histories and nonsequential input without chang
  const before=JSON.stringify(item);
  assert.equal(JSON.stringify(c.nextWatchEpisode(item)),JSON.stringify({season:1,episode:1999}));
  assert.equal(JSON.stringify(item),before);
+});
+
+
+test('Calendar never treats planned or saved watch status as an unreleased title',()=>{
+ const c=app(),now=new Date(2026,8,20),items=['Planned','Saved','Watching','Watched'].flatMap(status=>[
+  {id:status+'film',title:'Old film',type:'Film',status,releaseYear:'2014'},
+  {id:status+'show',title:'Released show',type:'Series',status,episodeScheduleVerified:true,releasedEpisodes:{1:[1,2]}},
+  {id:status+'unknown',title:'Missing metadata',type:'Film',status}
+ ]);
+ assert.equal(c.calendarEvents(items,now).unknown.length,0);
+});
+test('Calendar names actual undated upcoming episodes and seasons regardless of watch status',()=>{
+ const c=app(),now=new Date(2026,8,20),released={episodeScheduleVerified:true,releasedEpisodes:{1:[1,2]}};
+ const items=[
+  {id:'season',title:'Returning show',type:'Series',status:'Watched',...released,nextSeasonNum:2,scheduledEpisodeReleases:[{season:1,number:2,raw:'2025-01-01'}]},
+  {id:'episode',title:'Airing show',type:'Series',status:'Watching',...released,airingSeason:1,nextEpisodeNum:3},
+  {id:'stale',title:'Already released',type:'Series',status:'Planned',...released,airingSeason:1,nextEpisodeNum:2,nextSeasonNum:1},
+  {id:'future',title:'Future film',type:'Film',status:'Watching',releaseYear:2027}
+ ];
+ const result=c.calendarEvents(items,now);
+ assert.equal(JSON.stringify(result.unknown.map(item=>[item.id,item.announcement])),JSON.stringify([['season','Season 2'],['episode','S1 E3'],['future','Film release']]));
 });
