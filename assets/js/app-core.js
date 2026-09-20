@@ -161,6 +161,8 @@
   maintenanceAdminSection.id="maintenance-admin-section";maintenanceAdminSection.className="maintenance-admin hidden";
   maintenanceAdminSection.innerHTML='<div class="section-label">Maintenance</div><div class="profile-card"><div class="maintenance-toggle-row"><div class="maintenance-toggle-copy"><strong>Maintenance mode</strong><span>Blocks new logins and account creation</span></div><input id="maintenance-enabled" class="maintenance-switch" type="checkbox" aria-label="Enable maintenance mode" /></div><div class="form-group"><label for="maintenance-message">Login screen message</label><textarea id="maintenance-message" class="maintenance-message" maxlength="240"></textarea></div><button id="save-maintenance" class="btn btn-secondary btn-full" type="button">Save Maintenance Setting</button><div id="maintenance-admin-status" class="maintenance-admin-status" aria-live="polite"></div></div>';
   settingsView.appendChild(maintenanceAdminSection);
+  const reminderActivitySection=document.getElementById("private-reminder-history");
+  if(reminderActivitySection)settingsView.appendChild(reminderActivitySection);
   const whatsNewButton=document.createElement("button");
   whatsNewButton.id="whats-new-button";whatsNewButton.type="button";whatsNewButton.className="whats-new-button";
   whatsNewButton.setAttribute("aria-haspopup","dialog");whatsNewButton.setAttribute("aria-controls","changelog-dialog");
