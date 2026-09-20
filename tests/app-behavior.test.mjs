@@ -206,7 +206,7 @@ test("Reminder backend refreshes schedules before scanning and uses revision che
 });
 
 test("Reminder migrations provision the service-role push schema", () => {
-  const migration = fs.readFileSync(path.join(root, "supabase/migrations/20260908000100_create_push_backend.sql"), "utf8");
+  const migration = fs.readFileSync(path.join(root, "supabase/migrations/20260917030532_create_push_backend.sql"), "utf8");
   for (const table of ["watchlog_push_config", "watchlog_push_subscriptions", "watchlog_push_deliveries", "watchlog_push_tests"]) {
     assert.match(migration, new RegExp(`create table if not exists public\\.${table}`));
     assert.match(migration, new RegExp(`grant all on table public\\.${table} to service_role`));
