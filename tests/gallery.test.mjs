@@ -21,3 +21,11 @@ test('Unknown releases stay separate and future films are not marked released',(
   const result=sections(rows,upcoming,now);
   assert.equal(result.released.map(x=>x.id).join(','),'old');assert.equal(result.remaining.map(x=>x.id).join(','),'unknown');
 });
+
+test('Gallery calculates upcoming metadata once per title with a consistent clock',()=>{
+ const rows=Array.from({length:500},(_,i)=>({id:String(i),type:'Film',event:{rank:2,time:now+500-i}})),calls=[];
+ const result=sections(rows,(item,time)=>{calls.push([item.id,time]);return item.event;},now);
+ assert.equal(calls.length,rows.length);assert.ok(calls.every(([,time])=>time===now));
+ assert.equal(result.future[0].id,'499');assert.equal(result.future.at(-1).id,'0');
+ assert.equal(rows[0].id,'0');
+});

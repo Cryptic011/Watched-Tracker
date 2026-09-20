@@ -61,10 +61,18 @@ window.WatchLogGallery=(()=>{
   function releaseTime(item){const value=isFilm(item)?item.filmReleaseDate:item.seriesReleaseDate;const time=Date.parse(value||'');return Number.isFinite(time)?time:0;}
   function releasedByYear(item,now){return /^\d{4}$/.test(String(item.releaseYear||''))&&Number(item.releaseYear)<new Date(now).getFullYear();}
   function sections(items,upcoming,now=Date.now()){
-    const future=items.filter(item=>upcoming(item).rank>0).sort((a,b)=>upcoming(a).time-upcoming(b).time);
-    const released=items.filter(item=>releaseTime(item)>0?releaseTime(item)<=now:releasedByYear(item,now)||!isFilm(item)&&Object.values(item.releasedEpisodes||{}).some(a=>a.length));
-    const used=new Set([...future,...released].map(item=>item.id));
-    return {future,released,remaining:items.filter(item=>!used.has(item.id))};
+    const future=[],released=[],remaining=[],events=new Map();
+    for(const item of items){
+      const event=upcoming(item,now),time=releaseTime(item);
+      events.set(item,event);
+      const isUpcoming=event.rank>0;
+      const isReleased=time>0?time<=now:releasedByYear(item,now)||!isFilm(item)&&Object.values(item.releasedEpisodes||{}).some(a=>a.length);
+      if(isUpcoming)future.push(item);
+      if(isReleased)released.push(item);
+      if(!isUpcoming&&!isReleased)remaining.push(item);
+    }
+    future.sort((a,b)=>events.get(a).time-events.get(b).time);
+    return {future,released,remaining};
   }
   function tile(item,upcoming=false){
     const event=api.upcoming(item);

@@ -3,8 +3,9 @@ function nextWatchEpisode(item){
   if(!isEpisodeTrackable(item))return null;
   const releases=releasedEpisodeMap(item),watched=watchedEpisodeMap(item,releases);
   for(const season of Object.keys(releases).map(Number).sort((a,b)=>a-b)){
-    for(const episode of [...releases[season]].sort((a,b)=>a-b)){
-      if(!(watched[season]||[]).includes(episode))return{season,episode};
+    const seen=new Set(watched[season]||[]);
+    for(const episode of releases[season]){
+      if(!seen.has(episode))return{season,episode};
     }
   }
   return null;
@@ -39,20 +40,30 @@ function calendarEvents(items,now=new Date()){
   return{start,end,events:events.sort((a,b)=>a.date-b.date||a.item.title.localeCompare(b.item.title)),unknown};
 }
 
+function updateDashboardMarkup(root,markup){
+  // Keep focus and expanded sections when a save/metadata refresh changes nothing.
+  if(root._dashboardMarkup===markup)return;
+  const expanded=new Set([...root.querySelectorAll('details[data-dashboard-section][open]')].map(node=>node.dataset.dashboardSection));
+  root.innerHTML=markup;root._dashboardMarkup=markup;
+  for(const node of root.querySelectorAll('details[data-dashboard-section]'))node.open=expanded.has(node.dataset.dashboardSection);
+}
+
 function renderDashboard(){
   const root=document.getElementById('library-dashboard');if(!root)return;
   const visible=Boolean(currentUser&&currentTab==='library'&&!categoryControlsVisible()&&!searchQuery.trim());
-  root.classList.toggle('hidden',!visible);if(!visible){root.replaceChildren();return;}
+  root.classList.toggle('hidden',!visible);if(!visible){root.replaceChildren();root._dashboardMarkup=null;return;}
   const next=mediaItems.map(item=>({item,next:nextWatchEpisode(item)})).filter(row=>row.next);
   const {start,events,unknown}=calendarEvents(mediaItems);
   const row=({item,next})=>`<div class="dashboard-row"><button type="button" class="dashboard-title" data-dashboard-open="${esc(item.id)}"><strong>${esc(item.title)}</strong><small>S${next.season} E${next.episode} · Released</small></button><button type="button" class="episode-quick-button" data-dashboard-watch="${esc(item.id)}" data-season="${next.season}" data-episode="${next.episode}" ${episodeLogBusy.has(String(item.id))?'disabled':''}>Mark watched</button></div>`;
+  const eventsByDay=new Map();
+  for(const event of events){const key=localISODate(event.date);if(!eventsByDay.has(key))eventsByDay.set(key,[]);eventsByDay.get(key).push(event);}
   let days='';
   for(let offset=0;offset<7;offset++){
     const date=new Date(start);date.setDate(date.getDate()+offset);
-    const rows=events.filter(event=>event.date.toDateString()===date.toDateString());
+    const rows=eventsByDay.get(localISODate(date))||[];
     days+=`<div class="calendar-day"><h3>${esc(offset===0?'Today':date.toLocaleDateString(USER_LOCALE,{weekday:'short',day:'numeric',month:'short'}))}</h3>${rows.length?rows.map(event=>`<button type="button" class="dashboard-title" data-dashboard-open="${esc(event.item.id)}"><strong>${esc(event.item.title)}</strong><small>${esc(event.label)} · ${event.dateOnly?'Time TBA':esc(event.date.toLocaleTimeString(USER_LOCALE,{hour:'2-digit',minute:'2-digit'}))}</small><small>${esc(event.item.platform?`Saved platform: ${event.item.platform}`:'UK availability not confirmed')}</small></button>`).join(''):'<p>No listed releases</p>'}</div>`;
   }
-  root.innerHTML=`<section class="dashboard-section"><h2>This week’s releases</h2><p class="dashboard-note">Today and the next six days. Times are local; broadcast and listed film dates may differ from UK streaming availability.</p>${days}${unknown.length?`<details><summary>Dates to be announced (${unknown.length})</summary>${unknown.map(item=>`<button type="button" class="dashboard-title" data-dashboard-open="${esc(item.id)}">${esc(item.title)} · Date TBA</button>`).join('')}</details>`:''}</section><section class="dashboard-section"><h2>Next to watch</h2>${next.length?next.slice(0,5).map(row).join(''):'<p class="dashboard-note">No confirmed released episodes left to watch. Schedules refresh automatically.</p>'}${next.length>5?`<details><summary>Show ${next.length-5} more</summary>${next.slice(5).map(row).join('')}</details>`:''}</section>`;
+  updateDashboardMarkup(root,`<section class="dashboard-section"><h2>This week’s releases</h2><p class="dashboard-note">Today and the next six days. Times are local; broadcast and listed film dates may differ from UK streaming availability.</p>${days}${unknown.length?`<details data-dashboard-section="unknown"><summary>Dates to be announced (${unknown.length})</summary>${unknown.map(item=>`<button type="button" class="dashboard-title" data-dashboard-open="${esc(item.id)}">${esc(item.title)} · Date TBA</button>`).join('')}</details>`:''}</section><section class="dashboard-section"><h2>Next to watch</h2>${next.length?next.slice(0,5).map(row).join(''):'<p class="dashboard-note">No confirmed released episodes left to watch. Schedules refresh automatically.</p>'}${next.length>5?`<details data-dashboard-section="next"><summary>Show ${next.length-5} more</summary>${next.slice(5).map(row).join('')}</details>`:''}</section>`);
 }
 
 document.getElementById('library-dashboard').addEventListener('click',event=>{
@@ -83,3 +94,4 @@ async function refreshPrivateReminderHistory(){
 }
 document.getElementById('refresh-reminder-history').onclick=async()=>{const dialog=document.getElementById('reminder-history-dialog'),body=document.getElementById('reminder-history-body');body.textContent='Loading reminder activity…';dialog.showModal();await refreshPrivateReminderHistory();};
 document.getElementById('close-reminder-history').onclick=()=>document.getElementById('reminder-history-dialog').close();
+
