@@ -68,7 +68,7 @@ document.getElementById('library-dashboard').addEventListener('click',event=>{
 async function refreshPrivateReminderHistory(){
   const panel=document.getElementById('private-reminder-history'),body=document.getElementById('reminder-history-body');
   const token=cloudSessionToken,accountId=currentUser?.id;
-  panel.classList.add('hidden');body.replaceChildren();
+  panel.classList.add('hidden');
   if(!token||!accountId)return;
   const hash=await sha256(`watchlog-notification-test:${normalizeEmail(currentProfile?.email||'')}`);
   if(token!==cloudSessionToken||accountId!==currentUser?.id||hash!==NOTIFICATION_TEST_ACCOUNT_HASH)return;
