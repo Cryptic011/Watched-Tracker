@@ -17,12 +17,15 @@ const server=http.createServer((req,res)=>{
  const browser=await engine.launch({headless:true});
  try{
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
-  const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
+  const page=await context.newPage(),errors=[];let phase='login';
+  page.on('pageerror',error=>{errors.push(error.message);console.error(`${engine.name()} [${phase}] page error: ${error.stack||error.message}`);});
+  page.on('requestfailed',request=>console.error(`${engine.name()} [${phase}] request failed: ${request.method()} ${new URL(request.url()).pathname} ${request.failure()?.errorText}`));
   let items=[],revision=0,failSave=false,saves=0,loads=0;
   const account={id:'browser-test',email:'browser@example.test',displayName:'Browser Test'};
   await context.route('**/*',async route=>{
    const req=route.request();
-   const headers={'access-control-allow-origin':base,'access-control-allow-methods':'POST, GET, OPTIONS','access-control-allow-headers':'content-type, x-watchlog-session, authorization, apikey'};
+   const requestHeaders=req.headers();
+   const headers={'access-control-allow-origin':requestHeaders.origin||base,'access-control-allow-methods':'POST, GET, OPTIONS','access-control-allow-headers':requestHeaders['access-control-request-headers']||'content-type, x-watchlog-session, authorization, apikey','access-control-max-age':'600'};
    // WebKit applies CORS to fulfilled mocks, including failures and preflights.
    if(req.method()==='OPTIONS')return route.fulfill({status:204,headers,body:''});
    if(req.url().includes('/functions/v1/watchlog-pin')){
@@ -45,6 +48,7 @@ const server=http.createServer((req,res)=>{
   await page.locator('#auth-email').fill(account.email);await page.locator('#auth-pin').fill('1234');await page.locator('#auth-submit').click();
   await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden'));
   // Add and edit via the real form; external catalogue responses stay mocked.
+  phase='search';
   await page.locator('#add-btn').click();
   await page.locator('[data-browse-format="Film"]').click();assert.equal(await page.locator('#discovery-query').inputValue(),'');
   await page.locator('[data-discovery-filter="All"]').click();await page.locator('#discovery-query').fill('Browser Test Film');
@@ -64,6 +68,7 @@ const server=http.createServer((req,res)=>{
   await page.locator('#discovery-manual').click();await page.locator('#modal').waitFor({state:'visible'});await page.locator('#close-modal').click();
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
   await page.locator('[data-tab="library"]').click();
+  phase='gallery';
   assert.equal(await page.getByRole('heading',{name:'Next to watch',exact:true}).count(),0);
   const categories=await page.locator('.gallery-category').evaluateAll(nodes=>nodes.map(n=>({y:n.getBoundingClientRect().y,height:n.getBoundingClientRect().height})));
   assert.ok(categories[1].y>=categories[0].y+categories[0].height);
@@ -76,6 +81,7 @@ const server=http.createServer((req,res)=>{
   await page.evaluate(()=>openEdit(mediaItems[0].id));await page.locator('#platform').fill('Cinema');await page.locator('#save-btn').click();
   await page.waitForFunction(()=>!cloudSaveInFlight&&!localSaveInFlight);assert.equal(items[0].platform,'Cinema');
   // Seed a verified schedule through the same persistence code used by imports.
+  phase='episode tracking';
   await page.evaluate(async()=>{
    mediaItems.push({id:'show',title:'Test Series',type:'Series',status:'Planned',episodeScheduleVerified:true,releasedEpisodes:{1:[1,2,3]},airedEpisodeCounts:{1:3},episodeCounts:{1:4},watchedEpisodes:{},metadataUpdatedAt:new Date().toISOString(),seriesReleaseDate:'2020-01-01'});
    await persistLibrary(mediaItems);render();openEpisodeTracker('show');
@@ -92,12 +98,14 @@ const server=http.createServer((req,res)=>{
   await page.waitForFunction(()=>!cloudSaveInFlight&&!localSaveInFlight&&mediaItems.length===2);
   assert.equal(items.length,2);
   // Force a pending memory change: refresh must save it before navigation.
+  phase='refresh';
   await page.evaluate(()=>{mediaItems[0].platform='Saved before refresh';});
   const before=loads;await Promise.all([page.waitForNavigation({waitUntil:'load'}),page.locator('#refresh-app').click()]);await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden'));
   await page.waitForFunction(()=>mediaItems[0]?.platform==='Saved before refresh');
   assert.equal(items[0].platform,'Saved before refresh');
   await page.waitForTimeout(300);assert.ok(loads>before);
   // A failed cloud save must leave the current page and edit intact.
+  phase='failed save';
   failSave=true;const failedLoads=loads;
   await page.evaluate(()=>{mediaItems[0].platform='Keep this change';});await page.locator('#refresh-app').click();
   await page.waitForFunction(()=>document.querySelector('#app-toast').textContent.includes('Refresh paused'));
