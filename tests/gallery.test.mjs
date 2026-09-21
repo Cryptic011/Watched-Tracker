@@ -5,6 +5,12 @@ import vm from 'node:vm';
 const context={window:{}};
 vm.runInNewContext(fs.readFileSync(new URL('../library-gallery.js',import.meta.url),'utf8'),context);
 const {sections}=context.window.WatchLogGallery;
+test('Watched groups use original release years, never added or watched dates',()=>{
+  const rows=[{id:'old',type:'Series',seriesReleaseDate:'2003-09-23',date:'2026-09-21',releaseYear:2026},{id:'new',type:'Film',filmReleaseDate:'2024-07-25',date:'2020-01-01'},{id:'year',type:'Series',releaseYear:2022},{id:'unknown',type:'Film',date:'2026-01-01'}];
+  const groups=context.window.WatchLogGallery.releaseGroups(rows);
+  assert.equal(groups.map(g=>g.year).join(','),'2024,2022,2003,Date unknown');
+  assert.equal(groups[2].rows[0].id,'old');assert.equal(rows[0].id,'old');
+});
 const now=Date.parse('2026-09-15T12:00:00Z');
 const upcoming=item=>item.event||{rank:0,time:Infinity};
 test('A released series also appears in upcoming when its next episode is scheduled',()=>{

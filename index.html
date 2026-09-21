@@ -45,6 +45,7 @@
       <header class="discovery-heading"><h2 id="discovery-heading">Find your next watch</h2><p>Search shows and films, then add the right one.</p></header>
       <form id="discovery-form" role="search"><label class="discovery-label" for="discovery-query">Search shows and films</label><div class="discovery-search"><input id="discovery-query" type="search" placeholder="Title, e.g. Reacher" autocomplete="off" enterkeyhint="search" maxlength="100"><button type="submit">Search</button></div></form>
       <div class="discovery-filters" role="group" aria-label="Search format"><button type="button" data-discovery-filter="All" aria-pressed="true">All</button><button type="button" data-discovery-filter="Series" aria-pressed="false">Series</button><button type="button" data-discovery-filter="Film" aria-pressed="false">Films</button></div>
+      <div id="discovery-browse" class="discovery-browse" aria-label="Browse by format"><button type="button" data-browse-format="Film"><span aria-hidden="true">▤</span><strong>Movies</strong></button><button type="button" data-browse-format="Series"><span aria-hidden="true">▣</span><strong>Series</strong></button></div>
       <p id="discovery-status" class="discovery-status" role="status" aria-live="polite">Enter at least two characters to search.</p>
       <div id="discovery-results" class="discovery-results" aria-busy="false"></div>
       <button id="discovery-retry" type="button" class="btn btn-secondary hidden">Try again</button>

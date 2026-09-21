@@ -62,7 +62,13 @@ window.WatchLogGallery=(()=>{
     return `<div class="gallery-art"><span aria-hidden="true">${esc(initials)}</span><div class="gallery-art-title">${esc(item.title||'Untitled')}</div><div class="gallery-art-meta">${esc(isFilm(item)?'FILM':'SERIES')} · ${esc(item.releaseYear||'WATCHED LOGGER')}</div><img hidden alt="" data-art="${esc(key(item))}" decoding="async"></div>`;
   }
   function stateBadge(item){const last=api.last(item);return last?`<span class="gallery-tile-status done">✓ S${esc(last.season)} E${esc(last.episode)} watched</span>`:`<span class="gallery-tile-status">${esc(item.status==='Saved'?'Planned':item.status||'Planned')}</span>`;}
-  function releaseTime(item){const value=isFilm(item)?item.filmReleaseDate:item.seriesReleaseDate;const time=Date.parse(value||'');return Number.isFinite(time)?time:0;}
+  function releaseTime(item){const value=isFilm(item)?item.filmReleaseDate:item.seriesReleaseDate;const time=Date.parse(value?`${String(value).slice(0,10)}T12:00:00`:'');return Number.isFinite(time)?time:0;}
+  function releaseYear(item){const time=releaseTime(item);return time?String(new Date(time).getFullYear()):/^\d{4}$/.test(String(item.releaseYear||''))?String(item.releaseYear):'Date unknown';}
+  function releaseGroups(items){
+    const groups=new Map();
+    for(const item of items){const year=releaseYear(item);if(!groups.has(year))groups.set(year,[]);groups.get(year).push(item);}
+    return [...groups].sort(([a],[b])=>(Number(b)||0)-(Number(a)||0)).map(([year,rows])=>({year,rows:rows.slice().sort((a,b)=>releaseTime(b)-releaseTime(a)||String(a.title).localeCompare(String(b.title)))}));
+  }
   function releasedByYear(item,now){return /^\d{4}$/.test(String(item.releaseYear||''))&&Number(item.releaseYear)<new Date(now).getFullYear();}
   function sections(items,upcoming,now=Date.now()){
     const future=[],released=[],remaining=[],events=new Map();
@@ -84,7 +90,7 @@ window.WatchLogGallery=(()=>{
     if(upcoming){const label=event.kind==='episode'?`S${item.airingSeason||item.curSeason||'?'} E${event.number||'?'}`:event.kind==='season'?`Season ${event.number||'?'}`:'Film release';subtitle=`${label} · ${event.rank===2?api.dateTime(new Date(event.time)):'Date TBA'}`;}
     return `<button type="button" class="gallery-tile" data-gallery-item="${esc(item.id)}" aria-label="Open ${esc(item.title)}">${art(item)}${stateBadge(item)}<strong>${esc(item.title)}</strong><small>${esc(subtitle)}</small></button>`;
   }
-  function section(title,items,carousel=false){return items.length?`<section class="gallery-section"><h3>${title}</h3><div class="${carousel?'gallery-carousel':'gallery-grid'}">${items.map(item=>tile(item,carousel)).join('')}</div></section>`:'';}
+  function section(title,items,carousel=false){return items.length?`<section class="gallery-section"><h3>${esc(title)}<span class="gallery-count">${items.length}</span></h3><div class="${carousel?'gallery-carousel'+(category==='Film'?' gallery-film-carousel':''):'gallery-grid'}">${items.map(item=>tile(item,carousel)).join('')}</div></section>`:'';}
   function detail(item){
     if(!dialog){dialog=document.createElement('dialog');dialog.className='gallery-detail';dialog.setAttribute('aria-label','Title details');document.body.append(dialog);dialog.addEventListener('click',event=>{if(event.target===dialog||event.target.closest('[data-gallery-close]'))dialog.close();});dialog.addEventListener('close',()=>{host?.querySelector(`[data-gallery-item="${CSS.escape(dialog.dataset.item||'')}"]`)?.focus();});}
     dialog.dataset.item=String(item.id);
@@ -106,11 +112,13 @@ window.WatchLogGallery=(()=>{
       if(event.target.closest('[data-gallery-back]')){category='';api.render();host.querySelector('.gallery-category')?.focus();return;}
       const target=event.target.closest('[data-gallery-item]');if(target){const item=api.items().find(row=>String(row.id)===target.dataset.galleryItem);if(item)detail(item);}
     });}
-    if(!category){host.innerHTML=`<div class="gallery-home">${[['Film','Films','▤'],['Series','Series','▣']].map(([type,label,icon])=>{
+    if(!category){host.innerHTML=`<div class="gallery-home">${[['Film','Movies','▤'],['Series','Series','▣']].map(([type,label,icon])=>{
       const items=rows.filter(item=>type==='Film'?isFilm(item):!isFilm(item));return `<button type="button" class="gallery-category" data-gallery-category="${type}"><span class="gallery-category-icon" aria-hidden="true">${icon}</span><span><strong>${label}</strong><small>${items.length} title${items.length===1?'':'s'}</small></span><span class="gallery-fan" aria-hidden="true">${items.slice(0,3).map(item=>art(item)).join('')}</span></button>`;
     }).join('')}</div><p class="gallery-caption">${rows.length} titles in this view</p>`;}
-    else{const items=rows.filter(item=>category==='Film'?isFilm(item):!isFilm(item)),parts=sections(items,api.upcoming);host.innerHTML=`<div class="gallery-nav"><button type="button" class="gallery-back" data-gallery-back aria-label="Back to Library">‹</button><h2>${category==='Film'?'Films':'Series'}</h2></div>${section('Upcoming',parts.future,true)}${section('Released',parts.released)}${section('Other titles',parts.remaining)}${items.length?'':'<p class="gallery-empty">No titles match your search or filter.</p>'}`;}
+    else{const items=rows.filter(item=>category==='Film'?isFilm(item):!isFilm(item)),parts=sections(items,api.upcoming);
+      const content=api.filter==='Watched'?releaseGroups(items).map(group=>section(group.year,group.rows)).join(''):section('Upcoming',parts.future,true)+section('Released',parts.released)+section('Date unknown',parts.remaining);
+      host.innerHTML=`<div class="gallery-nav"><button type="button" class="gallery-back" data-gallery-back aria-label="Back to Library">‹</button><h2>${category==='Film'?'Movies':'Series'}</h2></div>${content}${items.length?'':'<p class="gallery-empty">No titles match your search or filter.</p>'}`;}
     observe(host,rows);
   }
-  return {mount,sections,back,hasCategory:()=>Boolean(category)};
+  return {mount,sections,releaseGroups,back,hasCategory:()=>Boolean(category)};
 })();

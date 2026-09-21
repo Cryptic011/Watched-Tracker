@@ -34,6 +34,7 @@
     root.querySelectorAll(".discovery-poster img").forEach(img=>img.addEventListener("error",()=>{img.hidden=true;},{once:true}));
   }
   function renderTitleSearch(){
+    $("discovery-browse")?.classList.toggle("hidden",discoveryQuery.length>=2);
     const expanded=new Set([...discoveryResults.querySelectorAll("[data-discovery-row]")].filter(row=>row.querySelector("details")?.open).map(row=>row.dataset.discoveryRow));
     const visible=discoveryRows.map((item,index)=>({item,index})).filter(({item})=>["Film","Series"].includes(item.format)&&(discoveryFilter==="All"||item.format===discoveryFilter));
     discoveryResults.innerHTML=visible.map(({item,index})=>discoveryCard(item,index)).join("");
@@ -148,6 +149,7 @@
   });
   $("discovery-form").addEventListener("submit",event=>{event.preventDefault();void runTitleSearch();});
   $("discovery-retry").onclick=()=>void runTitleSearch();
+  document.querySelectorAll("[data-browse-format]").forEach(button=>button.onclick=()=>{discoveryFilter=button.dataset.browseFormat;renderTitleSearch();discoveryInput.placeholder=discoveryFilter==="Film"?"Search movies":"Search series";discoveryInput.focus();});
   $("discovery-manual").onclick=()=>{if(!currentUser)return;openAdd();titleInput.value=discoveryInput.value.trim();titleInput.focus();};
   document.querySelectorAll("[data-discovery-filter]").forEach(button=>button.onclick=()=>{discoveryFilter=button.dataset.discoveryFilter;renderTitleSearch();});
   discoveryResults.addEventListener("click",event=>{

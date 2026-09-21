@@ -327,7 +327,7 @@
     const {rows,groups}=currentVisibleMediaRows();emptyState.classList.toggle("hidden",rows.length>0);
     if(currentTab==="library"&&window.WatchLogGallery){
       $("list-label").textContent="Library";
-      window.WatchLogGallery.mount(mediaList,rows,{upcoming:upcomingSortInfo,last:item=>isEpisodeTrackable(item)?lastLoggedEpisode(item):null,date:formatLocalDate,dateTime:formatLocalDateTime,reminder:reminderMarkup,edit:openEdit,track:openEpisodeTracker,render,back:()=>{if(currentTab!=="library"){currentTab="library";render();}},artwork:async item=>(await pinApi("catalog_search",{query:item.imdbId||item.title,country:"gb"})).results,items:()=>mediaItems});
+      window.WatchLogGallery.mount(mediaList,rows,{filter:activeFilter,upcoming:upcomingSortInfo,last:item=>isEpisodeTrackable(item)?lastLoggedEpisode(item):null,date:formatLocalDate,dateTime:formatLocalDateTime,reminder:reminderMarkup,edit:openEdit,track:openEpisodeTracker,render,back:()=>{if(currentTab!=="library"){currentTab="library";render();}},artwork:async item=>(await pinApi("catalog_search",{query:item.imdbId||item.title,country:"gb"})).results,items:()=>mediaItems});
       updateEpisodeTracker();return;
     }
     mediaList.classList.remove("gallery-active");

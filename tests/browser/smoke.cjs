@@ -45,7 +45,9 @@ const server=http.createServer((req,res)=>{
   await page.locator('#auth-email').fill(account.email);await page.locator('#auth-pin').fill('1234');await page.locator('#auth-submit').click();
   await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden'));
   // Add and edit via the real form; external catalogue responses stay mocked.
-  await page.locator('#add-btn').click();await page.locator('#discovery-query').fill('Browser Test Film');
+  await page.locator('#add-btn').click();
+  await page.locator('[data-browse-format="Film"]').click();assert.equal(await page.locator('#discovery-query').inputValue(),'');
+  await page.locator('[data-discovery-filter="All"]').click();await page.locator('#discovery-query').fill('Browser Test Film');
   await page.locator('#discovery-results .discovery-title').first().waitFor();
   await page.locator('[data-discovery-filter="Series"]').click();assert.equal(await page.locator('#discovery-results .discovery-title').count(),1);
   await page.locator('[data-discovery-filter="Film"]').click();
@@ -62,6 +64,15 @@ const server=http.createServer((req,res)=>{
   await page.locator('#discovery-manual').click();await page.locator('#modal').waitFor({state:'visible'});await page.locator('#close-modal').click();
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
   await page.locator('[data-tab="library"]').click();
+  assert.equal(await page.getByRole('heading',{name:'Next to watch',exact:true}).count(),0);
+  const categories=await page.locator('.gallery-category').evaluateAll(nodes=>nodes.map(n=>({y:n.getBoundingClientRect().y,height:n.getBoundingClientRect().height})));
+  assert.ok(categories[1].y>=categories[0].y+categories[0].height);
+  await page.evaluate(()=>{mediaItems[0].status='Watched';mediaItems[0].filmReleaseDate='2020-02-14';mediaItems[0].date='2026-09-21';render();});
+  await page.locator('[data-gallery-category="Film"]').click();await page.locator('[data-filter="Watched"]').click();
+  assert.match(await page.locator('.gallery-section h3').first().textContent(),/^2020/);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+  await page.locator('.gallery-tile').first().click();await page.locator('[data-gallery-close]').click();
+  await page.locator('[data-filter="All"]').click();await page.locator('[data-gallery-back]').click();
   await page.evaluate(()=>openEdit(mediaItems[0].id));await page.locator('#platform').fill('Cinema');await page.locator('#save-btn').click();
   await page.waitForFunction(()=>!cloudSaveInFlight&&!localSaveInFlight);assert.equal(items[0].platform,'Cinema');
   // Seed a verified schedule through the same persistence code used by imports.
