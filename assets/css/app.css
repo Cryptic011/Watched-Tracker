@@ -96,3 +96,9 @@
 .episode-watch-next[hidden]{display:none}
 .app-toast.show{pointer-events:auto;display:flex;align-items:center;justify-content:space-between;gap:14px}
 .app-toast button{border:0;background:transparent;color:inherit;font:inherit;font-weight:900;cursor:pointer;padding:5px}
+
+/* Bottom navigation: History and Watchlist are retired. Keep legacy markup hidden if an older runtime fragment is restored. */
+.bottom-tabs .tab-btn[data-tab="history"],
+.bottom-tabs .tab-btn[data-tab="watchlist"],
+.bottom-tabs .tab-btn[aria-label="History"],
+.bottom-tabs .tab-btn[aria-label="Watchlist"] { display: none !important; }
