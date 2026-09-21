@@ -125,6 +125,8 @@ async function searchCatalog(query: string, country: string) {
       results.push({
         source: "apple", externalId: catalogText(row?.trackId || row?.collectionId, 32), title, format: "Film",
         year: releaseDate.slice(0, 4), releaseDate, platform: "", detail: catalogText(row?.primaryGenreName || "Film", 64),
+        description: catalogText(row?.longDescription || row?.shortDescription, 8000),
+        posterUrl: /^https:\/\/[a-z0-9.-]+\.mzstatic\.com\//i.test(String(row?.artworkUrl100 || "")) ? String(row.artworkUrl100).replace(/100x100[^/]*\.(jpg|png)$/i, "400x600bb.$1").slice(0, 2000) : "",
         country: country.toUpperCase(), storeUrl: /^https:\/\//.test(String(row?.trackViewUrl || row?.collectionViewUrl || "")) ? String(row.trackViewUrl || row.collectionViewUrl).slice(0, 500) : "",
       });
     }
@@ -140,6 +142,8 @@ async function searchCatalog(query: string, country: string) {
         year: /^\d{4}/.test(String(show?.premiered || "")) ? String(show.premiered).slice(0, 4) : "",
         releaseDate: "", platform: catalogText(show?.network?.name || show?.webChannel?.name, 100),
         detail: catalogText(show?.type || "Series", 64), status: catalogText(show?.status, 32),
+        description: catalogText(String(show?.summary || "").replace(/<[^>]*>/g, " "), 8000),
+        posterUrl: /^https:\/\/static\.tvmaze\.com\//.test(String(show?.image?.medium || show?.image?.original || "")) ? String(show.image.medium || show.image.original).slice(0, 2000) : "",
         updated: Number.isFinite(Number(show?.updated)) ? Number(show.updated) : 0,
       });
     }

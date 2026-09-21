@@ -92,6 +92,8 @@
         sources,
         imdbId:base.imdbId||other.imdbId||"",
         tvmazeId:base.tvmazeId||other.tvmazeId||"",
+        posterUrl:base.posterUrl||other.posterUrl||"",
+        description:base.description||other.description||"",
         storeUrl:base.storeUrl||other.storeUrl,
         releaseDate:base.releaseDate||other.releaseDate||"",
         releaseSource:base.releaseDate?(base.releaseSource||base.source):(other.releaseDate?(other.releaseSource||other.source):""),
@@ -130,7 +132,7 @@
     return (exact&&first.score>=1400)||(crossChecked&&first.score>=1250)||(items.length>=10&&first.score>=1100);
   }
 
-  async function searchAllTitles(query,{onProgress=null,signal=null}={}){
+  async function searchAllTitles(query,{onProgress=null,signal=null,isCurrent=null}={}){
     checkTitleSearchSignal(signal);
     const searchKey=`all:${normalizeTitle(query)}`;
     const cached=cacheGetSearch(searchKey);if(cached)return cached;
@@ -148,7 +150,7 @@
       publishProgress(ranked);
       /* A newer keystroke makes expensive spelling/franchise expansion stale.
          Source results remain cached for reuse, but no more requests are sent. */
-      if(searchKey!==activeTitleSearchKey)return ranked;
+      if(isCurrent?!isCurrent():searchKey!==activeTitleSearchKey)return ranked;
       if(isStrongCataloguePass(ranked,q))return cacheSetSearch(searchKey,ranked);
 
       /* Only weak results make at most two more gateway calls: one alternate
@@ -341,7 +343,7 @@
     // Let the submit handler enqueue its save before considering a reload.
     setTimeout(()=>applyPendingAppUpdate(),0);
   }
-  addBtn.onclick=openAdd;closeModal.onclick=closeEditor;modal.addEventListener("click",e=>{if(e.target===modal)closeEditor();});
+  addBtn.onclick=()=>openTitleSearch();closeModal.onclick=closeEditor;modal.addEventListener("click",e=>{if(e.target===modal)closeEditor();});
 
   mediaForm.onsubmit=async e=>{
     e.preventDefault();if(!currentUser)return;saveBtn.disabled=true;saveBtn.textContent="Saving…";

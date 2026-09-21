@@ -22,7 +22,7 @@ test('Each deployed script and stylesheet uses the current commit URL',()=>{
       execFileSync(process.execPath,['build-info.mjs'],{cwd:dir});
       const built=fs.readFileSync(path.join(dir,'index.html'),'utf8'),sha=git('rev-parse','HEAD');
       const assets=[...built.matchAll(/(?:src|href)="([^"?]+\.(?:js|css))\?v=([^"#]+)"/g)].filter(m=>!m[1].startsWith('https:'));
-      assert.equal(assets.length,12);
+      assert.equal(assets.length,14);
       for(const asset of assets)assert.equal(asset[2],sha,asset[1]);
       assert.ok(built.includes(`"sha":"${sha}"`));
       assert.ok(built.includes('https://example.test/external.js?v=1'));

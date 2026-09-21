@@ -30,6 +30,12 @@ const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve()
 const titleRow = title => ({ title, format: "Series", source: "tvmaze", externalId: "1", status: "Running" });
 const isCancelled = error => error?.code === "cancelled";
 
+test('Merged IMDb and Apple film results retain poster identity and full description',async()=>{
+  const api=searchHarness(async()=>({results:[{title:'The Batman',format:'Film',source:'imdb',imdbId:'tt1877830',year:'2022',posterUrl:'https://m.media-amazon.com/batman.jpg'},{title:'The Batman',format:'Film',source:'apple',year:'2022',description:'A detective investigates corruption.'}]}));
+  api.setActive('The Batman');const rows=await api.searchAllTitles('The Batman');
+  assert.equal(rows.length,1);assert.equal(rows[0].imdbId,'tt1877830');assert.equal(rows[0].description,'A detective investigates corruption.');assert.match(rows[0].posterUrl,/media-amazon/);
+});
+
 function controlledCatalogue() {
   const calls = [];
   const api = searchHarness((_action, payload, _token, _body, signal) => new Promise((resolve, reject) => {

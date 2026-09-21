@@ -63,6 +63,7 @@ The files in `assets/js/` are ordered classic scripts sharing the existing app s
 - `library.js`: released/watched episode rules, episode tracker, library rendering and filters.
 - `catalogue.js`: title identity, search providers and release verification.
 - `dashboard.js`: next released episode, seven-day calendar and private reminder activity.
+- `discovery.js` and `assets/css/discovery.css`: the Search tab and Add show/film entry point, with poster results, format filters, expandable descriptions, title details and duplicate labels. Search reuses the authenticated catalogue and opens the existing editor before saving; manual entry remains available.
 - `editor.js`: title search interaction, editing and startup.
 - `assets/css/`: base app styles and dashboard styles.
 

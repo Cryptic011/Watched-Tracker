@@ -235,7 +235,19 @@
   }
   function categoryControlsVisible(){return currentTab==="library"&&Boolean(window.WatchLogGallery?.hasCategory?.());}
   function updateFloatingAddVisibility(){renderLibraryMaintenance();addBtn.classList.toggle("hidden",!(currentUser&&currentTab==="library"&&(!categoryControlsVisible()||activeFilter==="All")));}
-  function switchTab(tab){currentTab=tab;tabBtns.forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));const settings=tab==="settings";libraryView.classList.toggle("hidden",settings);settingsView.classList.toggle("hidden",!settings);updateFloatingAddVisibility();if(settings)void refreshPrivateReminderHistory();if(!settings){$("list-label").textContent=tab==="watchlist"?"Upcoming Premieres":tab==="history"?"Watch History":"Titles";render();}}
+  function switchTab(tab){
+    currentTab=tab;tabBtns.forEach(b=>{b.classList.toggle("active",b.dataset.tab===tab);b.setAttribute("aria-current",b.dataset.tab===tab?"page":"false");});
+    const settings=tab==="settings",search=tab==="search";
+    libraryView.classList.toggle("hidden",settings||search);settingsView.classList.toggle("hidden",!settings);
+    $("discovery-view").classList.toggle("hidden",!search);
+    document.querySelector(".top-nav .search-box").classList.toggle("hidden",search);
+    document.querySelector(".stats-row").classList.toggle("hidden",search);
+    updateFloatingAddVisibility();
+    if(search){activateTitleSearch();return;}
+    pauseTitleSearch();
+    if(settings)void refreshPrivateReminderHistory();
+    if(!settings){$("list-label").textContent=tab==="watchlist"?"Upcoming Premieres":tab==="history"?"Watch History":"Titles";render();}
+  }
   tabBtns.forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
   pillBtns.forEach(b=>b.onclick=()=>{pillBtns.forEach(x=>x.classList.remove("active"));b.classList.add("active");activeFilter=b.dataset.filter;render();});
   sortMode.onchange=e=>{activeSort=e.target.value;safeWriteJSON(SORT_KEY,activeSort);render();};
@@ -308,6 +320,7 @@
   }
   function render(){
     if(renderFrame){cancelAnimationFrame(renderFrame);renderFrame=0;}
+    if(typeof refreshTitleSearchBadges==="function")refreshTitleSearchBadges();
     $("list-toolbar").classList.toggle("hidden",!currentUser||!categoryControlsVisible());
     updateCounts();updateFloatingAddVisibility();renderDashboard();
     if(!currentUser){mediaList.replaceChildren();emptyState.classList.add("hidden");return;}

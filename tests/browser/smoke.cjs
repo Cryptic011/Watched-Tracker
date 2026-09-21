@@ -28,6 +28,10 @@ const server=http.createServer((req,res)=>{
    if(req.url().includes('/functions/v1/watchlog-pin')){
     const body=req.postDataJSON();let data={ok:true};
     if(['login','load'].includes(body.action)){loads++;data={ok:true,account,items,revision,sessionToken:'test-token'};}
+    if(body.action==='catalog_search')data={ok:true,results:[
+     {title:'Browser Test Film',format:'Film',source:'imdb',imdbId:'tt1234567',year:'2020',posterUrl:'https://m.media-amazon.com/test.jpg',description:'A detective uncovers a mystery in a quiet coastal town. '.repeat(8)},
+     {title:'Browser Test Series',format:'Series',source:'tvmaze',tvmazeId:'12',year:'2021',description:'Investigators work together to solve difficult cases.'},
+    ]};
     if(body.action==='save'){
      if(failSave)return route.fulfill({status:503,headers,json:{error:'Offline'}});
      items=body.items;revision++;saves++;data={ok:true,revision};
@@ -41,9 +45,23 @@ const server=http.createServer((req,res)=>{
   await page.locator('#auth-email').fill(account.email);await page.locator('#auth-pin').fill('1234');await page.locator('#auth-submit').click();
   await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden'));
   // Add and edit via the real form; external catalogue responses stay mocked.
-  await page.locator('#add-btn').click();await page.locator('#type').selectOption('Film');await page.locator('#title').fill('Browser Test Film');
+  await page.locator('#add-btn').click();await page.locator('#discovery-query').fill('Browser Test Film');
+  await page.locator('#discovery-results .discovery-title').first().waitFor();
+  await page.locator('[data-discovery-filter="Series"]').click();assert.equal(await page.locator('#discovery-results .discovery-title').count(),1);
+  await page.locator('[data-discovery-filter="Film"]').click();
+  await page.locator('#discovery-results summary').first().click();assert.equal(await page.locator('#discovery-results details').first().getAttribute('open'),'');
+  await page.locator('#discovery-results .discovery-title').first().click();await page.locator('#discovery-detail').waitFor({state:'visible'});
+  assert.ok((await page.locator('.discovery-full-description').textContent()).length>100);
+  await page.locator('#discovery-detail-add').click();await page.locator('#modal').waitFor({state:'visible'});
+  assert.equal(await page.locator('#title').inputValue(),'Browser Test Film');assert.equal(await page.locator('#type').inputValue(),'Film');
   await page.locator('#save-btn').click();await page.waitForFunction(()=>!localSaveInFlight&&!cloudSaveInFlight&&mediaItems.length===1);
   assert.equal(items[0].title,'Browser Test Film');
+  await page.waitForFunction(()=>document.querySelector('[data-discovery-badge]')?.textContent.includes('Already added'));
+  assert.equal(await page.locator('#discovery-results [data-discovery-add]').first().textContent(),'View in library');
+  await page.locator('[data-tab="library"]').click();await page.locator('[data-tab="search"]').click();assert.equal(await page.locator('#discovery-query').inputValue(),'Browser Test Film');
+  await page.locator('#discovery-manual').click();await page.locator('#modal').waitFor({state:'visible'});await page.locator('#close-modal').click();
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+  await page.locator('[data-tab="library"]').click();
   await page.evaluate(()=>openEdit(mediaItems[0].id));await page.locator('#platform').fill('Cinema');await page.locator('#save-btn').click();
   await page.waitForFunction(()=>!cloudSaveInFlight&&!localSaveInFlight);assert.equal(items[0].platform,'Cinema');
   // Seed a verified schedule through the same persistence code used by imports.
@@ -74,7 +92,7 @@ const server=http.createServer((req,res)=>{
   await page.waitForFunction(()=>document.querySelector('#app-toast').textContent.includes('Refresh paused'));
   assert.equal(loads,failedLoads);assert.equal(await page.evaluate(()=>mediaItems[0].platform),'Keep this change');
   assert.ok(saves>=4);assert.deepEqual(errors,[]);
-  console.log(`${engine.name()}: add/edit, episode mark/undo, unreleased guard, refresh persistence and failed-sync protection passed`);
+  console.log(`${engine.name()}: visual search, filters, descriptions, duplicate badges, add/edit, episode mark/undo, unreleased guard and refresh persistence passed`);
  }finally{await browser.close();}
  }
 })().catch(error=>{console.error(error);process.exitCode=1;}).finally(()=>server.close());
