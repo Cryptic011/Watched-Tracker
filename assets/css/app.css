@@ -86,3 +86,13 @@
   
 
 .nav-header{width:100%}.refresh-app{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:auto;min-height:30px;padding:5px 9px;border:1px solid var(--border);border-radius:9px;background:transparent;color:var(--muted);font:inherit;font-size:11px;font-weight:700;line-height:1;cursor:pointer}.refresh-app:active{background:var(--card);transform:scale(.97)}
+
+/* One-tap episode progress and a small, reversible confirmation. */
+.episode-tracker-grid{display:flex;flex-direction:column;gap:6px}
+.episode-tick{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:48px;padding:12px 14px;border-radius:12px;text-align:left}
+.episode-state{font-size:.76rem;color:var(--muted)}
+.episode-tick.watched .episode-state{color:var(--blue2)}
+.episode-watch-next{width:100%;padding:14px;margin-top:16px;border:0;border-radius:14px;background:var(--blue);color:#fff;font:inherit;font-weight:800;cursor:pointer}
+.episode-watch-next[hidden]{display:none}
+.app-toast.show{pointer-events:auto;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.app-toast button{border:0;background:transparent;color:inherit;font:inherit;font-weight:900;cursor:pointer;padding:5px}

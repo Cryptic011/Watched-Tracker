@@ -1,0 +1,72 @@
+const {chromium,webkit}=require('playwright');
+const assert=require('node:assert/strict');
+const http=require('node:http');
+const fs=require('node:fs');
+const path=require('node:path');
+const root=path.resolve(__dirname,'../..');
+const server=http.createServer((req,res)=>{
+ const pathname=decodeURIComponent(new URL(req.url,'http://local').pathname),file=path.resolve(root,'.'+(pathname==='/'?'/index.html':pathname));
+ if(!file.startsWith(root+path.sep)){res.writeHead(403).end();return;}
+ if(!fs.existsSync(file)){res.writeHead(404).end();return;}
+ res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.html')?'text/html':'application/json');res.end(fs.readFileSync(file));
+});
+(async()=>{
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));
+ const base=`http://127.0.0.1:${server.address().port}`;
+ for(const engine of process.env.BROWSER_ENGINES==='all'?[chromium,webkit]:[chromium]){
+ const browser=await engine.launch({headless:true});
+ try{
+  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
+  const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
+  let items=[],revision=0,failSave=false,saves=0,loads=0;
+  const account={id:'browser-test',email:'browser@example.test',displayName:'Browser Test'};
+  await context.route('**/*',async route=>{
+   const req=route.request();
+   if(req.url().includes('/functions/v1/watchlog-pin')){
+    const body=req.postDataJSON();let data={ok:true};
+    if(['login','load'].includes(body.action)){loads++;data={ok:true,account,items,revision,sessionToken:'test-token'};}
+    if(body.action==='save'){
+     if(failSave)return route.fulfill({status:503,json:{error:'Offline'}});
+     items=body.items;revision++;saves++;data={ok:true,revision};
+    }
+    return route.fulfill({json:data});
+   }
+   if(req.url().startsWith(base))return route.continue();
+   return route.fulfill({json:{ok:true,enabled:false,results:[]}});
+  });
+  await page.goto(base);
+  await page.locator('#auth-email').fill(account.email);await page.locator('#auth-pin').fill('1234');await page.locator('#auth-submit').click();
+  await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden'));
+  // Add and edit via the real form; external catalogue responses stay mocked.
+  await page.locator('#add-btn').click();await page.locator('#type').selectOption('Film');await page.locator('#title').fill('Browser Test Film');
+  await page.locator('#save-btn').click();await page.waitForFunction(()=>!localSaveInFlight&&!cloudSaveInFlight&&mediaItems.length===1);
+  assert.equal(items[0].title,'Browser Test Film');
+  await page.evaluate(()=>openEdit(mediaItems[0].id));await page.locator('#platform').fill('Cinema');await page.locator('#save-btn').click();
+  await page.waitForFunction(()=>!cloudSaveInFlight&&!localSaveInFlight);assert.equal(items[0].platform,'Cinema');
+  // Seed a verified schedule through the same persistence code used by imports.
+  await page.evaluate(async()=>{
+   mediaItems.push({id:'show',title:'Test Series',type:'Series',status:'Planned',episodeScheduleVerified:true,releasedEpisodes:{1:[1,2,3]},airedEpisodeCounts:{1:3},episodeCounts:{1:4},watchedEpisodes:{},metadataUpdatedAt:new Date().toISOString(),seriesReleaseDate:'2020-01-01'});
+   await persistLibrary(mediaItems);render();openEpisodeTracker('show');
+  });
+  await page.locator('#episode-watch-next').click();await page.getByRole('button',{name:'Undo',exact:true}).click();
+  await page.waitForFunction(()=>!episodeLogBusy.size&&!cloudSaveInFlight);
+  assert.equal(await page.locator('[data-season="1"][data-episode="1"]').getAttribute('aria-pressed'),'false');
+  await page.locator('[data-season="1"][data-episode="2"]').click();await page.waitForFunction(()=>!episodeLogBusy.size&&!cloudSaveInFlight);
+  assert.deepEqual(items.find(x=>x.id==='show').watchedEpisodes,{'1':[2]});assert.equal(await page.locator('[data-episode="4"]').count(),0);
+  await page.locator('#close-episode-tracker').click();
+  // Force a pending memory change: refresh must save it before navigation.
+  await page.evaluate(()=>{mediaItems[0].platform='Saved before refresh';});
+  const before=loads;await page.locator('#refresh-app').click();await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden'));
+  await page.waitForFunction(()=>mediaItems[0]?.platform==='Saved before refresh');
+  assert.equal(items[0].platform,'Saved before refresh');
+  await page.waitForTimeout(300);assert.ok(loads>before);
+  // A failed cloud save must leave the current page and edit intact.
+  failSave=true;const failedLoads=loads;
+  await page.evaluate(()=>{mediaItems[0].platform='Keep this change';});await page.locator('#refresh-app').click();
+  await page.waitForFunction(()=>document.querySelector('#app-toast').textContent.includes('Refresh paused'));
+  assert.equal(loads,failedLoads);assert.equal(await page.evaluate(()=>mediaItems[0].platform),'Keep this change');
+  assert.ok(saves>=4);assert.deepEqual(errors,[]);
+  console.log(`${engine.name()}: add/edit, episode mark/undo, unreleased guard, refresh persistence and failed-sync protection passed`);
+ }finally{await browser.close();}
+ }
+})().catch(error=>{console.error(error);process.exitCode=1;}).finally(()=>server.close());

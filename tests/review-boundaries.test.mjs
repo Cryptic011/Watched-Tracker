@@ -85,7 +85,7 @@ test("Cron keeps release-time alerts after rollover and advances without opening
   for(const [index,status] of ["Planned","Watching","Watched"].entries()){
     worker.setStatus(status);worker.setTime(episodes[index].airstamp);
     assert.ok((await worker.run()).sent>0);
-    assert.ok(worker.deliveries.some(payload=>payload.body.includes(`episode ${index+6} is out now`)));
+    assert.ok(worker.deliveries.some(payload=>payload.body.includes(`E${index+6} is out now`)));
     assert.equal((await worker.run()).sent,0);
   }
   assert.deepEqual(worker.getLibrary().items[0].watchedEpisodes,{1:[1,2,3,4,5]});

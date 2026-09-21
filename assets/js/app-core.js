@@ -101,6 +101,7 @@
   const MAX_METADATA_REFRESH_WORKERS = 2;
   let pendingAppUpdate = false;
   let appUpdateCheckInFlight = null;
+  let appRefreshInFlight = null;
   const currentDeploymentSha = String(window.WATCHLOG_BUILD?.sha||"");
 
   function appHasUnsavedWork(){
@@ -115,8 +116,7 @@
   }
   function applyPendingAppUpdate(){
     if(!pendingAppUpdate||document.visibilityState==="hidden"||appHasUnsavedWork())return false;
-    pendingAppUpdate=false;
-    window.location.reload();
+    void saveBeforeAppRefresh();
     return true;
   }
   async function checkForAppUpdate(){
@@ -160,7 +160,7 @@
   libraryMaintenance.setAttribute("role","status");libraryMaintenance.setAttribute("aria-live","polite");
   libraryMaintenance.innerHTML='<strong>Under maintenance</strong><p id="library-maintenance-message"></p>';
   document.querySelector(".nav-header").after(libraryMaintenance);
-  refreshAppBtn?.addEventListener("click",()=>{if(appHasUnsavedWork()){pendingAppUpdate=true;showAppToast("Refresh will run after your current edit or save finishes.","success");return;}window.location.reload();});
+  refreshAppBtn?.addEventListener("click",()=>{pendingAppUpdate=true;void saveBeforeAppRefresh();});
   function renderLibraryMaintenance(){
     const visible=Boolean(currentUser&&currentTab==="library"&&publicMaintenance.enabled);
     libraryMaintenance.classList.toggle("hidden",!visible);
@@ -232,7 +232,7 @@
   let appToastTimer=null,duplicateWarningItemId="";
   const episodeTrackerModal=document.createElement("div");
   episodeTrackerModal.id="episode-tracker-modal";episodeTrackerModal.className="episode-tracker-overlay hidden";
-  episodeTrackerModal.innerHTML='<section class="episode-tracker-sheet" role="dialog" aria-modal="true" aria-labelledby="episode-tracker-title"><header class="episode-tracker-header"><div><span class="episode-tracker-kicker">Episode Tracker</span><h2 id="episode-tracker-title"></h2></div><button id="close-episode-tracker" class="episode-tracker-close" type="button" aria-label="Close episode tracker">&times;</button></header><div class="episode-tracker-progress"><span>Latest watched</span><strong id="episode-tracker-progress"></strong><small id="episode-tracker-release"></small></div><div class="episode-tracker-season-row"><label class="episode-tracker-season-field"><span>Season</span><select id="episode-tracker-season" class="episode-tracker-season-select" aria-label="Choose season"></select></label><strong id="episode-tracker-season-summary" class="episode-tracker-season-summary"></strong></div><div id="episode-tracker-grid" class="episode-tracker-grid" aria-label="Released episodes"></div><p class="episode-tracker-help">Tap any released episode to mark or unmark it. Changes save automatically.</p><div id="episode-tracker-last" class="episode-tracker-last" aria-live="polite"></div><button id="episode-tracker-edit" class="episode-tracker-edit" type="button">✎ Edit show details</button></section>';
+  episodeTrackerModal.innerHTML='<section class="episode-tracker-sheet" role="dialog" aria-modal="true" aria-labelledby="episode-tracker-title"><header class="episode-tracker-header"><div><span class="episode-tracker-kicker">Episode Tracker</span><h2 id="episode-tracker-title"></h2></div><button id="close-episode-tracker" class="episode-tracker-close" type="button" aria-label="Close episode tracker">&times;</button></header><div class="episode-tracker-progress"><span>Latest watched</span><strong id="episode-tracker-progress"></strong><small id="episode-tracker-release"></small></div><div class="episode-tracker-season-row"><label class="episode-tracker-season-field"><span>Season</span><select id="episode-tracker-season" class="episode-tracker-season-select" aria-label="Choose season"></select></label><strong id="episode-tracker-season-summary" class="episode-tracker-season-summary"></strong></div><button id="episode-watch-next" type="button" class="episode-watch-next" hidden>Watch next</button><div id="episode-tracker-grid" class="episode-tracker-grid" aria-label="Released episodes"></div><p class="episode-tracker-help">Tap any released episode to mark or unmark it. Changes save automatically.</p><div id="episode-tracker-last" class="episode-tracker-last" aria-live="polite"></div><button id="episode-tracker-edit" class="episode-tracker-edit" type="button">✎ Edit show details</button></section>';
   document.body.appendChild(episodeTrackerModal);
   const episodeTrackerTitle=$("episode-tracker-title"),episodeTrackerProgress=$("episode-tracker-progress"),episodeTrackerRelease=$("episode-tracker-release"),episodeTrackerSeason=$("episode-tracker-season"),episodeTrackerSeasonSummary=$("episode-tracker-season-summary"),episodeTrackerGrid=$("episode-tracker-grid"),episodeTrackerLast=$("episode-tracker-last"),episodeTrackerEdit=$("episode-tracker-edit"),closeEpisodeTracker=$("close-episode-tracker");
   const pillBtns = document.querySelectorAll(".pill-btn"), tabBtns = document.querySelectorAll(".tab-btn");
@@ -409,8 +409,13 @@
   function esc(v){return String(v??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));}
   function showMessage(text,type="error"){authMessage.textContent=text;authMessage.className=`message ${type}`;}
   function hideMessage(){authMessage.textContent="";authMessage.className="message hidden";}
-  function showAppToast(text,type="success",duration=4200){
+  function showAppToast(text,type="success",duration=4200,undo=null){
     clearTimeout(appToastTimer);appToast.textContent=text;appToast.className=`app-toast ${type}`;
+    if(undo){
+      const button=document.createElement("button");button.type="button";button.textContent="Undo";
+      button.onclick=async()=>{button.disabled=true;try{await undo();}catch(error){showAppToast(error.message||"Could not undo. Please try again.","warn");}};
+      appToast.appendChild(button);
+    }
     requestAnimationFrame(()=>appToast.classList.add("show"));
     appToastTimer=setTimeout(()=>appToast.classList.remove("show"),duration);
   }

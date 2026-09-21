@@ -10,7 +10,7 @@ function harness(){
   const c=vm.createContext({
     localSaveInFlight:null,cloudSaveInFlight:null,queuedLocalSnapshot:null,queuedCloudSnapshot:null,
     latestLocalSnapshot:null,lastLocalLibraryJSON:'',lastCloudLibraryJSON:'',activePersistenceContext:()=>true,
-    pendingAppUpdate:true,document:{getElementById:id=>id==='modal'?{classList:{contains:()=>hidden}}:{disabled:false}},
+    saveBeforeAppRefresh:()=>{c.pendingAppUpdate=false;c.window.location.reload();},pendingAppUpdate:true,document:{getElementById:id=>id==='modal'?{classList:{contains:()=>hidden}}:{disabled:false}},
     window:{location:{reload:()=>reloads++}},setTimeout:fn=>timers.push(fn),clearTimeout(){},
     resetUKAvailability(){},hideDuplicateWarning(){},cancelSuggestionProgress(){},searchTimer:null,
     activeCatalogueController:null,searchRequestId:0,editorApplyRevision:0,editorVerificationInFlight:null,
@@ -64,4 +64,15 @@ test('A public signal cannot reload the app unless same-origin metadata changes'
   await c.checkForAppUpdate();assert.equal(reloads(),0);
   c.fetch=async()=>({ok:true,text:async()=>`window.WATCHLOG_BUILD={"sha":"${'b'.repeat(40)}"};`});
   await c.checkForAppUpdate();assert.equal(reloads(),1);
+});
+
+test('Refresh saves and syncs current state before reload and stops on failure',async()=>{
+ const source=fs.readFileSync(new URL('../assets/js/sync.js',import.meta.url),'utf8');
+ for(const succeeds of [true,false]){
+  const order=[];
+  const c=vm.createContext({appRefreshInFlight:null,pendingAppUpdate:true,document:{visibilityState:'visible'},modal:{classList:{contains:()=>true}},saveBtn:{disabled:false},currentUser:{id:'a'},persistenceGeneration:1,mediaItems:[{title:'New change'}],localSaveInFlight:null,cloudSaveInFlight:null,queuedLocalSnapshot:null,queuedCloudSnapshot:null,setSync(){},showAppToast:text=>order.push(text),persistLibrary:async items=>{assert.equal(items[0].title,'New change');order.push('saved');return succeeds;},window:{location:{reload:()=>order.push('reload')}}});
+  vm.runInContext(source.slice(0,source.indexOf('  function setSync(')),c);
+  await c.saveBeforeAppRefresh();assert.equal(order[0],'saved');
+  if(succeeds)assert.deepEqual(order,['saved','reload']);else assert.match(order[1],/Refresh paused/);
+ }
 });

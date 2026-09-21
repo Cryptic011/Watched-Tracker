@@ -411,7 +411,20 @@
     }catch(err){if(err?.code!=="duplicate"){console.error(err);alert(err.message||"Save failed.");}}
     finally{saveBtn.disabled=false;saveBtn.textContent="Save";}
   };
-  deleteBtn.onclick=()=>{const id=$("item-id").value;if(!id)return;mediaItems=mediaItems.filter(x=>String(x.id)!==String(id));render();modal.classList.add("hidden");void persistLibrary(mediaItems,{background:true,precleaned:true});};
+  deleteBtn.onclick=async()=>{
+    const id=$("item-id").value,index=mediaItems.findIndex(x=>String(x.id)===String(id)),item=mediaItems[index];if(!item)return;
+    const generation=persistenceGeneration;
+    mediaItems=mediaItems.filter(x=>String(x.id)!==String(id));render();closeEditor();
+    try{
+      await persistLibrary(mediaItems,{background:true,precleaned:true});
+      showAppToast(`${item.title} removed`,"success",6000,async()=>{
+        if(generation!==persistenceGeneration||mediaItems.some(row=>String(row.id)===String(id)))return;
+        if(findTrackedDuplicate(item,mediaItems,id)){showAppToast("This title is already in your library.","warn");return;}
+        mediaItems.splice(Math.min(index,mediaItems.length),0,item);render();
+        await persistLibrary(mediaItems,{background:true,precleaned:true});showAppToast("Title restored.");
+      });
+    }catch(error){showAppToast("Deletion could not be saved. Tap Sync Now to retry.","warn");}
+  };
 
   async function start(){
     applyAppearance();

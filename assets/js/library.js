@@ -123,11 +123,12 @@
     };
     return updated;
   }
-  async function toggleEpisodeWatched(id,season,episode){
+  async function toggleEpisodeWatched(id,season,episode,{offerUndo=true}={}){
     const key=String(id);if(episodeLogBusy.has(key))return;
     const index=mediaItems.findIndex(item=>String(item.id)===key),item=mediaItems[index];if(index<0||!item)return;
     const releases=releasedEpisodeMap(item),available=releases[season]||[];if(!available.includes(episode))return;
     const wasWatched=(watchedEpisodeMap(item,releases)[season]||[]).includes(episode),markWatched=!wasWatched,event={id:uuid(),kind:markWatched?"mark":"unmark",season,episode,watchedAt:nowISO()};
+    const generation=persistenceGeneration;
     const original=item;episodeLogBusy.add(key);episodeLogFeedback={itemId:key,eventId:event.id,season,episode,label:`Saving S${season} E${episode}…`,saving:true};
     mediaItems[index]=applyEpisodeToggle(item,season,episode,markWatched,event);render();
     let saved=false;
@@ -139,6 +140,14 @@
       episodeLogFeedback=null;alert("That episode could not be saved. Please try again.");
     }finally{
       episodeLogBusy.delete(key);render();
+      if(saved&&offerUndo)showAppToast(markWatched?`S${season} E${episode} watched`:`S${season} E${episode} unwatched`,"success",6000,async()=>{
+        if(generation!==persistenceGeneration)return;
+        const current=mediaItems.find(row=>String(row.id)===key);
+        const latest=current?.episodeHistory?.filter(row=>row.season===season&&row.episode===episode).at(-1);
+        if(!current||latest?.id!==event.id){showAppToast("This episode has changed since. Open it to update its progress.","warn");return;}
+        await toggleEpisodeWatched(id,season,episode,{offerUndo:false});
+        showAppToast("Episode change undone.");
+      });
       if(saved)setTimeout(()=>{if(episodeLogFeedback?.eventId===event.id){episodeLogFeedback=null;render();}},1500);
     }
   }
@@ -173,14 +182,21 @@
     episodeTrackerSeason.disabled=!releasedSeasons.length;
     const available=releases[activeEpisodeTrackerSeason]||[],watched=new Set(watchedMap[activeEpisodeTrackerSeason]||[]),busy=episodeLogBusy.has(String(item.id));
     episodeTrackerSeasonSummary.textContent=available.length?`${watched.size} of ${available.length} released watched`:"";
+    const next=nextWatchEpisode(item),nextButton=document.getElementById("episode-watch-next");
+    nextButton.hidden=!next;nextButton.disabled=busy;
+    nextButton.textContent=next?`Watch next · S${next.season} E${next.episode}`:"All caught up";
     episodeTrackerGrid.innerHTML=available.length?available.map(episode=>{
       const isWatched=watched.has(episode),isSaving=busy&&feedback?.season===activeEpisodeTrackerSeason&&feedback?.episode===episode;
-      return`<button class="episode-tick${isWatched?" watched":""}" type="button" data-season="${activeEpisodeTrackerSeason}" data-episode="${episode}" aria-pressed="${isWatched}" aria-label="Season ${activeEpisodeTrackerSeason} episode ${episode}, ${isWatched?"watched":"not watched"}"${busy?" disabled":""}>${isSaving?"…":`${isWatched?"✓ ":""}E${episode}`}</button>`;
+      return`<button class="episode-tick${isWatched?" watched":""}" type="button" data-season="${activeEpisodeTrackerSeason}" data-episode="${episode}" aria-pressed="${isWatched}" aria-label="Season ${activeEpisodeTrackerSeason} episode ${episode}, ${isWatched?"watched":"not watched"}"${busy?" disabled":""}><span>Episode ${episode}</span><span class="episode-state">${isSaving?"Saving…":isWatched?"✓ Watched":"Mark watched"}</span></button>`;
     }).join(""):`<div class="episode-tracker-grid-empty">${esc(emptySchedule.message)}</div>`;
     const watchedTotal=Object.values(watchedMap).reduce((total,episodes)=>total+episodes.length,0);
     episodeTrackerLast.classList.toggle("unmarked",!watchedTotal&&!feedback);
     episodeTrackerLast.textContent=feedback?.label||(watchedTotal?`✓ ${watchedTotal} episode${watchedTotal===1?"":"s"} marked watched`:"No episodes have been marked watched yet.");
   }
+  document.getElementById("episode-watch-next").onclick=()=>{
+    const item=mediaItems.find(row=>String(row.id)===activeEpisodeTrackerId),next=item&&nextWatchEpisode(item);
+    if(next)void toggleEpisodeWatched(item.id,next.season,next.episode);
+  };
   closeEpisodeTracker.onclick=closeEpisodeTrackerSheet;
   episodeTrackerModal.addEventListener("click",event=>{if(event.target===episodeTrackerModal)closeEpisodeTrackerSheet();});
   document.addEventListener("keydown",event=>{if(event.key==="Escape"&&!episodeTrackerModal.classList.contains("hidden"))closeEpisodeTrackerSheet();});
