@@ -24,22 +24,21 @@ self.addEventListener("push",event=>{
     if(event.data)payload.body=event.data.text()||payload.body;
   }
 
-  // Preserve the actual show and episode from the backend. Replacing this
-  // with generic text makes simultaneous release reminders indistinguishable.
-  const body=String(payload.body||"");
-  const episodeReleased=/episode\s+\d+\s+(?:is\s+available\s+now|is\s+out\s+now)\.?/i.test(body);
-  if(episodeReleased){
-    payload.title="Watched Logger reminder";
-  }
-
-  event.waitUntil(
-    self.registration.showNotification(payload.title||"Watched Logger",{
-      body:payload.body||"",
+  event.waitUntil((async()=>{
+    await self.registration.showNotification("Watch Logger Reminder",{
+      body:payload.body||"A reminder is ready.",
       tag:payload.tag||"watchlog-reminder",
       renotify:true,
       data:payload.data||{url:"./"}
-    })
-  );
+    });
+    // Only real release reminders set a badge. Tests and deployment events do not.
+    if(!payload.data?.test&&(payload.data?.kind==="reminder"||payload.data?.eventKey)){
+      try{
+        const windows=await self.clients.matchAll({type:"window"});
+        if(!windows.some(client=>client.visibilityState==="visible"))await self.navigator?.setAppBadge?.();
+      }catch(_){} // Badge support must never prevent notification delivery.
+    }
+  })());
 });
 
 function notificationUrlWithinScope(value){

@@ -1,3 +1,10 @@
+  function clearReminderBadge(){
+    if(document.visibilityState!=="hidden")Promise.resolve(navigator.clearAppBadge?.()).catch(()=>{});
+  }
+  document.addEventListener("visibilitychange",clearReminderBadge);
+  window.addEventListener("focus",clearReminderBadge);
+  clearReminderBadge();
+
   function isStandaloneWebApp(){
     return window.matchMedia?.("(display-mode: standalone)")?.matches||navigator.standalone===true;
   }

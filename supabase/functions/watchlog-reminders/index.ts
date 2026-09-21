@@ -387,18 +387,13 @@ function reminderCopy(
   leadHours: number,
 ) {
   const name = String(item.title || "Tracked title");
-  const timing = leadHours === 24 ? "tomorrow" : leadHours === 6 ? "in 6 hours" : "now";
-  const title = "Watched log reminder";
-  let body = `${name} is due ${timing}.`;
-  if (event.kind === "episode" && event.number) {
-    body = leadHours === 0
-      ? `${name} episode ${event.number} is out now.`
-      : `${name} episode ${event.number} airs ${timing}.`;
-  } else if (event.kind === "season" && event.number) {
-    body = `Season ${event.number} premieres ${timing}.`;
-  } else if (event.kind === "film") {
-    body = `The film releases ${timing}.`;
-  }
+  const timing = leadHours === 24 ? "in 1 day" : `in ${leadHours} hours`;
+  const title = "Watch Logger Reminder";
+  const season = Number((event as { season?: unknown }).season || item.nextSeasonNum || item.airingSeason || 0);
+  const label = event.kind === "episode" && event.number
+    ? `${name} — ${season ? `S${season} ` : ""}E${event.number}`
+    : event.kind === "season" && event.number ? `${name} — Season ${event.number}` : name;
+  const body = leadHours === 0 ? `${label} is out now.` : `${label} releases ${timing}.`;
   return { title, body };
 }
 
@@ -633,7 +628,7 @@ async function processPlannedReminders(
           title: copy.title,
           body: copy.body,
           tag: `watchlog-${await sha256(eventKey).then((v) => v.slice(0, 24))}`,
-          data: { url: "./", itemId, eventKey },
+          data: { url: "./", itemId, eventKey, kind: "reminder" },
         };
 
         try {
@@ -954,7 +949,7 @@ Deno.serve(async (req: Request) => {
       const dueAt = new Date(Date.now() + 15000).toISOString();
       const { error } = await db.from("watchlog_push_tests").insert({
         account_id: session.accountId,
-        title: "Watched log reminder",
+        title: "Watch Logger Reminder",
         body: `${String(planned.title || "Planned title")} test reminder is out now.`,
         due_at: dueAt,
       });

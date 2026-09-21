@@ -161,7 +161,7 @@ test("A deferred refresh resumes after the save queue drains, but waits after a 
     const items=[{id:"a",title:"A"}],db=memoryDB({});
     const app=harness({cacheDB:db,mediaItems:items,pendingAppUpdate:true,
       document:{getElementById:id=>id==='modal'?{classList:{contains:()=>true}}:{disabled:false}},
-      window:{location:{reload:()=>reloads++}},
+      window:{location:{reload:()=>reloads++}},saveBeforeAppRefresh:()=>{app.pendingAppUpdate=false;reloads++;},
       pinApi:async()=>{if(fails)throw new Error('Offline');return {ok:true,revision:1};}});
     vm.runInContext(declaration('appHasUnsavedWork')+'\n'+declaration('applyPendingAppUpdate'),app);
     await app.persistLibrary(items);

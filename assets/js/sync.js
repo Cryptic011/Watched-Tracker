@@ -1,3 +1,32 @@
+  async function saveBeforeAppRefresh(){
+    if(appRefreshInFlight)return appRefreshInFlight;
+    if(document.visibilityState==="hidden")return;
+    if(!modal.classList.contains("hidden")||saveBtn.disabled){
+      showAppToast("Save or close your edit to refresh.","success");return;
+    }
+    const generation=persistenceGeneration;
+    appRefreshInFlight=(async()=>{
+      try{
+        if(currentUser){
+          setSync("Saving and syncing before refresh…","warn");
+          if(localSaveInFlight)await localSaveInFlight;
+          if(cloudSaveInFlight)await cloudSaveInFlight;
+          if(generation!==persistenceGeneration)return;
+          const saved=await persistLibrary(mediaItems,{precleaned:true});
+          if(!saved)throw new Error("Refresh paused: cloud sync failed. Your changes are saved on this device. Try Refresh when online.");
+        }
+        if(generation!==persistenceGeneration)return;
+        if(document.visibilityState==="hidden"||!modal.classList.contains("hidden")||saveBtn.disabled||localSaveInFlight||cloudSaveInFlight||queuedLocalSnapshot||queuedCloudSnapshot)return;
+        pendingAppUpdate=false;
+        window.location.reload();
+      }catch(error){
+        pendingAppUpdate=false;
+        showAppToast(error.message||"Refresh paused: saving failed. Please try again.","warn",8000);
+      }finally{appRefreshInFlight=null;}
+    })();
+    return appRefreshInFlight;
+  }
+
   let librarySaveStatusTimer=null;
   function setSync(text,state="ok"){
     clearTimeout(librarySaveStatusTimer);librarySaveStatusTimer=null;

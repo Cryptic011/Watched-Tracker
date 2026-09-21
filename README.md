@@ -67,3 +67,19 @@ The files in `assets/js/` are ordered classic scripts sharing the existing app s
 - `assets/css/`: base app styles and dashboard styles.
 
 The dashboard uses the tracker's released-episode map and never treats announced episode totals as released. The calendar shows today plus six days, preserves unknown times and labels saved platforms separately from confirmed UK availability. Private reminder activity is authorized by the existing owner hash in the reminder function, after session validation; every query is scoped to that session account. No schema change is required. Send success means accepted by the push service, not confirmed phone delivery.
+
+## Browser regression checks
+
+`npm ci`, `npx playwright install --with-deps chromium webkit`, then
+`BROWSER_ENGINES=all npm run test:browser` exercises the real mobile layout in
+Chromium and WebKit. The checks mock all external services and use a separate
+test account, so they never change production libraries or send notifications.
+Both browser engines must pass before GitHub Pages can publish.
+
+Refresh saves the current library locally and synchronizes it to the cloud before
+reloading. Failed synchronization pauses refresh; incomplete editor forms stay
+open. Episode rows toggle individual released episodes, Watch next fills the
+earliest unwatched gap, and a six-second Undo reverses the latest action.
+Release reminders use “Watch Logger Reminder” with the title and timing in the
+body. Supporting installed apps show a reminder badge dot while unopened;
+private tests do not set a badge, and reopening the app clears it.

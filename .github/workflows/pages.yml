@@ -31,11 +31,27 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install browser checks
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium webkit
+
       - name: Generate version from Git history
         run: node scripts/build-info.mjs
 
       - name: Check application behavior
         run: node --test tests/*.test.mjs
+
+      - name: Check mobile browser flows
+        env:
+          BROWSER_ENGINES: all
+        run: npm run test:browser
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6

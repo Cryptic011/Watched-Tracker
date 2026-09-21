@@ -262,7 +262,7 @@ test("App update checks are event-driven and preserve active edits", () => {
   assert.match(source, /window\.addEventListener\("focus"/);
   assert.match(source, /appHasUnsavedWork\(\)/);
   assert.match(source, /pendingAppUpdate=true/);
-  assert.match(source, /window\.location\.reload\(\)/);
+  assert.match(source, /saveBeforeAppRefresh\(\)/);
 });
 
 test("Reminder activity stays compact and opens in a dialog below maintenance", () => {
