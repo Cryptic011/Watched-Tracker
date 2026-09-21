@@ -61,7 +61,7 @@ test('Search errors expose a retry and clearing input removes results',async()=>
 });
 test('Search is immediately after Library and artwork/update connections are allowed by CSP',()=>{
   const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
-  assert.deepEqual([...html.matchAll(/class="tab-btn[^"]*" data-tab="([^"]+)"/g)].map(m=>m[1]),['library','search','history','watchlist','settings']);
+  assert.deepEqual([...html.matchAll(/class="tab-btn[^"]*" data-tab="([^"]+)"/g)].map(m=>m[1]),['library','search','settings']);
   assert.match(html,/connect-src[^;]*wss:\/\/okkwteywtgfsnlrjdyhv\.supabase\.co/);
   assert.match(html,/img-src[^;]*https:\/\/\*\.mzstatic\.com/);
 });
