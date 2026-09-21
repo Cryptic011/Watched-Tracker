@@ -22,17 +22,20 @@ const server=http.createServer((req,res)=>{
   const account={id:'browser-test',email:'browser@example.test',displayName:'Browser Test'};
   await context.route('**/*',async route=>{
    const req=route.request();
+   const headers={'access-control-allow-origin':base,'access-control-allow-methods':'POST, GET, OPTIONS','access-control-allow-headers':'content-type, x-watchlog-session, authorization, apikey'};
+   // WebKit applies CORS to fulfilled mocks, including failures and preflights.
+   if(req.method()==='OPTIONS')return route.fulfill({status:204,headers,body:''});
    if(req.url().includes('/functions/v1/watchlog-pin')){
     const body=req.postDataJSON();let data={ok:true};
     if(['login','load'].includes(body.action)){loads++;data={ok:true,account,items,revision,sessionToken:'test-token'};}
     if(body.action==='save'){
-     if(failSave)return route.fulfill({status:503,json:{error:'Offline'}});
+     if(failSave)return route.fulfill({status:503,headers,json:{error:'Offline'}});
      items=body.items;revision++;saves++;data={ok:true,revision};
     }
-    return route.fulfill({json:data});
+    return route.fulfill({headers,json:data});
    }
    if(req.url().startsWith(base))return route.continue();
-   return route.fulfill({json:{ok:true,enabled:false,results:[]}});
+   return route.fulfill({headers,json:{ok:true,enabled:false,results:[]}});
   });
   await page.goto(base);
   await page.locator('#auth-email').fill(account.email);await page.locator('#auth-pin').fill('1234');await page.locator('#auth-submit').click();
