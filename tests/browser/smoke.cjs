@@ -50,13 +50,18 @@ const server=http.createServer((req,res)=>{
   });
   await page.locator('#episode-watch-next').click();await page.getByRole('button',{name:'Undo',exact:true}).click();
   await page.waitForFunction(()=>!episodeLogBusy.size&&!cloudSaveInFlight);
-  assert.equal(await page.locator('[data-season="1"][data-episode="1"]').getAttribute('aria-pressed'),'false');
-  await page.locator('[data-season="1"][data-episode="2"]').click();await page.waitForFunction(()=>!episodeLogBusy.size&&!cloudSaveInFlight);
-  assert.deepEqual(items.find(x=>x.id==='show').watchedEpisodes,{'1':[2]});assert.equal(await page.locator('[data-episode="4"]').count(),0);
+  assert.equal(await page.locator('#episode-tracker-grid [data-season="1"][data-episode="1"]').getAttribute('aria-pressed'),'false');
+  await page.locator('#episode-tracker-grid [data-season="1"][data-episode="2"]').click();await page.waitForFunction(()=>!episodeLogBusy.size&&!cloudSaveInFlight);
+  assert.deepEqual(items.find(x=>x.id==='show').watchedEpisodes,{'1':[2]});assert.equal(await page.locator('#episode-tracker-grid [data-episode="4"]').count(),0);
   await page.locator('#close-episode-tracker').click();
+  // Delete/Undo restores just the removed title, preserving other progress.
+  await page.evaluate(()=>openEdit(mediaItems[0].id));await page.locator('#delete-btn').click();
+  await page.getByRole('button',{name:'Undo',exact:true}).click();
+  await page.waitForFunction(()=>!cloudSaveInFlight&&!localSaveInFlight&&mediaItems.length===2);
+  assert.equal(items.length,2);
   // Force a pending memory change: refresh must save it before navigation.
   await page.evaluate(()=>{mediaItems[0].platform='Saved before refresh';});
-  const before=loads;await page.locator('#refresh-app').click();await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden'));
+  const before=loads;await Promise.all([page.waitForNavigation({waitUntil:'load'}),page.locator('#refresh-app').click()]);await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden'));
   await page.waitForFunction(()=>mediaItems[0]?.platform==='Saved before refresh');
   assert.equal(items[0].platform,'Saved before refresh');
   await page.waitForTimeout(300);assert.ok(loads>before);
