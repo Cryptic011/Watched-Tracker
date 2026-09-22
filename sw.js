@@ -1,14 +1,34 @@
 "use strict";
 
-/*
- * Watched Logger notification worker.
- * This worker intentionally has no fetch handler and no cache, so the Home
- * Screen app continues to load the latest GitHub Pages version.
- */
-self.addEventListener("install",()=>self.skipWaiting());
+const NAVIGATION_CACHE = "watchlog-navigation-v2";
+
+self.addEventListener("install",event=>self.skipWaiting());
 
 self.addEventListener("activate",event=>{
-  event.waitUntil(self.clients.claim());
+  event.waitUntil((async()=>{
+    const keys=await caches.keys();
+    await Promise.all(keys.filter(key=>key.startsWith("watchlog-navigation-")&&key!==NAVIGATION_CACHE).map(key=>caches.delete(key)));
+    await self.clients.claim();
+  })());
+});
+
+self.addEventListener("fetch",event=>{
+  const request=event.request;
+  if(request.method!=="GET"||request.mode!=="navigate")return;
+  event.respondWith((async()=>{
+    const fallback=new Request(new URL("./index.html",self.registration.scope).href);
+    try{
+      const response=await fetch(request,{cache:"no-store"});
+      if(response.ok){
+        const cache=await caches.open(NAVIGATION_CACHE);
+        await cache.put(fallback,response.clone());
+      }
+      return response;
+    }catch(_){
+      const cache=await caches.open(NAVIGATION_CACHE);
+      return (await cache.match(request))||(await cache.match(fallback))||Response.error();
+    }
+  })());
 });
 
 self.addEventListener("push",event=>{
@@ -31,12 +51,11 @@ self.addEventListener("push",event=>{
       renotify:true,
       data:payload.data||{url:"./"}
     });
-    // Only real release reminders set a badge. Tests and deployment events do not.
     if(!payload.data?.test&&(payload.data?.kind==="reminder"||payload.data?.eventKey)){
       try{
         const windows=await self.clients.matchAll({type:"window"});
         if(!windows.some(client=>client.visibilityState==="visible"))await self.navigator?.setAppBadge?.();
-      }catch(_){} // Badge support must never prevent notification delivery.
+      }catch(_){}
     }
   })());
 });
@@ -45,7 +64,7 @@ function notificationUrlWithinScope(value){
   const scopeUrl=new URL(self.registration.scope);
   try{
     const requestedUrl=new URL(value||"./",scopeUrl);
-    const scopePath=scopeUrl.pathname.endsWith("/")?scopeUrl.pathname:`${scopeUrl.pathname}/`;
+    const scopePath=scopeUrl.pathname.endsWith("/")?scopeUrl.pathname:scopeUrl.pathname+"/";
     const scopeRoot=scopePath.slice(0,-1);
     const insideScope=requestedUrl.origin===scopeUrl.origin&&(
       scopePath==="/"||requestedUrl.pathname===scopeRoot||requestedUrl.pathname.startsWith(scopePath)
