@@ -235,8 +235,20 @@
   }
   function categoryControlsVisible(){return currentTab==="library"&&Boolean(window.WatchLogGallery?.hasCategory?.());}
   function updateFloatingAddVisibility(){renderLibraryMaintenance();addBtn.classList.toggle("hidden",!(currentUser&&currentTab==="library"&&(!categoryControlsVisible()||activeFilter==="All")));}
+  const ALLOWED_BOTTOM_TABS=new Set(["library","search","settings"]);
+  function enforceBottomNavigation(){
+    document.querySelectorAll(".bottom-tabs .tab-btn").forEach(button=>{
+      const tab=String(button.dataset.tab||"").toLowerCase();
+      const label=String(button.textContent||"").trim().toLowerCase();
+      if(!ALLOWED_BOTTOM_TABS.has(tab)||label==="history"||label==="watchlist")button.remove();
+    });
+  }
+  enforceBottomNavigation();
   function switchTab(tab){
-    currentTab=tab;tabBtns.forEach(b=>{b.classList.toggle("active",b.dataset.tab===tab);b.setAttribute("aria-current",b.dataset.tab===tab?"page":"false");});
+    if(!ALLOWED_BOTTOM_TABS.has(tab))tab="library";
+    enforceBottomNavigation();
+    const currentTabBtns=document.querySelectorAll(".bottom-tabs .tab-btn");
+    currentTab=tab;currentTabBtns.forEach(b=>{b.classList.toggle("active",b.dataset.tab===tab);b.setAttribute("aria-current",b.dataset.tab===tab?"page":"false");});
     const settings=tab==="settings",search=tab==="search";
     libraryView.classList.toggle("hidden",settings||search);settingsView.classList.toggle("hidden",!settings);
     $("discovery-view").classList.toggle("hidden",!search);
@@ -248,7 +260,8 @@
     if(settings)void refreshPrivateReminderHistory();
     if(!settings){$("list-label").textContent=tab==="watchlist"?"Upcoming Premieres":tab==="history"?"Watch History":"Titles";render();}
   }
-  tabBtns.forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+  enforceBottomNavigation();
+  document.querySelectorAll(".bottom-tabs .tab-btn").forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
   pillBtns.forEach(b=>b.onclick=()=>{pillBtns.forEach(x=>x.classList.remove("active"));b.classList.add("active");activeFilter=b.dataset.filter;render();});
   sortMode.onchange=e=>{activeSort=e.target.value;safeWriteJSON(SORT_KEY,activeSort);render();};
 
