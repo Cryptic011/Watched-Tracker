@@ -85,3 +85,12 @@ test('Catalogue gateway returns series summaries and film descriptions with safe
   assert.equal(rows.find(r=>r.format==='Film').description,'Full film plot');
   assert.match(rows.find(r=>r.format==='Film').posterUrl,/400x600bb.jpg$/);
 });
+
+test('Retired History and Watchlist tabs are removed and cannot be activated',()=>{
+  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+  const library=fs.readFileSync(new URL('../assets/js/library.js',import.meta.url),'utf8');
+  assert.deepEqual([...html.matchAll(/class="tab-btn[^"]*" data-tab="([^"]+)"/g)].map(m=>m[1]),['library','search','settings']);
+  assert.match(library,/const ALLOWED_BOTTOM_TABS=new Set\(\["library","search","settings"\]\)/);
+  assert.match(library,/if\(!ALLOWED_BOTTOM_TABS\.has\(tab\)\)tab="library"/);
+  assert.match(library,/label==="history"\|\|label==="watchlist"/);
+});
