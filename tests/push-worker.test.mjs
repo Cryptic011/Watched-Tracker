@@ -32,3 +32,22 @@ test('Badge failure cannot suppress a notification',async()=>{
  const self={addEventListener:(event,fn)=>listeners[event]=fn,navigator:{setAppBadge:async()=>{throw Error('Unsupported');}},clients:{matchAll:async()=>[]},registration:{showNotification:async()=>shown++}};
  vm.runInNewContext(source,{self,URL});listeners.push({data:{json:()=>({data:{kind:'reminder'}})},waitUntil:p=>work=p});await work;assert.equal(shown,1);
 });
+
+test('Navigation requests bypass the HTTP cache and refresh the offline fallback',async()=>{
+  const listeners={},puts=[];
+  const response={ok:true,clone:()=>response};
+  const cache={put:async(request,value)=>puts.push({request,value}),match:async()=>null};
+  const self={
+    addEventListener:(event,fn)=>listeners[event]=fn,
+    registration:{scope:'https://example.test/Watched-Tracker/',showNotification:async()=>{}},
+    clients:{claim:async()=>{},matchAll:async()=>[]},
+  };
+  const Request=function(url){this.url=String(url);};
+  let work;
+  vm.runInNewContext(source,{self,URL,Request,fetch:async(_request,options)=>{
+    assert.equal(options.cache,'no-store');return response;
+  },caches:{open:async()=>cache},Response:{error:()=>({ok:false})}});
+  listeners.fetch({request:{method:'GET',mode:'navigate'},respondWith:promise=>work=promise});
+  assert.equal(await work,response);assert.equal(puts.length,1);
+  assert.match(puts[0].request.url,/\/Watched-Tracker\/index\.html$/);
+});
