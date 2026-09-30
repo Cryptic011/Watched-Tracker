@@ -201,7 +201,7 @@
   const currentBuild=window.WATCHLOG_BUILD;
   if(currentBuild?.count){
     const version=document.createElement("p");version.className="small-note";
-    version.textContent=currentBuild.runNumber?`GitHub Actions run #${currentBuild.runNumber} · ${currentBuild.sha.slice(0,7)}`:`App history ${currentBuild.count} commits · ${currentBuild.sha.slice(0,7)}`;
+    version.textContent=Number.isInteger(currentBuild.workflowRunCount)?`GitHub Actions: ${currentBuild.workflowRunCount} runs · ${currentBuild.sha.slice(0,7)}`:`App commit ${currentBuild.count} · ${currentBuild.sha.slice(0,7)}`;
     $("changelog-body").appendChild(version);
   }
   for(const entry of APP_CHANGELOG_FULL){

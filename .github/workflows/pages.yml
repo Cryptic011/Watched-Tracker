@@ -44,7 +44,7 @@ jobs:
 
       - name: Generate version from Git history
         env:
-          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}\n          GITHUB_REPOSITORY: ${{ github.repository }}\n          GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/build-info.mjs
 
       - name: Check application behavior
