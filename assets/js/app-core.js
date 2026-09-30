@@ -189,7 +189,7 @@
     {push:143,title:"Actions-safe poster and swipe fix",date:"2026-09-15",changes:["Kept official TVMaze poster assets allowed without tripping the production-surface security test.","Kept poster fallbacks and direct artwork loading enabled.","Retained pointer-event fallback so one left swipe goes back in the in-app browser."]},
     {number:9,title:"A new Library layout",date:"2026-09-15",changes:["Browse Films and Series separately from Library.","See upcoming releases above poster grids of released titles.","Open a title for its progress, reminders, episode tracker and editing controls."]},
     {number:8,title:"Settings spacing",date:"2026-09-11",changes:["Separated What’s new from the account card.","Added bottom clearance so the last Settings controls can scroll above the navigation bar."]},
-    {number:7,title:"Change log menu",date:"2026-09-11",changes:["Added What’s new above Maintenance in Settings.","Select an update number to see only the changes from that push."]},
+    {number:7,title:"Change log menu",date:"2026-09-11",changes:["Added What’s new above Maintenance in Settings.","Select a commit number to see only the changes in that update."]},
     {number:6,title:"Simpler platform choices",date:"2026-09-11",commit:"8e78b6fab6f31bc916f288cc3325b7d77ebbe6f4",changes:["Combined subscription tiers into one entry per service.","Put subscription services first, followed by free, rental and purchase options."]},
     {number:5,title:"Library maintenance notice",date:"2026-09-11",commit:"bc735627ff016f3dc4da417faeb5f6f52f89ef23",changes:["Added a compact maintenance notice at the top of Library.","The notice shows your maintenance message and disappears when maintenance is off."]},
     {number:4,title:"UK platform matching",date:"2026-09-11",commit:"87d2242a52a2ef5ef6179f601e7ef1c06a68b7a9",changes:["Added UK streaming checks that work without a TMDB token.","Matched IMDb IDs to prevent different shows with the same name being mixed up.","Excluded disc-only offers from streaming results."]},
@@ -201,14 +201,14 @@
   const currentBuild=window.WATCHLOG_BUILD;
   if(currentBuild?.count){
     const version=document.createElement("p");version.className="small-note";
-    version.textContent=`GitHub push ${currentBuild.count} · ${currentBuild.sha.slice(0,7)}`;
+    version.textContent=currentBuild.runNumber?`GitHub Actions run #${currentBuild.runNumber} · ${currentBuild.sha.slice(0,7)}`:`App history ${currentBuild.count} commits · ${currentBuild.sha.slice(0,7)}`;
     $("changelog-body").appendChild(version);
   }
   for(const entry of APP_CHANGELOG_FULL){
     const details=document.createElement("details");details.className="changelog-entry";
     details.setAttribute("name","app-updates");
     const summary=document.createElement("summary");
-    summary.textContent=`GitHub push ${entry.push??entry.number??entry.commit?.slice(0,7)} · ${entry.title}`;
+    summary.textContent=`Commit ${entry.push??entry.number??entry.commit?.slice(0,7)} · ${entry.title}`;
     const date=document.createElement("p");date.className="small-note";date.style.marginTop="10px";
     date.textContent=new Intl.DateTimeFormat(navigator.language||"en-GB",{day:"numeric",month:"long",year:"numeric"}).format(new Date(entry.date+"T12:00:00"));
     const list=document.createElement("ul");

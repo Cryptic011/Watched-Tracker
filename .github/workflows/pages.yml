@@ -43,6 +43,8 @@ jobs:
           npx playwright install --with-deps chromium webkit
 
       - name: Generate version from Git history
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
         run: node scripts/build-info.mjs
 
       - name: Check application behavior
