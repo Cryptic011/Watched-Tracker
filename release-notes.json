@@ -6,5 +6,13 @@
       "Preserved existing reminder subscriptions and configuration.",
       "Deployed the reminder migration and verified database access permissions."
     ]
+  },
+  "28b8af9906db29d8866b6258e750201e58dcf578": {
+    "title": "Fix season-transition release calendar labels",
+    "changes": [
+      "Fixed upcoming episodes being shown under the previous season when a new season is due to premiere.",
+      "Release calendar, upcoming reminders, and gallery release labels now use the verified next episode season.",
+      "Added regression-safe handling for scheduled episode release metadata."
+    ]
   }
 }
