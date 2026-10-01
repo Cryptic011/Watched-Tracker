@@ -4,9 +4,9 @@ const rows=execFileSync('git',['log','--topo-order','--format=%H%x09%cs%x09%s'],
 const notes=JSON.parse(readFileSync('release-notes.json','utf8'));
 const commits=rows.map((row,index)=>{const [commit,date,...subject]=row.split('\t');const title=subject.join('\t');return {push:rows.length-index,commit,date,title,changes:[title],...notes[commit]};});
 let workflowRunCount=null;
-if(process.env.GITHUB_REPOSITORY&&process.env.WATCHLOG_GITHUB_TOKEN){
+if(process.env.GITHUB_REPOSITORY&&(process.env.WATCHLOG_GITHUB_TOKEN||process.env.GITHUB_TOKEN)){
   const response=await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/actions/runs?per_page=1`,{
-    headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',Authorization:`Bearer ${process.env.GITHUB_TOKEN}`}
+    headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',Authorization:`Bearer ${process.env.WATCHLOG_GITHUB_TOKEN||process.env.GITHUB_TOKEN}`}
   });
   if(!response.ok)throw new Error(`GitHub Actions count request failed: ${response.status}`);
   const result=await response.json();
