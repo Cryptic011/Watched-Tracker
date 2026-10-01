@@ -20,7 +20,13 @@ function calendarEvents(items,now=new Date()){
     if(item.type==='Film')candidates=[{raw:item.filmReleaseDate,label:'Film release'}];
     else if(isEpisodeTrackable(item)){
       candidates=(Array.isArray(item.scheduledEpisodeReleases)?item.scheduledEpisodeReleases:[]).map(ep=>({raw:ep.raw,label:`S${ep.season} E${ep.number}`,season:Number(ep.season),episode:Number(ep.number)}));
-      if(item.nextEpisodeNum)candidates.push({raw:item.nextEpisodeDate,label:`S${item.airingSeason||item.nextSeasonNum||'?'} E${item.nextEpisodeNum}`,season:Number(item.airingSeason||item.nextSeasonNum),episode:Number(item.nextEpisodeNum)});
+      if(item.nextEpisodeNum){
+        // nextEpisodeNum belongs to nextSeasonNum when a season transition is pending;
+        // airingSeason is the season that has already aired and must not label the new episode.
+        const scheduled=(Array.isArray(item.scheduledEpisodeReleases)?item.scheduledEpisodeReleases:[]).find(ep=>Number(ep.number)===Number(item.nextEpisodeNum)&&String(ep.raw||"")===String(item.nextEpisodeDate||""));
+        const nextEpisodeSeason=Number(scheduled?.season||item.nextSeasonNum||item.airingSeason||item.curSeason||0);
+        candidates.push({raw:item.nextEpisodeDate,label:`S${nextEpisodeSeason||'?'} E${item.nextEpisodeNum}`,season:nextEpisodeSeason,episode:Number(item.nextEpisodeNum)});
+      }
       if(item.nextSeasonNum&&!candidates.some(e=>e.season===Number(item.nextSeasonNum)&&e.episode===1))candidates.push({raw:item.nextSeasonDate,label:`Season ${item.nextSeasonNum}`});
     }
     const undated=[];
