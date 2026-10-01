@@ -836,7 +836,11 @@
     }else{
       const episodeDate=String(item?.nextEpisodeDate||"").trim(),seasonDate=String(item?.nextSeasonDate||"").trim();
       const episodeTime=eventTime(episodeDate),seasonTime=eventTime(seasonDate);
-      if(episodeTime.time>0&&(episodeTime.dateOnly?episodeTime.validThrough>=now:episodeTime.time>=graceStart))events.push({kind:"episode",...episodeTime,number:item.nextEpisodeNum||null});
+      if(episodeTime.time>0&&(episodeTime.dateOnly?episodeTime.validThrough>=now:episodeTime.time>=graceStart)){
+        const scheduled=(Array.isArray(item?.scheduledEpisodeReleases)?item.scheduledEpisodeReleases:[]).find(ep=>Number(ep.number)===Number(item.nextEpisodeNum)&&String(ep.raw||"")===episodeDate);
+        const season=Number(scheduled?.season||item?.nextSeasonNum||item?.airingSeason||item?.curSeason||0)||null;
+        events.push({kind:"episode",...episodeTime,number:item.nextEpisodeNum||null,season});
+      }
       else if(item?.nextEpisodeNum&&!episodeDate)announcements.push({kind:"episode",number:item.nextEpisodeNum});
       if(seasonTime.time>0&&(seasonTime.dateOnly?seasonTime.validThrough>=now:seasonTime.time>=graceStart))events.push({kind:"season",...seasonTime,number:item.nextSeasonNum||null});
       else if(item?.nextSeasonNum&&!seasonDate)announcements.push({kind:"season",number:item.nextSeasonNum});
