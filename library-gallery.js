@@ -87,7 +87,7 @@ window.WatchLogGallery=(()=>{
   function tile(item,upcoming=false){
     const event=api.upcoming(item);
     let subtitle=releaseTime(item)?api.date(new Date(releaseTime(item))):item.releaseYear||'Date unknown';
-    if(upcoming){const label=event.kind==='episode'?`S${item.airingSeason||item.curSeason||'?'} E${event.number||'?'}`:event.kind==='season'?`Season ${event.number||'?'}`:'Film release';subtitle=`${label} · ${event.rank===2?api.dateTime(new Date(event.time)):'Date TBA'}`;}
+    if(upcoming){const season=event.season||item.nextSeasonNum||item.airingSeason||item.curSeason||'?';const label=event.kind==='episode'?`S${season} E${event.number||'?'}`:event.kind==='season'?`Season ${event.number||'?'}`:'Film release';subtitle=`${label} · ${event.rank===2?api.dateTime(new Date(event.time)):'Date TBA'}`;}
     return `<button type="button" class="gallery-tile" data-gallery-item="${esc(item.id)}" aria-label="Open ${esc(item.title)}">${art(item)}${stateBadge(item)}<strong>${esc(item.title)}</strong><small>${esc(subtitle)}</small></button>`;
   }
   function section(title,items,carousel=false){return items.length?`<section class="gallery-section"><h3>${esc(title)}<span class="gallery-count">${items.length}</span></h3><div class="${carousel?'gallery-carousel'+(category==='Film'?' gallery-film-carousel':''):'gallery-grid'}">${items.map(item=>tile(item,carousel)).join('')}</div></section>`:'';}
