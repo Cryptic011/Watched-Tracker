@@ -14,5 +14,12 @@
       "Release calendar, upcoming reminders, and gallery release labels now use the verified next episode season.",
       "Added regression-safe handling for scheduled episode release metadata."
     ]
+  },
+  "3c25c3564aad2af82755549d282a817934f7467f": {
+    "title": "Deployment build metadata fix",
+    "changes": [
+      "Fixed GitHub Actions build metadata generation to use the token actually supplied by the deployment workflow.",
+      "Restored the deployment pipeline so application and browser checks can run after code changes."
+    ]
   }
 }
