@@ -313,7 +313,7 @@
     const text=upcoming.rank===2?(upcoming.dateOnly?formatLocalWeekdayDate(new Date(upcoming.time)):formatLocalDateTime(new Date(upcoming.time))):"Date TBA";
     if(isFilm&&upcoming.kind==="film")return`<div class="reminder"><span>🎬 Film Release</span><small>${esc(formatLocalWeekdayDate(new Date(upcoming.time)))}</small></div>`;
     if(upcoming.kind==="episode"){
-      const season=item.airingSeason||item.curSeason||"",label=`${season?`S${season} `:""}E${upcoming.number||"Next"}`;
+      const season=upcoming.season||item.nextSeasonNum||item.airingSeason||item.curSeason||"",label=`${season?`S${season} `:""}E${upcoming.number||"Next"}`;
       return`<div class="reminder"><span>📺 ${esc(label)} Next Episode</span><small>${esc(text)}</small></div>`;
     }
     if(upcoming.kind==="season")return`<div class="reminder"><span>🔔 Season ${esc(upcoming.number||"Next")} Premiere</span><small>${esc(text)}</small></div>`;
