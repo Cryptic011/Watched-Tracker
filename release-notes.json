@@ -41,5 +41,15 @@
       "Add 90dvh to the editor modal so Safari's dynamic browser toolbar does not clip the editor.",
       "Apply these fixes to the current split source files and keep the root apply_fixes.py script connected to the deployment workflow as an idempotent verification step."
     ]
+  },
+  "f64d7f0c5403cb0a99ee09b3cc706989f8c4d3a1": {
+    "title": "Apply the four verified fixes",
+    "changes": [
+      "Allow pinch-to-zoom by removing the user-scalable=no viewport restriction.",
+      "Preserve existing episode progress when release metadata for the current season is unavailable instead of reducing progress to zero.",
+      "Make mergeLibraries timestamp ties deterministic so an equal-timestamp later record cannot overwrite the first/cloud record.",
+      "Add 90dvh to the editor modal so Safari's dynamic browser toolbar does not clip it.",
+      "Keep the root apply_fixes.py connected to deployment as an idempotent verification step against the current split source files."
+    ]
   }
 }
