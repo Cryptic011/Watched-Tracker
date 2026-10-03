@@ -51,5 +51,25 @@
       "Add 90dvh to the editor modal so Safari's dynamic browser toolbar does not clip it.",
       "Keep the root apply_fixes.py connected to deployment as an idempotent verification step against the current split source files."
     ]
+  },
+  "306c653ed7a797855266224cbb02dcc0ac8c7505": {
+    "title": "Record final verified fixes in changelog",
+    "changes": [
+      "Allow pinch-to-zoom by removing the user-scalable=no viewport restriction.",
+      "Preserve episode progress when release metadata for the current season is unavailable instead of reducing progress to zero.",
+      "Make mergeLibraries timestamp ties deterministic so an equal-timestamp later record cannot overwrite the first/cloud record.",
+      "Add 90dvh to the editor modal so Safari's dynamic browser toolbar does not clip it.",
+      "Keep the root apply_fixes.py connected to deployment as an idempotent verification step against the current split source files."
+    ],
+    "number": 224
+  },
+  "__current": {
+    "number": 231,
+    "title": "Synchronize app release numbering with GitHub Actions",
+    "changes": [
+      "Synchronize the user-facing app release number with the repository's global GitHub Actions run sequence.",
+      "Keep the verified fixes recorded as app commit 224 while reserving commit 231 for this current synchronization fix.",
+      "Keep the release number stable across subsequent deployment workflow runs instead of letting internal workflow retries or metadata commits change the user-facing number."
+    ]
   }
 }
