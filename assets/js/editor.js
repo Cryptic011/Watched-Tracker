@@ -387,7 +387,7 @@
       if(type!=="Film"&&item.episodeScheduleVerified===true){
         const releases=releasedEpisodeMap(item),progressChanged=!previous||Number(previous.watchedSeasons||0)!==Number(item.watchedSeasons||0)||Number(previous.curSeason||0)!==Number(item.curSeason||0)||Number(previous.curEp||0)!==Number(item.curEp||0);
         if(progressChanged){
-          const available=releases[Number(item.curSeason||0)]||[],requested=Number(item.curEp||0),validEpisode=Math.max(0,...available.filter(episode=>episode<=requested));
+          const available=releases[Number(item.curSeason||0)]||[],requested=Number(item.curEp||0),validEpisode=available.length?Math.max(0,...available.filter(episode=>episode<=requested)):requested;
           item.curEp=validEpisode||null;item.watchedEpisodes=progressWatchedEpisodeMap(releases,Number(item.watchedSeasons||0),Number(item.curSeason||0),validEpisode);
           const highest=highestWatchedEpisode(item.watchedEpisodes);item.curSeason=highest?.season||null;item.curEp=highest?.episode||null;item.lastWatchedSeason=highest?.season||null;item.lastWatchedEpisode=highest?.episode||null;item.lastEpisodeWatchedAt=highest?nowISO():"";
         }else if(Object.prototype.hasOwnProperty.call(previous||{},"watchedEpisodes"))item.watchedEpisodes=normalizeWatchedEpisodeMap(previous.watchedEpisodes,releases);
