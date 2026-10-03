@@ -13,7 +13,8 @@ if(process.env.GITHUB_REPOSITORY&&(process.env.WATCHLOG_GITHUB_TOKEN||process.en
   if(!Number.isInteger(result.total_count))throw new Error('GitHub Actions count was unavailable');
   workflowRunCount=result.total_count;
 }
-const releaseNumber=Number.isInteger(notes.__current?.number)?notes.__current.number:null;
+const releaseNumber=workflowRunCount;
+if(Number.isInteger(releaseNumber)&&commits[0])commits[0].number=releaseNumber;
 const script='window.WATCHLOG_BUILD='+JSON.stringify({count:commits.length,releaseNumber,workflowRunCount,runNumber:process.env.GITHUB_RUN_NUMBER||null,sha:commits[0].commit,commits}).replaceAll('<','\\u003c')+';\n';
 writeFileSync('build-info.js',script);
 // Embed metadata so the page and changelog cannot cache different revisions.
