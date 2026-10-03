@@ -3,10 +3,10 @@
 ## 2026-10-03
 
 ### Verified fixes
-- Added the supplied scripts/apply_fixes.py source-fix script to the repository and wired it into the GitHub Pages deployment workflow.
-- Applied and verified four fixes to index.html:
-  - allow pinch-zoom by removing the viewport restriction;
-  - preserve episode progress when a season's aired-episode count is unavailable;
-  - make cloud-library timestamp ties deterministic in favour of the existing comparison rule;
-  - allow the editor modal to use dvh so it is not clipped by the Safari toolbar.
-- The deployment workflow now runs the fix script before application and browser checks, so the supplied fixes remain part of the reproducible deployment path.
+- Connected the existing root `apply_fixes.py` on `main` to the GitHub Pages deployment workflow.
+- The fix script now targets the repository's current split source files rather than assuming all code is inside `index.html`.
+- Allow pinch-to-zoom by removing the `user-scalable=no` viewport restriction.
+- Preserve episode progress when release/episode metadata for the current season is unavailable instead of clamping progress to zero.
+- Make `mergeLibraries` timestamp ties deterministic so the first/cloud record wins an equal-timestamp collision.
+- Add `90dvh` to the editor modal height so Safari's dynamic toolbar does not clip the modal.
+- The script is idempotent and verifies all four fixes on every deployment.
