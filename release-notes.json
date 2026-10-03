@@ -31,5 +31,15 @@
       "Fix the editor modal height on Safari by adding a 90dvh max-height so browser toolbars do not clip the modal.",
       "Connected the root apply_fixes.py script already on main to the GitHub Pages deployment workflow and made it safe to run repeatedly."
     ]
+  },
+  "761f22117166b3e58ef0a8122def115c8564bba4": {
+    "title": "Apply the four verified fixes",
+    "changes": [
+      "Allow pinch-to-zoom on mobile by removing the user-scalable=no viewport restriction.",
+      "Preserve existing episode progress when current-season release metadata is unavailable instead of reducing progress to zero.",
+      "Make mergeLibraries timestamp ties deterministic so an equal-timestamp later record cannot overwrite the first/cloud record.",
+      "Add 90dvh to the editor modal so Safari's dynamic browser toolbar does not clip the editor.",
+      "Apply these fixes to the current split source files and keep the root apply_fixes.py script connected to the deployment workflow as an idempotent verification step."
+    ]
   }
 }
