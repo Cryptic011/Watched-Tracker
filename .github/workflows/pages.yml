@@ -49,7 +49,7 @@ jobs:
         run: node scripts/build-info.mjs
 
       - name: Apply verified source fixes
-        run: python3 scripts/apply_fixes.py index.html
+        run: python3 apply_fixes.py index.html
 
       - name: Check application behavior
         run: node --test tests/*.test.mjs
