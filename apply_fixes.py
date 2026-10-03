@@ -21,9 +21,13 @@ EDITS = [
 path = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "index.html")
 text = path.read_text(encoding="utf-8")
 for name, old, new in EDITS:
-    n = text.count(old)
-    if n != 1:
-        sys.exit(f"ABORTED: '{name}' matched {n} times (expected 1). Nothing written.")
-    text = text.replace(old, new)
+    old_count = text.count(old)
+    new_count = text.count(new)
+    if old_count == 1 and new_count == 0:
+        text = text.replace(old, new)
+    elif old_count == 0 and new_count == 1:
+        continue
+    else:
+        sys.exit(f"ABORTED: '{name}' has old={old_count}, new={new_count}; expected exactly one state. Nothing written.")
 path.write_text(text, encoding="utf-8")
-print(f"Applied {len(EDITS)} fixes to {path}")
+print(f"Verified {len(EDITS)} fixes in {path}")
