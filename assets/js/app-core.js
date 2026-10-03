@@ -201,14 +201,14 @@
   const currentBuild=window.WATCHLOG_BUILD;
   if(currentBuild?.count){
     const version=document.createElement("p");version.className="small-note";
-    version.textContent=Number.isInteger(currentBuild.workflowRunCount)?`GitHub Actions: ${currentBuild.workflowRunCount} runs · ${currentBuild.sha.slice(0,7)}`:`App commit ${currentBuild.count} · ${currentBuild.sha.slice(0,7)}`;
+    version.textContent=Number.isInteger(currentBuild.releaseNumber)?`App commit ${currentBuild.releaseNumber} · ${currentBuild.sha.slice(0,7)}`:(Number.isInteger(currentBuild.workflowRunCount)?`GitHub Actions: ${currentBuild.workflowRunCount} runs · ${currentBuild.sha.slice(0,7)}`:`App commit ${currentBuild.count} · ${currentBuild.sha.slice(0,7)}`);
     $("changelog-body").appendChild(version);
   }
   for(const entry of APP_CHANGELOG_FULL){
     const details=document.createElement("details");details.className="changelog-entry";
     details.setAttribute("name","app-updates");
     const summary=document.createElement("summary");
-    summary.textContent=`Commit ${entry.push??entry.number??entry.commit?.slice(0,7)} · ${entry.title}`;
+    summary.textContent=`Commit ${entry.number??entry.push??entry.commit?.slice(0,7)} · ${entry.title}`;
     const date=document.createElement("p");date.className="small-note";date.style.marginTop="10px";
     date.textContent=new Intl.DateTimeFormat(navigator.language||"en-GB",{day:"numeric",month:"long",year:"numeric"}).format(new Date(entry.date+"T12:00:00"));
     const list=document.createElement("ul");
