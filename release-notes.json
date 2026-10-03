@@ -22,13 +22,14 @@
       "Restored the deployment pipeline so application and browser checks can run after code changes."
     ]
   },
-  "8ec83ca034af2519a8433764cab067a5c18083a2": {
+  "9ed179e245bd03a40399380b2272a013b50d8634": {
     "title": "Apply and connect verified fixes",
     "changes": [
-      "Connected the existing root apply_fixes.py file on main to the GitHub Pages deployment workflow.",
-      "Applied and verified all four supplied fixes in index.html.",
-      "Made the fix script safe to run repeatedly during future deployments without reapplying already-applied fixes.",
-      "Removed the duplicate copy so the uploaded root script is the single source used by deployment."
+      "Allow pinch-to-zoom by removing the user-scalable=no viewport restriction.",
+      "Prevent episode progress from being reset when aired-episode metadata is missing or unavailable.",
+      "Make library merge timestamp ties deterministic so the existing cloud/first record wins instead of being overwritten on an equal timestamp.",
+      "Fix the editor modal height on Safari by adding a 90dvh max-height so browser toolbars do not clip the modal.",
+      "Connected the root apply_fixes.py script already on main to the GitHub Pages deployment workflow and made it safe to run repeatedly."
     ]
   }
 }
