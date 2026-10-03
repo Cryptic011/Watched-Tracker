@@ -21,5 +21,14 @@
       "Fixed GitHub Actions build metadata generation to use the token actually supplied by the deployment workflow.",
       "Restored the deployment pipeline so application and browser checks can run after code changes."
     ]
+  },
+  "8ec83ca034af2519a8433764cab067a5c18083a2": {
+    "title": "Apply and connect verified fixes",
+    "changes": [
+      "Connected the existing root apply_fixes.py file on main to the GitHub Pages deployment workflow.",
+      "Applied and verified all four supplied fixes in index.html.",
+      "Made the fix script safe to run repeatedly during future deployments without reapplying already-applied fixes.",
+      "Removed the duplicate copy so the uploaded root script is the single source used by deployment."
+    ]
   }
 }
