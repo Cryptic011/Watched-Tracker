@@ -69,7 +69,7 @@
 
   function mergeLibraries(...lists){
     const map=new Map();
-    for(const list of lists){for(const raw of (Array.isArray(list)?list:[])){if(!raw?.title)continue;const id=String(raw.id||uuid()),prev=map.get(id);if(!prev||toMillis(raw.updatedAt||raw.date)>=toMillis(prev.updatedAt||prev.date))map.set(id,{...raw,id,updatedAt:raw.updatedAt||nowISO()});}}
+    for(const list of lists){for(const raw of (Array.isArray(list)?list:[])){if(!raw?.title)continue;const id=String(raw.id||uuid()),prev=map.get(id);if(!prev||toMillis(raw.updatedAt||raw.date)>toMillis(prev.updatedAt||prev.date))map.set(id,{...raw,id,updatedAt:raw.updatedAt||nowISO()});}}
     return Array.from(map.values()).sort((a,b)=>toMillis(b.updatedAt)-toMillis(a.updatedAt));
   }
 
@@ -423,7 +423,7 @@
           const completedMax=Math.max(0,Number(result.completedSeasons||0)),latestMax=Math.max(0,Number(result.latestAired||0));
           watchedSeasons=Math.min(watchedSeasons,completedMax);
           if(curSeason>latestMax){curSeason=Math.min(latestMax,watchedSeasons);curEp=curSeason?Math.max(0,...(releasedEpisodes[curSeason]||[])):0;}
-          else{const available=releasedEpisodes[curSeason]||[];curEp=Math.max(0,...available.filter(episode=>episode<=curEp));}
+          else{const available=releasedEpisodes[curSeason]||[];if(available.length)curEp=Math.max(0,...available.filter(episode=>episode<=curEp));}
         }
         const airing=scheduleVerified?(result?.airing||null):null,next=airing?.nextEpisode||null,upcoming=result?.upcoming||null;
         refreshed={
