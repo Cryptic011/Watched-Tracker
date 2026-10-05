@@ -89,18 +89,27 @@ test("Current airing shows use next release, independent of status and watched d
   assert.equal(api.currentSortInfo({...lioness,nextEpisodeDate:"2026-09-04T13:00"},now).kind,"aired");
 });
 
-test("Date-only releases remain upcoming all day and never become midnight", () => {
+test("Upcoming TV releases remain visible for 24 hours after their release time", () => {
   const api = loadFunctions(["upcomingSortInfo", "dateOnlyInput"]);
-  const item = { type: "Series", nextSeasonNum: 3, nextSeasonDate: api.dateOnlyInput("2026-09-02") };
+  const dateOnlyItem = { type: "Series", nextSeasonNum: 3, nextSeasonDate: api.dateOnlyInput("2026-09-02") };
   const evening = new Date("2026-09-02T20:00:00+01:00").getTime();
   const nextDay = new Date("2026-09-03T00:01:00+01:00").getTime();
-  assert.equal(item.nextSeasonDate, "2026-09-02T12:00");
-  assert.equal(api.upcomingSortInfo(item, evening).rank, 2);
-  assert.equal(api.upcomingSortInfo(item, evening).dateOnly, true);
-  assert.equal(api.upcomingSortInfo(item, nextDay).rank, 0);
+  const nextDayAfter24Hours = new Date("2026-09-03T12:01:00+01:00").getTime();
+  assert.equal(dateOnlyItem.nextSeasonDate, "2026-09-02T12:00");
+  assert.equal(api.upcomingSortInfo(dateOnlyItem, evening).rank, 2);
+  assert.equal(api.upcomingSortInfo(dateOnlyItem, evening).dateOnly, true);
+  assert.equal(api.upcomingSortInfo(dateOnlyItem, nextDay).rank, 2);
+  assert.equal(api.upcomingSortInfo(dateOnlyItem, nextDayAfter24Hours).rank, 0);
+
+  const timedItem = { type: "Series", nextSeasonNum: 3, nextSeasonDate: "2026-09-02T20:00:00+01:00" };
+  const before24Hours = new Date("2026-09-03T19:59:00+01:00").getTime();
+  const after24Hours = new Date("2026-09-03T20:01:00+01:00").getTime();
+  assert.equal(api.upcomingSortInfo(timedItem, before24Hours).rank, 2);
+  assert.equal(api.upcomingSortInfo(timedItem, after24Hours).rank, 0);
+
   const timeline = loadFunctions(["currentSortInfo", "isEpisodeTrackable"]);
-  assert.equal(timeline.currentSortInfo(item, evening).phase, 2);
-  assert.equal(timeline.currentSortInfo(item, nextDay).phase, 0);
+  assert.equal(timeline.currentSortInfo(dateOnlyItem, evening).phase, 2);
+  assert.equal(timeline.currentSortInfo(dateOnlyItem, nextDay).phase, 0);
 });
 
 test("Announced episode totals do not become released episodes", () => {
