@@ -820,6 +820,10 @@
     if(item?.type==="Film")return 0;
     return Math.max(1,...[item?.totalSeasons,item?.watchedSeasons,item?.curSeason,item?.airingSeason,item?.nextSeasonNum].map(value=>Number(value)||0));
   }
+  function dateOnlyInput(value){
+    const raw=String(value||"").trim().slice(0,10);
+    return /^\\d{4}-\\d{2}-\\d{2}$/.test(raw)?`${raw}T12:00`:"";
+  }
   function upcomingSortInfo(item,now=Date.now()){
     const events=[],announcements=[],releaseRetentionMs=24*60*60*1000,graceStart=now-releaseRetentionMs;
     const eventTime=value=>{
