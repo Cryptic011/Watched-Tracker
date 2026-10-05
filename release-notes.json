@@ -79,5 +79,12 @@
       "Use the actual release timestamp for the 24-hour retention window instead of removing entries at the end of their calendar date.",
       "Apply the same 24-hour post-air window to date-only release records using their normalized release time."
     ]
+  },
+  "a23bb1ea98edc9920ea06a79d6bf718edcbf3969": {
+    "title": "Test 24-hour upcoming TV release retention",
+    "changes": [
+      "Added regression coverage that keeps date-only and timed TV releases visible for 24 hours after their normalized or exact release time.",
+      "Verified the upcoming item drops out immediately after the 24-hour retention window rather than at a calendar-date boundary."
+    ]
   }
 }
