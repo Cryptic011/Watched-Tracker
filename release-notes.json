@@ -86,5 +86,12 @@
       "Added regression coverage that keeps date-only and timed TV releases visible for 24 hours after their normalized or exact release time.",
       "Verified the upcoming item drops out immediately after the 24-hour retention window rather than at a calendar-date boundary."
     ]
+  },
+  "1f8ffc2f51ec7a4eb9e1d02f09ff01372c850871": {
+    "title": "Fix 24-hour release visibility test helper",
+    "changes": [
+      "Add the date-only TV release normalizer used by the upcoming-release logic and regression checks.",
+      "Keep the 24-hour post-air retention behavior unchanged."
+    ]
   }
 }
