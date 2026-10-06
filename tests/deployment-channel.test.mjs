@@ -6,17 +6,19 @@ const source=fs.readFileSync(new URL('../assets/js/deployment-channel.js',import
 function harness(){
   const sockets=[],signals=[],statuses=[],timers=new Map(),listeners={};let id=0,now=10000;
   const events={addEventListener:(name,fn)=>listeners[name]=fn,removeEventListener:name=>delete listeners[name]};
+  class CustomEvent{constructor(type,init){this.type=type;this.detail=init?.detail;}}
   class WebSocket{
     constructor(url){this.url=url;this.sent=[];sockets.push(this);}
     send(raw){this.sent.push(JSON.parse(raw));}
     close(){this.closed=true;}
     receive(message){this.onmessage?.({data:JSON.stringify(message)});}
   }
-  const context=vm.createContext({WebSocket,CustomEvent:class{constructor(type,init){this.type=type;this.detail=init?.detail;}},navigator:{onLine:true},document:{visibilityState:'visible',...events},...events,
+  const context=vm.createContext({WebSocket,CustomEvent,navigator:{onLine:true},document:{visibilityState:'visible',...events},...events,
     Date:{now:()=>now},setTimeout:(fn,ms)=>{timers.set(++id,{fn,ms});return id;},clearTimeout:key=>timers.delete(key),
     setInterval:(fn,ms)=>{timers.set(++id,{fn,ms,interval:true});return id;},clearInterval:key=>timers.delete(key)});
   vm.runInContext(source,context);
-  const stop=context.WatchLogDeployment.start(sha=>signals.push(sha));context.addEventListener('watchlog:deployment',event=>statuses.push(event.detail));
+  const stop=context.WatchLogDeployment.start(sha=>signals.push(sha));
+  context.addEventListener('watchlog:deployment',event=>statuses.push(event.detail));
   const topic='realtime:watchlog-deployments';
   const join=()=>{const ws=sockets.at(-1);ws.onopen();ws.receive({topic,event:'phx_reply',ref:'1',payload:{status:'ok'}});return ws;};
   const signal=(sha='b'.repeat(40),extra={})=>sockets.at(-1).receive({topic,event:'broadcast',payload:{event:'deployed',payload:{sha}},...extra});
@@ -52,7 +54,13 @@ test('Join failures and silent sockets recover with bounded exponential backoff'
   const deadline=[...h.timers.values()].find(t=>t.ms===15000);deadline.fn();
   assert.equal(h.sockets[1].closed,true);assert.equal([...h.timers.values()][0].ms,2000);
 });
-test('Deployment status events are surfaced without triggering reload signals',()=>{\n  const h=harness();h.join();h.sockets.at(-1).receive({topic:'realtime:watchlog-deployments',event:'broadcast',payload:{event:'deployment_status',payload:{sha:'d'.repeat(40),status:'failure',runNumber:'160'}}});\n  assert.deepEqual(h.statuses,[{sha:'d'.repeat(40),status:'failure',runNumber:'160'}]);assert.deepEqual(h.signals,['']);\n});\ntest('Missing heartbeat replies reconnect without accumulating sockets or timers',()=>{
+test('Deployment status events are surfaced without triggering reload signals',()=>{
+  const h=harness();h.join();
+  h.sockets.at(-1).receive({topic:'realtime:watchlog-deployments',event:'broadcast',payload:{event:'deployment_status',payload:{sha:'d'.repeat(40),status:'failure',runNumber:'160'}}});
+  assert.deepEqual(h.statuses,[{sha:'d'.repeat(40),status:'failure',runNumber:'160'}]);
+  assert.deepEqual(h.signals,['']);
+});
+test('Missing heartbeat replies reconnect without accumulating sockets or timers',()=>{
   const h=harness(),ws=h.join(),beat=[...h.timers.values()].find(t=>t.interval);
   beat.fn();beat.fn();assert.equal(ws.closed,true);assert.equal(h.timers.size,1);
   assert.equal([...h.timers.values()][0].interval,undefined);
