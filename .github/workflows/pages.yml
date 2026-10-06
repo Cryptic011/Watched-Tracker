@@ -77,7 +77,15 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
 
-      - name: Notify open apps of successful deployment
+      - name: Notify my app of deployment status
+        if: ${{ always() }}
+        continue-on-error: true
         env:
           WATCHLOG_PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          WATCHLOG_STATUS: ${{ job.status }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: node scripts/notify-deployment.mjs

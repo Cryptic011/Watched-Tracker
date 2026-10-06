@@ -1,14 +1,28 @@
 import '../assets/js/deployment-channel.js';
 const {config}=globalThis.WatchLogDeployment;
 const sha=process.env.GITHUB_SHA;
-const page=process.env.WATCHLOG_PAGE_URL;
-if(!/^[a-f0-9]{40}$/.test(sha||'')||!page)throw Error('Deployment SHA and page URL are required');
-const site=new URL(page);
-if(site.protocol!=='https:')throw Error('Expected HTTPS deployment URL');
+const page=process.env.WATCHLOG_PAGE_URL||'';
+const status=String(process.env.WATCHLOG_STATUS||'success');
+const runNumber=String(process.env.GITHUB_RUN_NUMBER||'');
+if(!/^[a-f0-9]{40}$/.test(sha||''))throw Error('Deployment SHA is required');
+if(page){const site=new URL(page);if(site.protocol!=='https:')throw Error('Expected HTTPS deployment URL');}
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-// Wait for Pages to actually serve both the page and its metadata before
-// notifying open apps. These bounded CI retries are not app-side polling.
-let ready=false;
+async function broadcast(event,payload){
+  for(let attempt=0;attempt<3;attempt++){
+    try{
+      const response=await fetch(`${config.url}/realtime/v1/api/broadcast`,{
+        method:'POST',headers:{apikey:config.key,'Content-Type':'application/json'},
+        body:JSON.stringify({messages:[{topic:config.topic,event,payload,private:false}]}),
+        signal:AbortSignal.timeout(10000),
+      });
+      if(!response.ok)throw Error(`Broadcast returned ${response.status}`);
+      return true;
+    }catch(error){if(attempt===2)throw error;await sleep(2000);}
+  }
+}
+await broadcast('deployment_status',{sha,status,runNumber,title:String(process.env.GITHUB_EVENT_NAME==='push'?'Push':'Change'),commitUrl:`https://github.com/Cryptic011/Watched-Tracker/commit/${sha}`,runUrl:process.env.GITHUB_SERVER_URL?`${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`:''});
+if(status!=='success'||!page){console.log(`Deployment status sent: ${status} for ${sha}`);process.exit(0);}
+const site=new URL(page);let ready=false;
 for(let attempt=0;attempt<12;attempt++){
   try{
     const urls=[new URL(site),new URL('build-info.js',site)];
@@ -24,14 +38,5 @@ for(let attempt=0;attempt<12;attempt++){
   await sleep(5000);
 }
 if(!ready)throw Error('Pages did not serve this deployment; update signal was not sent');
-for(let attempt=0;attempt<3;attempt++){
-  try{
-    const response=await fetch(`${config.url}/realtime/v1/api/broadcast`,{
-      method:'POST',headers:{apikey:config.key,'Content-Type':'application/json'},
-      body:JSON.stringify({messages:[{topic:config.topic,event:config.event,payload:{sha},private:false}]}),
-      signal:AbortSignal.timeout(10000),
-    });
-    if(!response.ok)throw Error(`Broadcast returned ${response.status}`);
-    console.log(`Deployment signal sent for ${sha}`);break;
-  }catch(error){if(attempt===2)throw error;await sleep(2000);}
-}
+await broadcast(config.event,{sha});
+console.log(`Deployment signal sent for ${sha}`);
