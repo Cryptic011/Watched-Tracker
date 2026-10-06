@@ -4,8 +4,9 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 const source=fs.readFileSync(new URL('../assets/js/deployment-channel.js',import.meta.url),'utf8');
 function harness(){
-  const sockets=[],signals=[],statuses=[],timers=new Map(),listeners={};let id=0,now=10000;
+  const sockets=[],signals=[],statuses=[],timers=new Map(),listeners={},documentListeners={};let id=0,now=10000;
   const events={addEventListener:(name,fn)=>listeners[name]=fn,removeEventListener:name=>delete listeners[name]};
+  const documentEvents={addEventListener:(name,fn)=>documentListeners[name]=fn,removeEventListener:name=>delete documentListeners[name]};
   const dispatchEvent=event=>{listeners[event.type]?.(event);return true};
   class WebSocket{
     constructor(url){this.url=url;this.sent=[];sockets.push(this);}
@@ -13,7 +14,7 @@ function harness(){
     close(){this.closed=true;}
     receive(message){this.onmessage?.({data:JSON.stringify(message)});}
   }
-  const context=vm.createContext({WebSocket,navigator:{onLine:true},document:{visibilityState:'visible',...events},...events,dispatchEvent,CustomEvent:class{constructor(type,init){this.type=type;this.detail=init?.detail;}},
+  const context=vm.createContext({WebSocket,navigator:{onLine:true},document:{visibilityState:'visible',...documentEvents},...events,dispatchEvent,CustomEvent:class{constructor(type,init){this.type=type;this.detail=init?.detail;}},
     Date:{now:()=>now},setTimeout:(fn,ms)=>{timers.set(++id,{fn,ms});return id;},clearTimeout:key=>timers.delete(key),
     setInterval:(fn,ms)=>{timers.set(++id,{fn,ms,interval:true});return id;},clearInterval:key=>timers.delete(key)});
   vm.runInContext(source,context);
@@ -22,7 +23,7 @@ function harness(){
   const topic='realtime:watchlog-deployments';
   const join=()=>{const ws=sockets.at(-1);ws.onopen();ws.receive({topic,event:'phx_reply',ref:'1',payload:{status:'ok'}});return ws;};
   const signal=(sha='b'.repeat(40),extra={})=>sockets.at(-1).receive({topic,event:'broadcast',payload:{event:'deployed',payload:{sha}},...extra});
-  return {context,sockets,signals,statuses,timers,listeners,join,signal,stop,advance:()=>now+=3000};
+  return {context,sockets,signals,statuses,timers,listeners,documentListeners,join,signal,stop,advance:()=>now+=3000};
 }
 test('Realtime joins a public channel, then checks once; keepalives never poll versions',()=>{
   const h=harness(),ws=h.join();assert.deepEqual(h.signals,['']);
@@ -39,14 +40,14 @@ test('Only deployment hints with a complete SHA are accepted, and bursts are thr
 });
 test('Hidden and offline apps close connections and reconnect once on return',()=>{
   const h=harness(),ws=h.join();
-  h.context.document.visibilityState='hidden';h.listeners.visibilitychange();
+  h.context.document.visibilityState='hidden';h.documentListeners.visibilitychange();
   assert.equal(ws.closed,true);assert.equal(h.sockets.length,1);
-  h.context.document.visibilityState='visible';h.listeners.visibilitychange();h.listeners.pageshow();
+  h.context.document.visibilityState='visible';h.documentListeners.visibilitychange();h.listeners.pageshow();
   assert.equal(h.sockets.length,2);h.join();assert.equal(h.signals.length,2);
   const active=h.sockets.at(-1);
   h.context.navigator.onLine=false;h.listeners.offline();assert.equal(active.closed,true);
   h.context.navigator.onLine=true;h.listeners.online();assert.equal(h.sockets.length,3);
-  h.stop();assert.equal(Object.keys(h.listeners).length,0);
+  h.stop();assert.equal(Object.keys(h.listeners).length,0);assert.equal(Object.keys(h.documentListeners).length,0);
 });
 test('Join failures and silent sockets recover with bounded exponential backoff',()=>{
   const h=harness(),ws=h.sockets[0];ws.onopen();
