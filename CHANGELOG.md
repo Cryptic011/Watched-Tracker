@@ -2,6 +2,14 @@
 
 ## 2026-10-06
 
+### Changelog and push status history
+- Rename the app's “What's new” menu and dialog to **Changelog**.
+- Show every repository push in the Changelog, including failed, cancelled, timed-out, skipped, queued, and in-progress pushes rather than only successful changes.
+- Resolve each push's GitHub Actions result by commit SHA so the history explicitly identifies outcomes such as “Push 161: Cancelled push”.
+- Keep the existing successful deployment refresh notification separate from the push-status history.
+
+## 2026-10-06
+
 ### Deployment status notifications
 - Add a private in-app notification to your account only whenever a push/change is sent — including successful, failed, cancelled, or otherwise unsuccessful deployment attempts.
 - The notification tells you the push/commit and its outcome so a failed or ineffective change is immediately identifiable.
