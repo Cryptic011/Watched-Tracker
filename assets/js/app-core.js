@@ -201,13 +201,16 @@
     version.textContent=Number.isInteger(currentBuild.releaseNumber)?`App commit ${currentBuild.releaseNumber} · ${currentBuild.sha.slice(0,7)}`:(Number.isInteger(currentBuild.workflowRunCount)?`GitHub Actions: ${currentBuild.workflowRunCount} runs · ${currentBuild.sha.slice(0,7)}`:`App commit ${currentBuild.count} · ${currentBuild.sha.slice(0,7)}`);
     $("changelog-body").appendChild(version);
   const statusBySha=new Map();
-  const statusLabels={success:"Successful push",failure:"Failed push",cancelled:"Cancelled push",timed_out:"Timed-out push",action_required:"Action required",skipped:"Skipped push",stale:"Stale push"};
+  const statusLabels={success:"Successful push",failure:"Failed push",cancelled:"Cancelled push",timed_out:"Timed-out push",action_required:"Action required",skipped:"Skipped push",stale:"Stale push",in_progress:"Push in progress",queued:"Push queued"};
   const loadPushStatuses=async()=>{
     try{
-      const response=await fetch("https://api.github.com/repos/Cryptic011/Watched-Tracker/actions/runs?event=push&branch=main&per_page=100",{headers:{Accept:"application/vnd.github+json"}});
-      if(!response.ok)return;
-      const data=await response.json();
-      for(const run of data.workflow_runs||[])if(run.head_sha&&!statusBySha.has(run.head_sha))statusBySha.set(run.head_sha,run.conclusion||run.status||"unknown");
+      for(let page=1;page<=10;page++){
+        const response=await fetch("https://api.github.com/repos/Cryptic011/Watched-Tracker/actions/runs?event=push&branch=main&per_page=100&page="+page,{headers:{Accept:"application/vnd.github+json"}});
+        if(!response.ok)return;
+        const data=await response.json();
+        for(const run of data.workflow_runs||[])if(run.head_sha&&!statusBySha.has(run.head_sha))statusBySha.set(run.head_sha,run.conclusion||run.status||"unknown");
+        if(!data.workflow_runs?.length||statusBySha.size>=APP_CHANGELOG_FULL.length)break;
+      }
       $("changelog-body").querySelectorAll("details[data-push-sha]").forEach(details=>{
         const status=statusBySha.get(details.dataset.pushSha);
         if(!status)return;
