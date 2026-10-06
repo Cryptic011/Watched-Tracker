@@ -55,10 +55,17 @@
           pendingHeartbeat=null;
         }else if(message.topic===topic&&['phx_error','phx_close'].includes(message.event)){
           reconnect();
-        }else if(message.topic===topic&&message.event==='broadcast'&&message.payload?.event===config.event){
-          const sha=message.payload?.payload?.sha;
-          if(!/^[a-f0-9]{40}$/.test(sha||'')||Date.now()-lastSignal<2000)return;
-          lastSignal=Date.now();onSignal(sha);
+        }else if(message.topic===topic&&message.event==='broadcast'){
+          const payload=message.payload?.payload||{};
+          if(message.payload?.event==='deployment_status'){
+            try{root.dispatchEvent(new root.CustomEvent('watchlog:deployment',{detail:payload}));}catch(_){ }
+            return;
+          }
+          if(message.payload?.event===config.event){
+            const sha=payload.sha;
+            if(!/^[a-f0-9]{40}$/.test(sha||'')||Date.now()-lastSignal<2000)return;
+            lastSignal=Date.now();onSignal(sha);
+          }
         }
       };
       ws.onclose=ws.onerror=()=>{if(socket===ws)reconnect();};
