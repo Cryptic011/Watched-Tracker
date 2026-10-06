@@ -4,10 +4,10 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 const source=fs.readFileSync(new URL('../assets/js/deployment-channel.js',import.meta.url),'utf8');
 function harness(){
-  const sockets=[],signals=[],statuses=[],timers=new Map(),listeners={},documentListeners={};let id=0,now=10000;
+  const sockets=[],signals=[],statuses=[],timers=new Map(),listeners={},documentListeners={},testListeners={};let id=0,now=10000;
   const events={addEventListener:(name,fn)=>listeners[name]=fn,removeEventListener:name=>delete listeners[name]};
   const documentEvents={addEventListener:(name,fn)=>documentListeners[name]=fn,removeEventListener:name=>delete documentListeners[name]};
-  const dispatchEvent=event=>{listeners[event.type]?.(event);return true};
+  const dispatchEvent=event=>{listeners[event.type]?.(event);testListeners[event.type]?.(event);return true};
   class WebSocket{
     constructor(url){this.url=url;this.sent=[];sockets.push(this);}
     send(raw){this.sent.push(JSON.parse(raw));}
@@ -19,7 +19,7 @@ function harness(){
     setInterval:(fn,ms)=>{timers.set(++id,{fn,ms,interval:true});return id;},clearInterval:key=>timers.delete(key)});
   vm.runInContext(source,context);
   const stop=context.WatchLogDeployment.start(sha=>signals.push(sha));
-  context.addEventListener('watchlog:deployment',event=>statuses.push(event.detail));
+  testListeners['watchlog:deployment']=event=>statuses.push(event.detail);
   const topic='realtime:watchlog-deployments';
   const join=()=>{const ws=sockets.at(-1);ws.onopen();ws.receive({topic,event:'phx_reply',ref:'1',payload:{status:'ok'}});return ws;};
   const signal=(sha='b'.repeat(40),extra={})=>sockets.at(-1).receive({topic,event:'broadcast',payload:{event:'deployed',payload:{sha}},...extra});
