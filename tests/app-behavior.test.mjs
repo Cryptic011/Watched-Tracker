@@ -107,7 +107,33 @@ test("Upcoming TV releases remain visible for 24 hours after their release time"
   assert.equal(api.upcomingSortInfo(timedItem, before24Hours).rank, 2);
   assert.equal(api.upcomingSortInfo(timedItem, after24Hours).rank, 0);
 
+  const airedEpisodeStillRetained = {
+    type: "Series",
+    nextEpisodeNum: 8,
+    nextEpisodeDate: "2026-09-10T20:00:00+01:00",
+    scheduledEpisodeReleases: [
+      { season: 3, number: 7, raw: "2026-09-09T20:00:00+01:00" },
+    ],
+  };
+  const oneMinuteBeforeRetentionEnds = new Date("2026-09-10T19:59:00+01:00").getTime();
+  const oneMinuteAfterRetentionEnds = new Date("2026-09-10T20:01:00+01:00").getTime();
+  assert.equal(api.upcomingSortInfo(airedEpisodeStillRetained, oneMinuteBeforeRetentionEnds).rank, 2);
+  assert.equal(api.upcomingSortInfo(airedEpisodeStillRetained, oneMinuteBeforeRetentionEnds).number, 7);
+  assert.equal(api.upcomingSortInfo(airedEpisodeStillRetained, oneMinuteAfterRetentionEnds).rank, 2);
+  assert.equal(api.upcomingSortInfo(airedEpisodeStillRetained, oneMinuteAfterRetentionEnds).number, 8);
+
   const timeline = loadFunctions(["currentSortInfo", "isEpisodeTrackable"]);
+  const currentApi = timeline.currentSortInfo;
+  const currentAtAir = currentApi({
+    type: "Series",
+    nextEpisodeNum: 8,
+    nextEpisodeDate: "2026-09-10T21:00:00+01:00",
+    scheduledEpisodeReleases: [
+      { season: 3, number: 7, raw: "2026-09-10T20:00:00+01:00" },
+    ],
+  }, new Date("2026-09-10T20:30:00+01:00").getTime());
+  assert.equal(currentAtAir.phase, 3);
+
   assert.equal(timeline.currentSortInfo(dateOnlyItem, evening).phase, 2);
   assert.equal(timeline.currentSortInfo(dateOnlyItem, nextDay).phase, 0);
 });

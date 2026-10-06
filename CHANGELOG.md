@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-06
+
+### Verified fix
+- Keep a TV episode in the upcoming/current release timeline for 24 hours after its actual air timestamp even after TVMaze advances `nextEpisodeDate` to the following episode.
+- Use the stored `scheduledEpisodeReleases` metadata as the post-air retention source, with regression coverage for both the upcoming card and current timeline.
+
 ## 2026-10-03
 
 ### Verified fixes

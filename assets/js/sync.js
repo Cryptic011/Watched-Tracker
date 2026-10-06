@@ -756,21 +756,26 @@
 
     if(isEpisodeTrackable(item)){
       const latestEpisode=eventInfo(item.latestEpisodeDate);
+      const recentScheduled=(Array.isArray(item?.scheduledEpisodeReleases)?item.scheduledEpisodeReleases:[])
+        .map(ep=>({ep,time:eventInfo(ep?.raw)}))
+        .filter(entry=>entry.time.time>0&&entry.time.time<=now&&now-entry.time.time<=day)
+        .sort((a,b)=>b.time.time-a.time.time)[0];
+      const latestTimelineEpisode=recentScheduled?.time?.time>latestEpisode.time?recentScheduled.time:latestEpisode;
       const nextEpisode=eventInfo(item.nextEpisodeDate);
       const nextSeason=eventInfo(item.nextSeasonDate);
-      const latestEpisodeAired=latestEpisode.time>0&&(latestEpisode.dateOnly?latestEpisode.dayStart<=now:latestEpisode.time<=now);
+      const latestEpisodeAired=latestTimelineEpisode.time>0&&(latestTimelineEpisode.dateOnly?latestTimelineEpisode.dayStart<=now:latestTimelineEpisode.time<=now);
 
       // An active episode run is ordered by the NEXT release, not the last
       // episode watched or aired. Keep season premieres in the upcoming group.
       const nextEpisodePending=nextEpisode.time>0&&(nextEpisode.dateOnly?nextEpisode.validThrough>=now:nextEpisode.time>now);
-      if(latestEpisodeAired&&now-latestEpisode.dayStart<=14*day&&nextEpisodePending&&Number(item.nextEpisodeNum)>1){
+      if(latestEpisodeAired&&now-latestTimelineEpisode.dayStart<=14*day&&nextEpisodePending&&Number(item.nextEpisodeNum)>1){
         return{current:true,phase:4,time:nextEpisode.time,kind:"airing"};
       }
 
       // Current is an airing timeline, never a status/added-date sort.
       // Episodes that have just aired are first, newest release first.
-      if(latestEpisodeAired&&now-latestEpisode.dayStart<=14*day){
-        return{current:true,phase:3,time:latestEpisode.time,kind:"aired"};
+      if(latestEpisodeAired&&now-latestTimelineEpisode.dayStart<=14*day){
+        return{current:true,phase:3,time:latestTimelineEpisode.time,kind:"aired"};
       }
 
       // After recent releases, show the next dated episode/season in true
@@ -784,7 +789,7 @@
 
       // Older dated shows remain below the active airing timeline. TBA-only
       // entries have no time and therefore naturally fall to the bottom.
-      if(latestEpisodeAired)return{current:false,phase:1,time:latestEpisode.time,kind:"older"};
+      if(latestEpisodeAired)return{current:false,phase:1,time:latestTimelineEpisode.time,kind:"older"};
       return{current:false,phase:0,time:0,kind:"tba"};
     }
 
@@ -840,6 +845,11 @@
     }else{
       const episodeDate=String(item?.nextEpisodeDate||"").trim(),seasonDate=String(item?.nextSeasonDate||"").trim();
       const episodeTime=eventTime(episodeDate),seasonTime=eventTime(seasonDate);
+      const scheduledRecent=(Array.isArray(item?.scheduledEpisodeReleases)?item.scheduledEpisodeReleases:[])
+        .map(ep=>({ep,time:eventTime(ep?.raw)}))
+        .filter(entry=>entry.time.time>0&&entry.time.time<=now&&entry.time.time>=graceStart)
+        .map(entry=>({kind:"episode",...entry.time,number:entry.ep?.number||null,season:Number(entry.ep?.season)||null}));
+      events.push(...scheduledRecent);
       if(episodeTime.time>0&&(episodeTime.dateOnly?episodeTime.validThrough>=now:episodeTime.time>=graceStart)){
         const scheduled=(Array.isArray(item?.scheduledEpisodeReleases)?item.scheduledEpisodeReleases:[]).find(ep=>Number(ep.number)===Number(item.nextEpisodeNum)&&String(ep.raw||"")===episodeDate);
         const season=Number(scheduled?.season||item?.nextSeasonNum||item?.airingSeason||item?.curSeason||0)||null;

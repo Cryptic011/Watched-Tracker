@@ -64,11 +64,11 @@
     "number": 224
   },
   "__current": {
-    "title": "Keep upcoming TV releases visible for 24 hours",
+    "title": "Fix TV release retention after the air-time rollover",
     "changes": [
-      "Keep upcoming TV episodes and season premieres in the first upcoming position for a full 24 hours after their actual or normalized release time.",
-      "Use the exact air timestamp for timed releases instead of dropping them at the calendar-date boundary.",
-      "Normalize date-only TV releases to midday and apply the same 24-hour retention window."
+      "Keep the just-aired TV episode visible for 24 hours after its actual air timestamp even when nextEpisodeDate has already advanced to the following episode.",
+      "Use scheduled episode release metadata to retain the aired episode in the upcoming/current timeline.",
+      "Add regression coverage for the air-time rollover and 24-hour retention window."
     ]
   },
   "37f6c39e9d0355b1bde705cb3fcb3cda2533119f": {
