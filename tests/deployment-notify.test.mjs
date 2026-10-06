@@ -11,11 +11,11 @@ function run(fetch,env={GITHUB_SHA:sha,WATCHLOG_PAGE_URL:'https://example.test/W
   });
 }
 test('Deployments broadcast only after both page and metadata serve the exact commit',async()=>{
-  const calls=[];
+  const calls=[];let postCalls=0;
   await run(async(url,options)=>{
     calls.push(String(url));
     if(options.method==='POST'){
-      assert.equal(calls.length,1);assert.equal(options.headers.apikey,'public-key');
+      postCalls++;assert.equal(postCalls,1);assert.equal(options.headers.apikey,'public-key');
       assert.deepEqual(JSON.parse(options.body),{messages:[{topic:'watchlog-deployments',event:'deployment_status',payload:{sha,status:'success',runNumber:'162',title:'Push',commitUrl:`https://github.com/Cryptic011/Watched-Tracker/commit/${sha}`,runUrl:'https://github.com/Cryptic011/Watched-Tracker/actions/runs/1'},private:false}]});
       return {ok:true};
     }
@@ -23,7 +23,7 @@ test('Deployments broadcast only after both page and metadata serve the exact co
   });
   assert.ok(calls[1].startsWith('https://example.test/Watched-Tracker/?'));
   assert.ok(calls[2].startsWith('https://example.test/Watched-Tracker/build-info.js?'));
-  assert.deepEqual(JSON.parse(await (async()=>{return '{}';})()),{});
+  assert.equal(postCalls,2);
 });
 test('Stale HTML never broadcasts even if build-info already contains the new commit',async()=>{
   let broadcasts=0;
