@@ -197,42 +197,63 @@
     {number:2,title:"Season and episode choices",date:"2026-09-08",commit:"942e01f63b83fc41b1fbf14659db3d0c9a4aef52",changes:["Added season and episode dropdowns when editing shows.","New shows start at zero watched.","Episode choices match the selected season’s released episodes."]},
     {number:1,title:"Progress sync and reminders",date:"2026-09-06",commit:"16e1012bbcf63f77584650566e3b557cf7836cfb",changes:["Improved progress syncing between devices.","Fixed release-time reminders when episode schedules update.","Preserved reminder times when editing a title."]}
   ];
-  const APP_CHANGELOG_FULL=window.WATCHLOG_BUILD?.commits||APP_CHANGELOG.filter(entry=>entry.commit);
-    version.textContent=Number.isInteger(currentBuild.releaseNumber)?`App commit ${currentBuild.releaseNumber} · ${currentBuild.sha.slice(0,7)}`:(Number.isInteger(currentBuild.workflowRunCount)?`GitHub Actions: ${currentBuild.workflowRunCount} runs · ${currentBuild.sha.slice(0,7)}`:`App commit ${currentBuild.count} · ${currentBuild.sha.slice(0,7)}`);
-    $("changelog-body").appendChild(version);
+  let APP_CHANGELOG_FULL=window.WATCHLOG_BUILD?.commits||APP_CHANGELOG.filter(entry=>entry.commit);
   const statusBySha=new Map();
   const statusLabels={success:"Push",failure:"Failed push",cancelled:"Cancelled push",timed_out:"Timed-out push",action_required:"Action required",skipped:"Skipped push",stale:"Stale push",in_progress:"Push in progress",queued:"Push queued"};
   const formatPushStatus=(entry,status)=>{
     const pushNumber=Number.isInteger(entry?.push)?entry.push:null;
     const label=statusLabels[status]||status?.replaceAll?.("_"," ")||"Checking push status…";
-    return pushNumber?`${label} ${pushNumber}`:label;
+    return pushNumber?label+" "+pushNumber:label;
+  };
+  const renderChangelogEntries=()=>{
+    const body=$("changelog-body");
+    body.querySelectorAll("details.changelog-entry").forEach(node=>node.remove());
+    for(const entry of APP_CHANGELOG_FULL){
+      const details=document.createElement("details");details.className="changelog-entry";details.dataset.pushSha=entry.commit||"";
+      const summary=document.createElement("summary");
+      summary.textContent=(Number.isInteger(entry.push)?"Push "+entry.push+" · ":"")+(entry.title||"Repository push");
+      details.appendChild(summary);
+      const status=statusBySha.get(entry.commit)||entry.status||"unknown";
+      const statusLine=document.createElement("div");statusLine.className="changelog-status";statusLine.textContent=formatPushStatus(entry,status);
+      details.appendChild(statusLine);
+      const date=document.createElement("div");date.className="changelog-date";date.textContent=entry.date||"";
+      details.appendChild(date);
+      const changes=document.createElement("ul");changes.className="changelog-changes";
+      for(const change of entry.changes||[entry.title]){const li=document.createElement("li");li.textContent=change;changes.appendChild(li);}
+      details.appendChild(changes);
+      details.addEventListener("toggle",()=>{if(details.open)for(const other of body.children)if(other!==details&&other.tagName==="DETAILS")other.open=false;});
+      body.appendChild(details);
+    }
   };
   const loadPushStatuses=async()=>{
     try{
+      const runs=[];
       for(let page=1;page<=10;page++){
         const response=await fetch("https://api.github.com/repos/Cryptic011/Watched-Tracker/actions/runs?event=push&branch=main&per_page=100&page="+page,{headers:{Accept:"application/vnd.github+json"}});
-        if(!response.ok)return;
+        if(!response.ok)throw new Error("GitHub Actions request failed");
         const data=await response.json();
-        for(const run of data.workflow_runs||[])if(run.head_sha&&!statusBySha.has(run.head_sha))statusBySha.set(run.head_sha,run.conclusion||run.status||"unknown");
-        if(!data.workflow_runs?.length||statusBySha.size>=APP_CHANGELOG_FULL.length)break;
+        for(const run of data.workflow_runs||[]) {
+          if(run.event!=="push"||run.head_branch!=="main")continue;
+          const title=String(run.head_commit?.message||run.display_title||"Repository push").split("\n")[0];
+          const entry={push:Number.isInteger(run.run_number)?run.run_number:null,commit:run.head_sha,date:String(run.created_at||"").slice(0,10),title,changes:[title],status:run.conclusion||run.status||"unknown"};
+          runs.push(entry);
+          if(run.head_sha)statusBySha.set(run.head_sha,entry.status);
+        }
+        if((data.workflow_runs||[]).length<100)break;
       }
-      $("changelog-body").querySelectorAll("details[data-push-sha]").forEach(details=>{
-        const status=statusBySha.get(details.dataset.pushSha);
-        if(!status)return;
-        const label=details.querySelector(".changelog-status");
-        const entry=APP_CHANGELOG_FULL.find(item=>item.commit===details.dataset.pushSha);
-        if(label&&entry)label.textContent=formatPushStatus(entry,status);
+      const seen=new Set();
+      const workflowEntries=runs.filter(entry=>{
+        const key=entry.push!==null?String(entry.push):entry.commit;
+        if(seen.has(key))return false;
+        seen.add(key);return true;
       });
-    }catch(_){}
+      if(workflowEntries.length)APP_CHANGELOG_FULL=workflowEntries;
+      renderChangelogEntries();
+    }catch(_){
+      renderChangelogEntries();
+    }
   };
-  for(const entry of APP_CHANGELOG_FULL){
-    const details=document.createElement("details");details.className="changelog-entry";details.dataset.pushSha=entry.commit||"";
-    const status=statusBySha.get(entry.commit)||"unknown";
-    const statusLine=document.createElement("div");statusLine.className="changelog-status";statusLine.textContent=formatPushStatus(entry,status);
-    details.appendChild(statusLine);
-    details.addEventListener("toggle",()=>{if(details.open)for(const other of $("changelog-body").children)if(other!==details&&other.tagName==="DETAILS")other.open=false;});
-    $("changelog-body").appendChild(details);
-  }
+  renderChangelogEntries();
   loadPushStatuses();
   whatsNewButton.onclick=()=>{changelogDialog.showModal();document.documentElement.classList.add("changelog-open");};
   $("close-changelog").onclick=()=>changelogDialog.close();
