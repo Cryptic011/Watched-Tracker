@@ -32,3 +32,5 @@
 - Make `mergeLibraries` timestamp ties deterministic so the first/cloud record wins an equal-timestamp collision.
 - Add `90dvh` to the editor modal height so Safari's dynamic toolbar does not clip the modal.
 - The script is idempotent and verifies all four fixes on every deployment.
+
+- 2026-10-06: Fixed Changelog push-status rendering so every result keeps exactly one push number (for example, `Push 298: Successful push`, `Push 299: Failed push`, or `Push 300: Cancelled push`) instead of dropping or duplicating the number when GitHub status data loads.

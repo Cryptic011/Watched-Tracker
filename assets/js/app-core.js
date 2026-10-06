@@ -202,6 +202,11 @@
     $("changelog-body").appendChild(version);
   const statusBySha=new Map();
   const statusLabels={success:"Successful push",failure:"Failed push",cancelled:"Cancelled push",timed_out:"Timed-out push",action_required:"Action required",skipped:"Skipped push",stale:"Stale push",in_progress:"Push in progress",queued:"Push queued"};
+  const formatPushStatus=(entry,status)=>{
+    const pushNumber=Number.isInteger(entry?.push)?entry.push:null;
+    const label=statusLabels[status]||status?.replaceAll?.("_"," ")||"Checking push status…";
+    return pushNumber?`Push ${pushNumber}: ${label}`:label;
+  };
   const loadPushStatuses=async()=>{
     try{
       for(let page=1;page<=10;page++){
@@ -215,16 +220,15 @@
         const status=statusBySha.get(details.dataset.pushSha);
         if(!status)return;
         const label=details.querySelector(".changelog-status");
-        if(label)label.textContent=statusLabels[status]||status.replaceAll("_"," ");
+        const entry=APP_CHANGELOG_FULL.find(item=>item.commit===details.dataset.pushSha);
+        if(label&&entry)label.textContent=formatPushStatus(entry,status);
       });
     }catch(_){}
   };
   for(const entry of APP_CHANGELOG_FULL){
     const details=document.createElement("details");details.className="changelog-entry";details.dataset.pushSha=entry.commit||"";
-    const pushNumber=Number.isInteger(entry.push)?entry.push:(Number.isInteger(currentBuild.count)?currentBuild.count-APP_CHANGELOG_FULL.indexOf(entry):null);
     const status=statusBySha.get(entry.commit)||"unknown";
-    const statusText=statusLabels[status]||"Checking push status…";
-    const statusLine=document.createElement("div");statusLine.className="changelog-status";statusLine.textContent=(pushNumber?"Push "+pushNumber+": ":"")+statusText;
+    const statusLine=document.createElement("div");statusLine.className="changelog-status";statusLine.textContent=formatPushStatus(entry,status);
     details.appendChild(statusLine);
     details.addEventListener("toggle",()=>{if(details.open)for(const other of $("changelog-body").children)if(other!==details&&other.tagName==="DETAILS")other.open=false;});
     $("changelog-body").appendChild(details);
