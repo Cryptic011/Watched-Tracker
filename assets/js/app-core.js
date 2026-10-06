@@ -177,11 +177,11 @@
   const whatsNewButton=document.createElement("button");
   whatsNewButton.id="whats-new-button";whatsNewButton.type="button";whatsNewButton.className="whats-new-button";
   whatsNewButton.setAttribute("aria-haspopup","dialog");whatsNewButton.setAttribute("aria-controls","changelog-dialog");
-  whatsNewButton.innerHTML='<span><strong>What’s new</strong><small>Recent fixes and improvements</small></span><span aria-hidden="true">›</span>';
+  whatsNewButton.innerHTML='<span><strong>Changelog</strong><small>Pushes, fixes and deployment results</small></span><span aria-hidden="true">›</span>';
   maintenanceAdminSection.before(whatsNewButton);
   const changelogDialog=document.createElement("dialog");
   changelogDialog.id="changelog-dialog";changelogDialog.className="changelog-dialog";changelogDialog.setAttribute("aria-labelledby","changelog-title");
-  changelogDialog.innerHTML='<header class="changelog-heading"><h2 id="changelog-title">What’s new</h2><button class="close-btn" id="close-changelog" type="button" aria-label="Close change log" autofocus>&times;</button></header><div class="changelog-body" id="changelog-body"></div>';
+  changelogDialog.innerHTML='<header class="changelog-heading"><h2 id="changelog-title">Changelog</h2><button class="close-btn" id="close-changelog" type="button" aria-label="Close changelog" autofocus>&times;</button></header><div class="changelog-body" id="changelog-body"></div>';
   document.body.appendChild(changelogDialog);
   // Add plain-language notes here when an update ships. Do not list pending fixes.
   const APP_CHANGELOG=[
@@ -198,26 +198,35 @@
     {number:1,title:"Progress sync and reminders",date:"2026-09-06",commit:"16e1012bbcf63f77584650566e3b557cf7836cfb",changes:["Improved progress syncing between devices.","Fixed release-time reminders when episode schedules update.","Preserved reminder times when editing a title."]}
   ];
   const APP_CHANGELOG_FULL=window.WATCHLOG_BUILD?.commits||APP_CHANGELOG.filter(entry=>entry.commit);
-  const currentBuild=window.WATCHLOG_BUILD;
-  if(currentBuild?.count){
-    const version=document.createElement("p");version.className="small-note";
     version.textContent=Number.isInteger(currentBuild.releaseNumber)?`App commit ${currentBuild.releaseNumber} · ${currentBuild.sha.slice(0,7)}`:(Number.isInteger(currentBuild.workflowRunCount)?`GitHub Actions: ${currentBuild.workflowRunCount} runs · ${currentBuild.sha.slice(0,7)}`:`App commit ${currentBuild.count} · ${currentBuild.sha.slice(0,7)}`);
     $("changelog-body").appendChild(version);
-  }
+  const statusBySha=new Map();
+  const statusLabels={success:"Successful push",failure:"Failed push",cancelled:"Cancelled push",timed_out:"Timed-out push",action_required:"Action required",skipped:"Skipped push",stale:"Stale push"};
+  const loadPushStatuses=async()=>{
+    try{
+      const response=await fetch("https://api.github.com/repos/Cryptic011/Watched-Tracker/actions/runs?event=push&branch=main&per_page=100",{headers:{Accept:"application/vnd.github+json"}});
+      if(!response.ok)return;
+      const data=await response.json();
+      for(const run of data.workflow_runs||[])if(run.head_sha&&!statusBySha.has(run.head_sha))statusBySha.set(run.head_sha,run.conclusion||run.status||"unknown");
+      $("changelog-body").querySelectorAll("details[data-push-sha]").forEach(details=>{
+        const status=statusBySha.get(details.dataset.pushSha);
+        if(!status)return;
+        const label=details.querySelector(".changelog-status");
+        if(label)label.textContent=statusLabels[status]||status.replaceAll("_"," ");
+      });
+    }catch(_){}
+  };
   for(const entry of APP_CHANGELOG_FULL){
-    const details=document.createElement("details");details.className="changelog-entry";
-    details.setAttribute("name","app-updates");
-    const summary=document.createElement("summary");
-    summary.textContent=`Commit ${entry.number??entry.push??entry.commit?.slice(0,7)} · ${entry.title}`;
-    const date=document.createElement("p");date.className="small-note";date.style.marginTop="10px";
-    date.textContent=new Intl.DateTimeFormat(navigator.language||"en-GB",{day:"numeric",month:"long",year:"numeric"}).format(new Date(entry.date+"T12:00:00"));
-    const list=document.createElement("ul");
-    for(const change of entry.changes){const item=document.createElement("li");item.textContent=change;list.appendChild(item);}
-    details.append(summary,date,list);
-    if(entry.commit){const link=document.createElement("a");link.className="small-note";link.textContent="View push · "+entry.commit.slice(0,7);link.href="https://github.com/Cryptic011/Watched-Tracker/commit/"+entry.commit;link.target="_blank";link.rel="noopener noreferrer";details.appendChild(link);}
+    const details=document.createElement("details");details.className="changelog-entry";details.dataset.pushSha=entry.commit||"";
+    const pushNumber=Number.isInteger(entry.push)?entry.push:(Number.isInteger(currentBuild.count)?currentBuild.count-APP_CHANGELOG_FULL.indexOf(entry):null);
+    const status=statusBySha.get(entry.commit)||"unknown";
+    const statusText=statusLabels[status]||"Checking push status…";
+    const statusLine=document.createElement("div");statusLine.className="changelog-status";statusLine.textContent=(pushNumber?"Push "+pushNumber+": ":"")+statusText;
+    details.appendChild(statusLine);
     details.addEventListener("toggle",()=>{if(details.open)for(const other of $("changelog-body").children)if(other!==details&&other.tagName==="DETAILS")other.open=false;});
     $("changelog-body").appendChild(details);
   }
+  loadPushStatuses();
   whatsNewButton.onclick=()=>{changelogDialog.showModal();document.documentElement.classList.add("changelog-open");};
   $("close-changelog").onclick=()=>changelogDialog.close();
   changelogDialog.addEventListener("click",event=>{if(event.target===changelogDialog)changelogDialog.close();});
