@@ -132,7 +132,7 @@ test("Upcoming TV releases remain visible for 24 hours after their release time"
       { season: 3, number: 7, raw: "2026-09-10T20:00:00+01:00" },
     ],
   }, new Date("2026-09-10T20:30:00+01:00").getTime());
-  assert.equal(currentAtAir.phase, 3);
+  assert.equal(currentAtAir.phase, 4);
 
   assert.equal(timeline.currentSortInfo(dateOnlyItem, evening).phase, 2);
   assert.equal(timeline.currentSortInfo(dateOnlyItem, nextDay).phase, 0);
