@@ -197,6 +197,10 @@
     {number:2,title:"Season and episode choices",date:"2026-09-08",commit:"942e01f63b83fc41b1fbf14659db3d0c9a4aef52",changes:["Added season and episode dropdowns when editing shows.","New shows start at zero watched.","Episode choices match the selected season’s released episodes."]},
     {number:1,title:"Progress sync and reminders",date:"2026-09-06",commit:"16e1012bbcf63f77584650566e3b557cf7836cfb",changes:["Improved progress syncing between devices.","Fixed release-time reminders when episode schedules update.","Preserved reminder times when editing a title."]}
   ];
+  const currentBuild=window.WATCHLOG_BUILD||{count:0,releaseNumber:null,workflowRunCount:null,sha:""};
+  const version=document.createElement("div");version.className="changelog-version";
+  $("changelog-body").appendChild(version);
+  version.textContent=Number.isInteger(currentBuild.releaseNumber)?`App commit ${currentBuild.releaseNumber} · ${currentBuild.sha.slice(0,7)}`:(Number.isInteger(currentBuild.workflowRunCount)?`GitHub Actions: ${currentBuild.workflowRunCount} runs · ${currentBuild.sha.slice(0,7)}`:`App commit ${currentBuild.count} · ${currentBuild.sha.slice(0,7)}`);
   let APP_CHANGELOG_FULL=window.WATCHLOG_BUILD?.commits||APP_CHANGELOG.filter(entry=>entry.commit);
   const statusBySha=new Map();
   const statusLabels={success:"Push",failure:"Failed push",cancelled:"Cancelled push",timed_out:"Timed-out push",action_required:"Action required",skipped:"Skipped push",stale:"Stale push",in_progress:"Push in progress",queued:"Push queued"};
