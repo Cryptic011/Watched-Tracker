@@ -6,14 +6,14 @@ const source=fs.readFileSync(new URL('../assets/js/deployment-channel.js',import
 function harness(){
   const sockets=[],signals=[],statuses=[],timers=new Map(),listeners={};let id=0,now=10000;
   const events={addEventListener:(name,fn)=>listeners[name]=fn,removeEventListener:name=>delete listeners[name]};
-  class CustomEvent{constructor(type,init){this.type=type;this.detail=init?.detail;}}
+  const dispatchEvent=event=>{listeners[event.type]?.(event);return true};
   class WebSocket{
     constructor(url){this.url=url;this.sent=[];sockets.push(this);}
     send(raw){this.sent.push(JSON.parse(raw));}
     close(){this.closed=true;}
     receive(message){this.onmessage?.({data:JSON.stringify(message)});}
   }
-  const context=vm.createContext({WebSocket,CustomEvent,navigator:{onLine:true},document:{visibilityState:'visible',...events},...events,
+  const context=vm.createContext({WebSocket,navigator:{onLine:true},document:{visibilityState:'visible',...events},...events,dispatchEvent,CustomEvent:class{constructor(type,init){this.type=type;this.detail=init?.detail;}},
     Date:{now:()=>now},setTimeout:(fn,ms)=>{timers.set(++id,{fn,ms});return id;},clearTimeout:key=>timers.delete(key),
     setInterval:(fn,ms)=>{timers.set(++id,{fn,ms,interval:true});return id;},clearInterval:key=>timers.delete(key)});
   vm.runInContext(source,context);
@@ -57,8 +57,7 @@ test('Join failures and silent sockets recover with bounded exponential backoff'
 test('Deployment status events are surfaced without triggering reload signals',()=>{
   const h=harness();h.join();
   h.sockets.at(-1).receive({topic:'realtime:watchlog-deployments',event:'broadcast',payload:{event:'deployment_status',payload:{sha:'d'.repeat(40),status:'failure',runNumber:'160'}}});
-  assert.deepEqual(h.statuses,[{sha:'d'.repeat(40),status:'failure',runNumber:'160'}]);
-  assert.deepEqual(h.signals,['']);
+  assert.deepEqual(h.statuses,[{sha:'d'.repeat(40),status:'failure',runNumber:'160'}]);assert.deepEqual(h.signals,['']);
 });
 test('Missing heartbeat replies reconnect without accumulating sockets or timers',()=>{
   const h=harness(),ws=h.join(),beat=[...h.timers.values()].find(t=>t.interval);
