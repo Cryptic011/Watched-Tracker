@@ -3,8 +3,8 @@
 ## 2026-10-06
 
 ### Deployment status notifications
-- Add a private owner-only in-app notification for every GitHub push/deployment attempt, including success, failure and cancellation.
-- Surface the push number, commit and workflow result so a failed or ineffective change is immediately identifiable.
+- Add a private in-app notification to your account only whenever a push/change is sent — including successful, failed, cancelled, or otherwise unsuccessful deployment attempts.
+- The notification tells you the push/commit and its outcome so a failed or ineffective change is immediately identifiable.
 - Keep the existing successful-deployment refresh signal separate from the new status notification.
 - Fix the WebKit smoke check so the known mocked Supabase pin CORS diagnostic does not incorrectly fail an otherwise passing browser run.
 
