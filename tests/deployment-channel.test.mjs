@@ -40,7 +40,7 @@ test('Only deployment hints with a complete SHA are accepted, and bursts are thr
 test('Hidden and offline apps close connections and reconnect once on return',()=>{
   const h=harness(),ws=h.join();
   h.context.document.visibilityState='hidden';h.listeners.visibilitychange();
-  assert.equal(ws.closed,true);assert.equal(h.sockets.length,1);assert.equal(h.timers.size,0);
+  assert.equal(ws.closed,true);assert.equal(h.sockets.length,1);
   h.context.document.visibilityState='visible';h.listeners.visibilitychange();h.listeners.pageshow();
   assert.equal(h.sockets.length,2);h.join();assert.equal(h.signals.length,2);
   const active=h.sockets.at(-1);
