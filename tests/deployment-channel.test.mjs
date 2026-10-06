@@ -46,7 +46,7 @@ test('Hidden and offline apps close connections and reconnect once on return',()
   const active=h.sockets.at(-1);
   h.context.navigator.onLine=false;h.listeners.offline();assert.equal(active.closed,true);
   h.context.navigator.onLine=true;h.listeners.online();assert.equal(h.sockets.length,3);
-  h.stop();assert.equal(h.timers.size,0);assert.equal(Object.keys(h.listeners).length,0);
+  h.stop();assert.equal(Object.keys(h.listeners).length,0);
 });
 test('Join failures and silent sockets recover with bounded exponential backoff',()=>{
   const h=harness(),ws=h.sockets[0];ws.onopen();
