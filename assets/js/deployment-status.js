@@ -5,7 +5,7 @@
   const BASELINE_RUN=161;
   const API='https://api.github.com/repos/Cryptic011/Watched-Tracker/actions/runs?event=push&branch=main&per_page=20';
   const sha256=async value=>{const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(value)));return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,'0')).join('');};
-  const owner=async()=>{const email=String(currentProfile?.email||document.querySelector('#profile-email')?.textContent||'').trim().toLowerCase();return !!email&&await sha256('watchlog-notification-test:'+email)===OWNER_HASH;};
+  const owner=async()=>{const email=String((typeof currentProfile!=='undefined'&&currentProfile?.email)||document.querySelector('#profile-email')?.textContent||'').trim().toLowerCase();return !!email&&await sha256('watchlog-notification-test:'+email)===OWNER_HASH;};
   const seen=()=>{try{return new Set(JSON.parse(localStorage.getItem(SEEN_KEY)||'[]'));}catch(_){return new Set();}};
   const saveSeen=set=>{try{localStorage.setItem(SEEN_KEY,JSON.stringify([...set].slice(-100)));}catch(_){}};
   async function notify(run){
@@ -39,8 +39,8 @@
   }
   window.addEventListener('watchlog:deployment',event=>{void handle(event.detail);});
   let lastEmail='';
-  const watch=()=>{const email=String(currentProfile?.email||document.querySelector('#profile-email')?.textContent||'').trim().toLowerCase();if(email&&email!==lastEmail){lastEmail=email;void catchUp();}};
-  new MutationObserver(watch).observe(document.body,{subtree:true,childList:true,characterData:true});
+  const watch=()=>{const email=String((typeof currentProfile!=='undefined'&&currentProfile?.email)||document.querySelector('#profile-email')?.textContent||'').trim().toLowerCase();if(email&&email!==lastEmail){lastEmail=email;void catchUp();}};
+  if(typeof MutationObserver==='function')new MutationObserver(watch).observe(document.body,{subtree:true,childList:true,characterData:true});
   watch();
   if(window.WatchLogDeployment)WatchLogDeployment.start(()=>{});
 })();
