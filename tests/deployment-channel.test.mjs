@@ -38,11 +38,13 @@ test('Only deployment hints with a complete SHA are accepted, and bursts are thr
   h.advance();h.signal('c'.repeat(40));assert.equal(h.signals.length,3);
 });
 test('Hidden and offline apps close connections and reconnect once on return',()=>{
-  const h=harness(),ws=h.join();h.context.document.visibilityState='hidden';h.listeners.visibilitychange();
-  assert.equal(ws.closed,true);assert.equal(h.timers.size,0);
+  const h=harness(),ws=h.join();
+  h.context.document.visibilityState='hidden';h.listeners.visibilitychange();
+  assert.equal(ws.closed,true);assert.equal(h.sockets.length,1);assert.equal(h.timers.size,0);
   h.context.document.visibilityState='visible';h.listeners.visibilitychange();h.listeners.pageshow();
   assert.equal(h.sockets.length,2);h.join();assert.equal(h.signals.length,2);
-  h.context.navigator.onLine=false;h.listeners.offline();assert.equal(h.sockets[1].closed,true);
+  const active=h.sockets.at(-1);
+  h.context.navigator.onLine=false;h.listeners.offline();assert.equal(active.closed,true);
   h.context.navigator.onLine=true;h.listeners.online();assert.equal(h.sockets.length,3);
   h.stop();assert.equal(h.timers.size,0);assert.equal(Object.keys(h.listeners).length,0);
 });
@@ -57,7 +59,7 @@ test('Join failures and silent sockets recover with bounded exponential backoff'
 test('Deployment status events are surfaced without triggering reload signals',()=>{
   const h=harness();h.join();
   h.sockets.at(-1).receive({topic:'realtime:watchlog-deployments',event:'broadcast',payload:{event:'deployment_status',payload:{sha:'d'.repeat(40),status:'failure',runNumber:'160'}}});
-  assert.deepEqual(h.statuses,[{sha:'d'.repeat(40),status:'failure',runNumber:'160'}]);assert.deepEqual(h.signals,['']);
+  assert.equal(h.statuses.length,1);assert.equal(h.statuses[0].sha,'d'.repeat(40));assert.equal(h.statuses[0].status,'failure');assert.equal(h.statuses[0].runNumber,'160');assert.deepEqual(h.signals,['']);
 });
 test('Missing heartbeat replies reconnect without accumulating sockets or timers',()=>{
   const h=harness(),ws=h.join(),beat=[...h.timers.values()].find(t=>t.interval);
