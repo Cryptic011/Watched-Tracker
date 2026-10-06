@@ -5,7 +5,7 @@
 ### Changelog and push status history
 - Rename the app's “What's new” menu and dialog to **Changelog**.
 - Show every repository push in the Changelog, including failed, cancelled, timed-out, skipped, queued, and in-progress pushes rather than only successful changes.
-- Resolve each push's GitHub Actions result by commit SHA so the history explicitly identifies outcomes such as “Push 161: Cancelled push”.
+- Resolve each push's GitHub Actions result by commit SHA and preserve the actual push number, using status-specific wording such as “Failed push 178”, “Cancelled push 189”, and “Push 190” for a successful push.
 - Keep the existing successful deployment refresh notification separate from the push-status history.
 
 ## 2026-10-06
@@ -33,4 +33,4 @@
 - Add `90dvh` to the editor modal height so Safari's dynamic toolbar does not clip the modal.
 - The script is idempotent and verifies all four fixes on every deployment.
 
-- 2026-10-06: Fixed Changelog push-status rendering so every result keeps exactly one push number (for example, `Push 298: Successful push`, `Push 299: Failed push`, or `Push 300: Cancelled push`) instead of dropping or duplicating the number when GitHub status data loads.
+- 2026-10-06: Fixed Changelog push-status rendering so every result keeps exactly one actual push number with the correct status-specific wording: failed/cancelled pushes use `Failed push N` / `Cancelled push N`, while successful pushes use `Push N`.

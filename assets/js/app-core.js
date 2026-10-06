@@ -201,11 +201,11 @@
     version.textContent=Number.isInteger(currentBuild.releaseNumber)?`App commit ${currentBuild.releaseNumber} · ${currentBuild.sha.slice(0,7)}`:(Number.isInteger(currentBuild.workflowRunCount)?`GitHub Actions: ${currentBuild.workflowRunCount} runs · ${currentBuild.sha.slice(0,7)}`:`App commit ${currentBuild.count} · ${currentBuild.sha.slice(0,7)}`);
     $("changelog-body").appendChild(version);
   const statusBySha=new Map();
-  const statusLabels={success:"Successful push",failure:"Failed push",cancelled:"Cancelled push",timed_out:"Timed-out push",action_required:"Action required",skipped:"Skipped push",stale:"Stale push",in_progress:"Push in progress",queued:"Push queued"};
+  const statusLabels={success:"Push",failure:"Failed push",cancelled:"Cancelled push",timed_out:"Timed-out push",action_required:"Action required",skipped:"Skipped push",stale:"Stale push",in_progress:"Push in progress",queued:"Push queued"};
   const formatPushStatus=(entry,status)=>{
     const pushNumber=Number.isInteger(entry?.push)?entry.push:null;
     const label=statusLabels[status]||status?.replaceAll?.("_"," ")||"Checking push status…";
-    return pushNumber?`Push ${pushNumber}: ${label}`:label;
+    return pushNumber?`${label} ${pushNumber}`:label;
   };
   const loadPushStatuses=async()=>{
     try{
