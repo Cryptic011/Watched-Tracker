@@ -1,3 +1,10 @@
+## 2026-10-09
+
+### Weekly releases redesign
+- Redesign “This week’s releases” as a compact, date-led weekly schedule with release counts, time chips, clearer title hierarchy and saved-platform labels.
+- Group episodes of the same title airing on the same day/time into a single tappable card to avoid long repeated-title lists.
+- Improve empty-day states, dates-to-be-announced grouping, mobile spacing and keyboard focus visibility.
+
 # Changelog
 
 ## 2026-10-06

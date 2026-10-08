@@ -76,12 +76,41 @@ function renderDashboard(){
   let days='';
   for(let offset=0;offset<7;offset++){
     const date=new Date(start);date.setDate(date.getDate()+offset);
-    const rows=eventsByDay.get(localISODate(date))||[];
-    days+=`<div class="calendar-day"><h3>${esc(offset===0?'Today':date.toLocaleDateString(USER_LOCALE,{weekday:'short',day:'numeric',month:'short'}))}</h3>${rows.length?rows.map(event=>`<button type="button" class="dashboard-title" data-dashboard-open="${esc(event.item.id)}"><strong>${esc(event.item.title)}</strong><small>${esc(event.label)} · ${event.dateOnly?'Time TBA':esc(event.date.toLocaleTimeString(USER_LOCALE,{hour:'2-digit',minute:'2-digit'}))}</small><small>${esc(event.item.platform?`Saved platform: ${event.item.platform}`:'UK availability not confirmed')}</small></button>`).join(''):'<p>No listed releases</p>'}</div>`;
+    const key=localISODate(date),rows=eventsByDay.get(key)||[];
+    const dayLabel=offset===0?'Today':offset===1?'Tomorrow':date.toLocaleDateString(USER_LOCALE,{weekday:'long'});
+    const dateLabel=date.toLocaleDateString(USER_LOCALE,{day:'numeric',month:'short'});
+    // Group episodes of the same title airing at the same time into one compact card.
+    const grouped=[];
+    for(const event of rows){
+      const time=event.dateOnly?'Time TBA':event.date.toLocaleTimeString(USER_LOCALE,{hour:'2-digit',minute:'2-digit'});
+      const groupKey=[event.item.id,time,event.item.platform||'',event.dateOnly?'date':'time'].join('|');
+      let group=grouped.find(row=>row.key===groupKey);
+      if(!group){group={key:groupKey,item:event.item,time,dateOnly:event.dateOnly,events:[]};grouped.push(group);}
+      if(!group.events.some(existing=>existing.label===event.label))group.events.push(event);
+    }
+    days+=`<section class="release-day${rows.length?' has-releases':' is-empty'}" aria-label="${esc(dayLabel)}, ${esc(dateLabel)}">
+      <header class="release-day-heading"><div><span class="release-day-name">${esc(dayLabel)}</span><span class="release-day-date">${esc(dateLabel)}</span></div><span class="release-day-count">${rows.length} ${rows.length===1?'release':'releases'}</span></header>
+      ${grouped.length?grouped.map(group=>{
+        const labels=group.events.map(event=>event.label);
+        const episodeLabel=labels.length>1&&labels.every(label=>/^S\d+ E\d+$/.test(label))
+          ?labels[0].match(/^S(\d+) E/)[0].replace(' E','')+' E'+labels.map(label=>Number(label.match(/E(\d+)/)[1])).join(', ')
+          :labels.join(' · ');
+        const platform=group.item.platform?esc(group.item.platform):'Platform not saved';
+        return `<button type="button" class="release-card" data-dashboard-open="${esc(group.item.id)}">
+          <span class="release-time">${esc(group.time)}</span>
+          <span class="release-card-copy"><strong>${esc(group.item.title)}</strong><span class="release-episode">${esc(episodeLabel)}</span><span class="release-platform"><span class="release-platform-dot" aria-hidden="true"></span>${platform}</span></span>
+          <span class="release-chevron" aria-hidden="true">›</span>
+        </button>`;
+      }).join(''):'<p class="release-empty">Nothing listed for this day</p>'}
+    </section>`;
   }
-  updateDashboardMarkup(root,`<details class="dashboard-section" data-dashboard-section="calendar"><summary>This week’s releases</summary><p class="dashboard-note">Today and the next six days. Times are local; broadcast and listed film dates may differ from UK streaming availability.</p>${days}${unknown.length?`<details data-dashboard-section="unknown"><summary>Dates to be announced (${unknown.length})</summary>${unknown.map(item=>`<button type="button" class="dashboard-title" data-dashboard-open="${esc(item.id)}">${esc(item.title)} · ${esc(item.announcement)} · Date TBA</button>`).join('')}</details>`:''}</details>`);
+  updateDashboardMarkup(root,`<section class="dashboard-section weekly-releases" aria-labelledby="weekly-releases-title">
+    <header class="weekly-releases-heading"><div><span class="weekly-eyebrow">YOUR SCHEDULE</span><h2 id="weekly-releases-title">This week’s releases</h2><p class="dashboard-note">Today and the next six days · local times</p></div><span class="weekly-total">${events.length}<small>releases</small></span></header>
+    <div class="release-week-list">${days}</div>
+    ${unknown.length?`<details class="release-tba" data-dashboard-section="unknown"><summary><span>Dates to be announced</span><span class="release-tba-count">${unknown.length}</span></summary><div class="release-tba-list">${unknown.map(item=>`<button type="button" class="release-tba-item" data-dashboard-open="${esc(item.id)}"><strong>${esc(item.title)}</strong><span>${esc(item.announcement)} · Date TBA</span><span class="release-chevron" aria-hidden="true">›</span></button>`).join('')}</div></details>`:''}
+    <p class="weekly-footnote">Broadcast and listed film dates may differ from UK streaming availability.</p>
+  </section>`);
 }
-
 document.getElementById('library-dashboard').addEventListener('click',event=>{
   const watch=event.target.closest('[data-dashboard-watch]');
   if(watch){
