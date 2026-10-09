@@ -205,9 +205,9 @@
   const statusBySha=new Map();
   const statusLabels={success:"Push",failure:"Failed push",cancelled:"Cancelled push",timed_out:"Timed-out push",action_required:"Action required",skipped:"Skipped push",stale:"Stale push",in_progress:"Push in progress",queued:"Push queued"};
   const formatPushStatus=(entry,status)=>{
-    const pushNumber=Number.isInteger(entry?.push)?entry.push:null;
+    const pushNumber=Number.isInteger(entry?.appCommit)?entry.appCommit:null;
     const label=statusLabels[status]||status?.replaceAll?.("_"," ")||"Checking push status…";
-    return pushNumber?label+" "+pushNumber:label;
+    return pushNumber?label.replaceAll("push","commit").replaceAll("Push","Commit")+" "+pushNumber:label.replaceAll("push","commit").replaceAll("Push","Commit");
   };
   const renderChangelogEntries=()=>{
     const body=$("changelog-body");
@@ -215,7 +215,7 @@
     for(const entry of APP_CHANGELOG_FULL){
       const details=document.createElement("details");details.className="changelog-entry";details.dataset.pushSha=entry.commit||"";
       const summary=document.createElement("summary");
-      summary.textContent=(Number.isInteger(entry.push)?"Push "+entry.push+" · ":"")+(entry.title||"Repository push");
+      summary.textContent=(Number.isInteger(entry.appCommit)?"Commit "+entry.appCommit+" · ":"")+(entry.title||"Repository change");
       details.appendChild(summary);
       const status=statusBySha.get(entry.commit)||entry.status||"unknown";
       const statusLine=document.createElement("div");statusLine.className="changelog-status";statusLine.textContent=formatPushStatus(entry,status);
@@ -232,14 +232,16 @@
   const loadPushStatuses=async()=>{
     try{
       const runs=[];
+      let appCommitOffset=null;
       for(let page=1;page<=10;page++){
         const response=await fetch("https://api.github.com/repos/Cryptic011/Watched-Tracker/actions/runs?event=push&branch=main&per_page=100&page="+page,{headers:{Accept:"application/vnd.github+json"}});
         if(!response.ok)throw new Error("GitHub Actions request failed");
         const data=await response.json();
+        if(page===1&&Number.isInteger(currentBuild.releaseNumber)&&Array.isArray(data.workflow_runs)&&data.workflow_runs.length){appCommitOffset=currentBuild.releaseNumber-data.workflow_runs[0].run_number;}
         for(const run of data.workflow_runs||[]) {
           if(run.event!=="push"||run.head_branch!=="main")continue;
           const title=String(run.head_commit?.message||run.display_title||"Repository push").split("\n")[0];
-          const entry={push:Number.isInteger(run.run_number)?run.run_number:null,commit:run.head_sha,date:String(run.created_at||"").slice(0,10),title,changes:[title],status:run.conclusion||run.status||"unknown"};
+          const entry={push:Number.isInteger(run.run_number)?run.run_number:null,appCommit:Number.isInteger(run.run_number)&&Number.isInteger(appCommitOffset)?run.run_number+appCommitOffset:null,commit:run.head_sha,date:String(run.created_at||"").slice(0,10),title,changes:[title],status:run.conclusion||run.status||"unknown"};
           runs.push(entry);
           if(run.head_sha)statusBySha.set(run.head_sha,entry.status);
         }

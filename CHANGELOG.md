@@ -1,5 +1,11 @@
 ## 2026-10-09
 
+### App commit numbering
+- Show the app commit number in Changelog entries instead of the individual GitHub Actions push-run number.
+- Keep failed, cancelled, queued and in-progress attempts in the same app-commit sequence. The weekly releases redesign is app commit 267.
+
+## 2026-10-09
+
 ### Weekly releases redesign
 - Redesign “This week’s releases” as a compact, date-led weekly schedule with release counts, time chips, clearer title hierarchy and saved-platform labels.
 - Group episodes of the same title airing on the same day/time into a single tappable card to avoid long repeated-title lists.
