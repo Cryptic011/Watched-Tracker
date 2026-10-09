@@ -12,8 +12,8 @@ if(process.env.GITHUB_REPOSITORY&&(process.env.WATCHLOG_GITHUB_TOKEN||process.en
   const result=await response.json();
   if(!Number.isInteger(result.total_count))throw new Error('GitHub Actions count was unavailable');
   workflowRunCount=result.total_count;
-}
-// App commit numbers follow push attempts, not the repository-wide Actions run count.\n// The app sequence was at commit 267 on push run 183; preserve that offset.\nconst releaseNumber=Number.isInteger(Number(process.env.GITHUB_RUN_NUMBER))?Number(process.env.GITHUB_RUN_NUMBER)+84:workflowRunCount;
+// The app commit number is the repository commit-history count, not a GitHub Actions run number.
+const releaseNumber=commits.length;
 if(Number.isInteger(releaseNumber)&&commits[0])commits[0].number=releaseNumber;
 const script='window.WATCHLOG_BUILD='+JSON.stringify({count:commits.length,releaseNumber,workflowRunCount,runNumber:process.env.GITHUB_RUN_NUMBER||null,sha:commits[0].commit,commits}).replaceAll('<','\\u003c')+';\n';
 writeFileSync('build-info.js',script);
