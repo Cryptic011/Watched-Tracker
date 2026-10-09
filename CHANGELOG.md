@@ -1,5 +1,13 @@
 ## 2026-10-09
 
+### Restore complete Changelog and correct app numbering
+- Preserve the full repository commit history in the Changelog; overlay workflow outcomes by commit SHA instead of replacing the history with a filtered list of workflow runs.
+- Fix the duplicate-filter key so distinct commits are not collapsed when workflow run numbers are unavailable.
+- Keep the user's app commit sequence at 270 existing changes, with the next repository commit numbered 271; do not display GitHub Actions push/run numbers.
+- Use clear outcome labels (Verified, Failed, Cancelled, In progress, Queued) against the corresponding app commit.
+
+## 2026-10-09
+
 ### Changelog numbering and build repair
 - Use repository commit-history numbers for the app version and Changelog entries; do not derive app numbering from GitHub Actions run or push numbers.
 - Map workflow outcomes to the corresponding repository commit by commit SHA, so successful, failed, and cancelled attempts refer to a meaningful commit.

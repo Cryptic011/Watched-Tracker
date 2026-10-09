@@ -203,17 +203,17 @@
   version.textContent=`App commit ${Number.isInteger(currentBuild.releaseNumber)?currentBuild.releaseNumber:currentBuild.count} · ${currentBuild.sha.slice(0,7)}`;
   let APP_CHANGELOG_FULL=window.WATCHLOG_BUILD?.commits||APP_CHANGELOG.filter(entry=>entry.commit);
   const statusBySha=new Map();
-  const statusLabels={success:"Push",failure:"Failed push",cancelled:"Cancelled push",timed_out:"Timed-out push",action_required:"Action required",skipped:"Skipped push",stale:"Stale push",in_progress:"Push in progress",queued:"Push queued"};
+  const statusLabels={success:"Verified",failure:"Failed",cancelled:"Cancelled",timed_out:"Timed out",action_required:"Action required",skipped:"Skipped",stale:"Stale",in_progress:"In progress",queued:"Queued"};
   const formatPushStatus=(entry,status)=>{
     const appCommitNumber=Number.isInteger(entry?.appCommit)?entry.appCommit:null;
-    const label=statusLabels[status]||status?.replaceAll?.("_"," ")||"Checking push status…";
-    return appCommitNumber?label.replaceAll("push","commit").replaceAll("Push","Commit")+" "+appCommitNumber:label.replaceAll("push","commit").replaceAll("Push","Commit");
+    const label=statusLabels[status]||status?.replaceAll?.("_"," ")||"Status unavailable";
+    return appCommitNumber?"Commit "+appCommitNumber+" · "+label:label;
   };
   const renderChangelogEntries=()=>{
     const body=$("changelog-body");
     body.querySelectorAll("details.changelog-entry").forEach(node=>node.remove());
     for(const entry of APP_CHANGELOG_FULL){
-      const details=document.createElement("details");details.className="changelog-entry";details.dataset.pushSha=entry.commit||"";
+      const details=document.createElement("details");details.className="changelog-entry";details.dataset.commitSha=entry.commit||"";
       const summary=document.createElement("summary");
       summary.textContent=(Number.isInteger(entry.appCommit)?"Commit "+entry.appCommit+" · ":"")+(entry.title||"Repository change");
       details.appendChild(summary);
@@ -248,11 +248,12 @@
       }
       const seen=new Set();
       const workflowEntries=runs.filter(entry=>{
-        const key=entry.push!==null?String(entry.push):entry.commit;
+        const key=entry.commit;
         if(seen.has(key))return false;
         seen.add(key);return true;
       });
-      if(workflowEntries.length)APP_CHANGELOG_FULL=workflowEntries;
+      const statusByCommit=new Map(workflowEntries.map(entry=>[entry.commit,entry.status]));
+      APP_CHANGELOG_FULL=(currentBuild.commits||APP_CHANGELOG_FULL).map(entry=>({...entry,status:statusByCommit.get(entry.commit)||statusBySha.get(entry.commit)||entry.status}));
       renderChangelogEntries();
     }catch(_){
       renderChangelogEntries();
