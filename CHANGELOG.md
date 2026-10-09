@@ -1,5 +1,12 @@
 ## 2026-10-09
 
+### Changelog numbering and build repair
+- Use repository commit-history numbers for the app version and Changelog entries; do not derive app numbering from GitHub Actions run or push numbers.
+- Map workflow outcomes to the corresponding repository commit by commit SHA, so successful, failed, and cancelled attempts refer to a meaningful commit.
+- Fix the missing closing brace in build metadata generation that stopped deployment before tests and publishing could run.
+
+## 2026-10-09
+
 ### App commit number correction
 - Derive the displayed app commit number from the deployment workflow run number, preserving the app numbering offset so push run 183 is app commit 267 and push run 184 is app commit 268.
 - Do not use the repository-wide Actions workflow-run total as the app commit number.
