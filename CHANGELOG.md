@@ -1,5 +1,11 @@
 ## 2026-10-09
 
+### App commit number correction
+- Derive the displayed app commit number from the deployment workflow run number, preserving the app numbering offset so push run 183 is app commit 267 and push run 184 is app commit 268.
+- Do not use the repository-wide Actions workflow-run total as the app commit number.
+
+## 2026-10-09
+
 ### App commit numbering
 - Show the app commit number in Changelog entries instead of the individual GitHub Actions push-run number.
 - Keep failed, cancelled, queued and in-progress attempts in the same app-commit sequence. The weekly releases redesign is app commit 267.
