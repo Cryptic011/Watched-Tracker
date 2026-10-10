@@ -1,5 +1,12 @@
 ## 2026-10-10
 
+### Repair navigation deployment and stale-client protection
+- Fix the Changelog regression test to load the actual app-core source directly, so its workflow-run-number assertions test the implementation rather than depending on HTML script inlining.
+- Keep the bottom navigation restricted to Library, Search and Settings; add a defensive CSS rule that hides retired History and Watchlist tabs if legacy markup is restored.
+- Bump app, dashboard, and gallery asset versions and the navigation service-worker cache namespace so deployed clients stop reusing the stale navigation shell.
+
+## 2026-10-10
+
 ### Browser regression reliability
 - Fix the WebKit refresh smoke test to re-authenticate only when the login email field is actually visible after navigation, avoiding a false failure when the app restores the session.
 - Keep the refresh persistence assertion and failed-save protection checks in place.
