@@ -1,5 +1,10 @@
 ## 2026-10-10
 
+### Fix notification tests after adding overall run-count lookup
+- Mock the GitHub Actions total-count API and provide a test token so notification tests exercise the new failed-inclusive overall run counter rather than failing before the status endpoint is called.
+
+## 2026-10-10
+
 ### Remove incorrect commit wording from workflow notifications
 - Notification bodies now read `Run #N (abcdef0) has passed/has failed/was cancelled/was skipped` using the repository-wide workflow run count, without the misleading word `commit` or redundant “has been pushed”.
 
