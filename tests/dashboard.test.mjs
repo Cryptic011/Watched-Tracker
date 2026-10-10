@@ -88,4 +88,13 @@ test('Calendar names actual undated upcoming episodes and seasons regardless of 
 });
 
 
-test('Weekly release opt-out is saved per show without removing library tracking', () => {\n  const editor=fs.readFileSync(new URL('../assets/js/editor.js',import.meta.url),'utf8');\n  const dashboard=fs.readFileSync(new URL('../assets/js/dashboard.js',import.meta.url),'utf8');\n  const index=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');\n  assert.match(index,/id="hide-from-weekly-releases" type="checkbox"/);\n  assert.match(editor,/hideFromWeeklyReleases:item\.hideFromWeeklyReleases===true/);\n  assert.match(editor,/hideFromWeeklyReleases:type===\\"Film\\"\?false:\$\\(\\"hide-from-weekly-releases\\"\\)\.checked/);\n  assert.match(dashboard,/if\(item\.hideFromWeeklyReleases===true\)continue;/);\n});\n
+
+test('Weekly release opt-out is saved per show without removing library tracking', () => {
+  const editor=fs.readFileSync(new URL('../assets/js/editor.js',import.meta.url),'utf8');
+  const dashboard=fs.readFileSync(new URL('../assets/js/dashboard.js',import.meta.url),'utf8');
+  const index=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+  assert.match(index,/id="hide-from-weekly-releases" type="checkbox"/);
+  assert.ok(editor.includes('hideFromWeeklyReleases:type==="Film"?false:$("#hide-from-weekly-releases").checked'));
+  assert.match(editor,/item\.hideFromWeeklyReleases===true/);
+  assert.match(dashboard,/if\(item\.hideFromWeeklyReleases===true\)continue;/);
+});
