@@ -13,11 +13,6 @@
     backgroundReminderStatus.textContent=message;
     backgroundReminderStatus.style.color=state==="error"?"#fca5a5":state==="ok"?"var(--green)":"var(--muted)";
   }
-  function setNotificationTestStatus(message,state=""){
-    if(!notificationTestStatus)return;
-    notificationTestStatus.textContent=message;
-    notificationTestStatus.style.color=state==="error"?"#fca5a5":state==="ok"?"var(--green)":"var(--muted)";
-  }
   function pushSupportError(){
     if(!("Notification" in window)||!("serviceWorker" in navigator)||!("PushManager" in window))return"Background notifications are not supported in this browser.";
     if(/iPhone|iPad|iPod/i.test(navigator.userAgent)&&!isStandaloneWebApp())return"Add Watched Logger to your Home Screen, then open it from the icon to enable iPhone background reminders.";
@@ -137,7 +132,6 @@
       setBackgroundReminderStatus("Connecting this device…");
       await ensureBackgroundPush({askPermission:true});
       await refreshBackgroundReminderStatus();
-      if(!notificationTestSettings?.classList.contains("hidden"))setNotificationTestStatus("Background push is ready. You can queue the private test.","ok");
     }catch(error){setBackgroundReminderStatus(error.message||"Could not enable background reminders.","error");}
     finally{enableBackgroundReminders.disabled=false;}
   };
@@ -145,30 +139,6 @@
     disableBackgroundReminders.disabled=true;
     try{await removeBackgroundPush();}
     finally{disableBackgroundReminders.disabled=false;}
-  };
-  function refreshNotificationTestStatus(){
-    if(pushSupportError()){setNotificationTestStatus(pushSupportError(),"error");return;}
-    if(Notification.permission!=="granted"){setNotificationTestStatus("Enable Background Reminders above before using the private test.");return;}
-    setNotificationTestStatus("The private server-push test is ready.","ok");
-  }
-  async function updateNotificationTestVisibility(){
-    notificationTestSettings?.classList.add("hidden");
-    const email=normalizeEmail(currentProfile?.email||"");
-    if(!email)return false;
-    const accountHash=await sha256(`watchlog-notification-test:${email}`);
-    const allowed=accountHash===NOTIFICATION_TEST_ACCOUNT_HASH&&email===normalizeEmail(currentProfile?.email||"");
-    notificationTestSettings?.classList.toggle("hidden",!allowed);
-    if(allowed){refreshNotificationTestStatus();void refreshPrivateReminderHistory();}
-    return allowed;
-  }
-  sendPlannedTest.onclick=async()=>{
-    sendPlannedTest.disabled=true;
-    try{
-      await ensureBackgroundPush({askPermission:true});
-      const result=await reminderApi("schedule_private_test");
-      setNotificationTestStatus(result.message||"Background test queued. Close Watched Logger now; it should arrive within about one minute.","ok");
-    }catch(error){setNotificationTestStatus(error.message||"Could not queue the background test.","error");}
-    finally{sendPlannedTest.disabled=false;}
   };
 
   async function pinApi(action,payload={},token=cloudSessionToken,preparedBody="",externalSignal=null){
