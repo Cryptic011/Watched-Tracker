@@ -1,5 +1,10 @@
 ## 2026-10-10
 
+### Fix refresh browser smoke-test wait condition
+- Wait for the actual mocked cloud login/load response after tapping Refresh instead of a page-local counter that is inaccessible to the browser test context. This addresses the timeout at the refresh step while retaining the saved-data assertions.
+
+## 2026-10-10
+
 ### Fix browser refresh smoke test
 - Wait for the mocked session reload response after Refresh instead of evaluating the Node-side `loads` variable inside the browser page, which caused the CI smoke test to fail with `ReferenceError: loads is not defined`.
 
