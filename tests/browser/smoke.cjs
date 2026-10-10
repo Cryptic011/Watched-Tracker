@@ -108,7 +108,7 @@ const server=http.createServer((req,res)=>{
   await page.locator('[data-tab="library"]').click();
   await page.waitForFunction(()=>document.querySelector('#settings-view').classList.contains('hidden')&&!document.querySelector('#library-view').classList.contains('hidden'));
   for(const selector of ['.profile-card','#sync-now','#logout-btn','#appearance-mode','#background-reminder-status','#enable-background-reminders']){
-    assert.equal(await page.locator(selector).isVisible(),false,selector+' must not be visible in Library');
+    assert.equal(await page.locator(selector).first().isVisible(),false,selector+' must not be visible in Library');
   }
   // Force a pending memory change: refresh must save it before navigation.
   phase='refresh';

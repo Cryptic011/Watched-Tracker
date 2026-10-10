@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Fix Library visibility smoke-test strict-mode failure
+- Apply the same first-match handling in the Library visibility assertions as in Settings. The generic `.profile-card` selector matches several distinct Settings cards, so a strict-mode locator check was failing before it could validate the Library transition.
+- Keep the visibility check against the real Settings and Library tabs; this is a test correction, not a change to app visibility behavior.
+
+## 2026-10-10
+
 ### Deduplicate workflow status push notifications
 - Use the existing per-subscription delivery ledger to prevent replayed workflow events from repeatedly notifying devices after successful delivery.
 - Keep workflow-status records out of Reminder Activity and preserve retry backoff and failure tracking.
