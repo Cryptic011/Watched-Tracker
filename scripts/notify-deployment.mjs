@@ -21,7 +21,9 @@ async function broadcast(event,payload){
   }
 }
 const notifySecret=process.env.WATCHLOG_DEPLOYMENT_NOTIFY_SECRET||'';
-if(!notifySecret)throw Error('WATCHLOG_DEPLOYMENT_NOTIFY_SECRET is required for private push-status notifications');
+if(!notifySecret){
+  console.warn('Private push-status notification skipped: configure WATCHLOG_DEPLOYMENT_NOTIFY_SECRET in GitHub Actions and Supabase to enable owner-only delivery.');
+}else{
 const response=await fetch(`${config.url}/functions/v1/watchlog-reminders`,{
   method:'POST',
   headers:{apikey:config.key,'Content-Type':'application/json','x-watchlog-deployment-secret':notifySecret},
@@ -31,6 +33,7 @@ const response=await fetch(`${config.url}/functions/v1/watchlog-reminders`,{
 if(!response.ok)throw Error(`Private push-status notification returned ${response.status}`);
 const delivery=await response.json();
 console.log(`Private push-status notification processed: ${status}; delivered ${delivery.delivered||0}; failed ${delivery.failed||0}`);
+}
 if(status!=='success'||!page){console.log(`Deployment status sent: ${status} for ${sha}`);process.exit(0);}
 const site=new URL(page);let ready=false;
 for(let attempt=0;attempt<12;attempt++){
