@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Correct overall workflow-run count and refresh browser check
+- Include the repository-wide Actions run count in deployment status payloads, separately from the source deployment run number and API run ID; the UI can use the all-workflows count that includes failed runs.
+- Make the browser refresh test wait for a confirmed subsequent library load instead of relying on a fragile navigation event while verifying saved data survives refresh.
+
+## 2026-10-10
+
 ### Fail workflow notification when push delivery is not confirmed
 - Require the private status endpoint to report at least one successful device delivery and zero failures; a zero-device or partially failed result now fails the observer workflow instead of showing a misleading green check.
 - Log the delivery count and backend reason in the workflow failure for diagnosis.

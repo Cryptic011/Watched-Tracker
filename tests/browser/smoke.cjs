@@ -100,7 +100,7 @@ const server=http.createServer((req,res)=>{
   // Force a pending memory change: refresh must save it before navigation.
   phase='refresh';
   await page.evaluate(()=>{mediaItems[0].platform='Saved before refresh';});
-  const before=loads;await Promise.all([page.waitForNavigation({waitUntil:'load'}),page.locator('#refresh-app').click()]);await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden'));
+  const before=loads;await page.locator('#refresh-app').click();await page.waitForFunction(previous=>loads>previous,before,{timeout:15000});await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden'));
   await page.waitForFunction(()=>mediaItems[0]?.platform==='Saved before refresh');
   assert.equal(items[0].platform,'Saved before refresh');
   await page.waitForTimeout(300);assert.ok(loads>before);

@@ -4,9 +4,10 @@ const sha=process.env.WATCHLOG_SOURCE_SHA;
 const page=process.env.WATCHLOG_PAGE_URL||'';
 const status=String(process.env.WATCHLOG_STATUS||'success');
 const runNumber=String(process.env.WATCHLOG_SOURCE_RUN_NUMBER||'');
+const overallRunCount=String(process.env.WATCHLOG_OVERALL_RUN_COUNT||'');
 const runId=String(process.env.WATCHLOG_SOURCE_RUN_ID||'');
 if(!/^[a-f0-9]{40}$/.test(sha||''))throw Error('Source deployment SHA is required');
-if(!/^\d+$/.test(runId)||!/^\d+$/.test(runNumber))throw Error('Source deployment run ID and number are required');
+if(!/^\d+$/.test(runId)||!/^\d+$/.test(runNumber)||!/^\d+$/.test(overallRunCount))throw Error('Source run ID, source run number and overall workflow run count are required');
 if(page){const site=new URL(page);if(site.protocol!=='https:')throw Error('Expected HTTPS deployment URL');}
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function broadcast(event,payload){
@@ -25,7 +26,7 @@ async function broadcast(event,payload){
 const response=await fetch(`${config.url}/functions/v1/watchlog-reminders`,{
   method:'POST',
   headers:{apikey:config.key,Authorization:`Bearer ${config.key}`,'Content-Type':'application/json'},
-  body:JSON.stringify({action:'deployment_status',runId,runNumber,sha,status,commitUrl:`https://github.com/Cryptic011/Watched-Tracker/commit/${sha}`}),
+  body:JSON.stringify({action:'deployment_status',runId,runNumber,overallRunCount,sha,status,commitUrl:`https://github.com/Cryptic011/Watched-Tracker/commit/${sha}`}),
   signal:AbortSignal.timeout(15000),
 });
 if(!response.ok){

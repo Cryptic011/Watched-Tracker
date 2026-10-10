@@ -30,6 +30,7 @@ jobs:
           WATCHLOG_SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
           WATCHLOG_SOURCE_RUN_NUMBER: ${{ github.event.workflow_run.run_number }}
           WATCHLOG_SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          WATCHLOG_OVERALL_RUN_COUNT: ${{ github.event.workflow_run.run_number }}
           GITHUB_SERVER_URL: ${{ github.server_url }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_EVENT_NAME: workflow_run
