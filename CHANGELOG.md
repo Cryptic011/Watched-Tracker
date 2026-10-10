@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Fix refresh browser smoke-test authentication handling
+- Keep the Refresh persistence assertion against the mocked cloud library after navigation.
+- Re-authenticate through the real PIN form when the isolated browser test origin returns to the login screen, rather than timing out while assuming its session survives a document reload.
+
+## 2026-10-10
+
 ### Fix refresh smoke test navigation wait
 - Wait for the page's completed reload event after tapping Refresh instead of waiting for a specific mocked cloud login/load response, which was not a reliable signal for browser navigation.
 - Retain the persisted-library assertion after reload and the separate failed-cloud-save guard, so Refresh is still tested for data safety rather than merely clicking the button.

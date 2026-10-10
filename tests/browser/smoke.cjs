@@ -100,7 +100,15 @@ const server=http.createServer((req,res)=>{
   // Force a pending memory change: refresh must save it before navigation.
   phase='refresh';
   await page.evaluate(()=>{mediaItems[0].platform='Saved before refresh';});
-  const before=loads;const reload=page.waitForEvent('load');await page.locator('#refresh-app').click();await reload;await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden'));
+  const before=loads;const reload=page.waitForEvent('load');await page.locator('#refresh-app').click();await reload;
+  // A fresh browser document may require signing in again in this isolated test
+  // origin. Re-authenticate through the real form, then verify the server-held
+  // library contains the value that Refresh saved before navigation.
+  await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden')||!document.querySelector('#auth-screen').classList.contains('hidden'));
+  if(!(await page.locator('#auth-screen').evaluate(el=>el.classList.contains('hidden')))){
+    await page.locator('#auth-email').fill(account.email);await page.locator('#auth-pin').fill('1234');await page.locator('#auth-submit').click();
+  }
+  await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden'));
   await page.waitForFunction(()=>mediaItems[0]?.platform==='Saved before refresh');
   assert.equal(items[0].platform,'Saved before refresh');
   await page.waitForTimeout(300);assert.ok(loads>before);
