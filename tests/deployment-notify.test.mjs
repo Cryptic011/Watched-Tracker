@@ -5,7 +5,7 @@ import vm from 'node:vm';
 const source=fs.readFileSync(new URL('../scripts/notify-deployment.mjs',import.meta.url),'utf8').replace(/^import .*;\n/,'');
 const sha='a'.repeat(40);
 function run(fetch,env={GITHUB_SHA:sha,WATCHLOG_PAGE_URL:'',WATCHLOG_STATUS:'success',WATCHLOG_DEPLOYMENT_NOTIFY_SECRET:'test-secret',GITHUB_RUN_NUMBER:'197',GITHUB_SERVER_URL:'https://github.com',GITHUB_REPOSITORY:'Cryptic011/Watched-Tracker',GITHUB_RUN_ID:'1',GITHUB_EVENT_NAME:'push'}){
- return vm.runInNewContext('(async()=>{'+source+'})()', {WatchLogDeployment:{config:{url:'https://backend.test',key:'public-key',topic:'watchlog-deployments',event:'deployed'}},process:{env,exit(){}},URL,AbortSignal,fetch,setTimeout:fn=>fn(),console:{log(){},warn(){}}});
+ return vm.runInNewContext('(async()=>{'+source+'})()', {WatchLogDeployment:{config:{url:'https://backend.test',key:'public-key',topic:'watchlog-deployments',event:'deployed'}},process:{env,exit(code){throw new Error('__PROCESS_EXIT__'+code)}},URL,AbortSignal,fetch,setTimeout:fn=>fn(),console:{log(){},warn(){}}}).catch(error=>{if(error.message==='__PROCESS_EXIT__0')return;throw error;});
 }
 test('Push status is sent privately to the reminder function with the push number, commit and outcome',async()=>{
  let request;
