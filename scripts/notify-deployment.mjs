@@ -23,7 +23,7 @@ async function broadcast(event,payload){
 }
 const response=await fetch(`${config.url}/functions/v1/watchlog-reminders`,{
   method:'POST',
-  headers:{apikey:config.key,'Content-Type':'application/json'},
+  headers:{apikey:config.key,Authorization:`Bearer ${config.key}`,'Content-Type':'application/json'},
   body:JSON.stringify({action:'deployment_status',runId,runNumber,sha,status,commitUrl:`https://github.com/Cryptic011/Watched-Tracker/commit/${sha}`}),
   signal:AbortSignal.timeout(15000),
 });
