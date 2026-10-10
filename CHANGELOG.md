@@ -1,5 +1,10 @@
 ## 2026-10-10
 
+### Stop new pushes cancelling in-progress deployment checks
+- Disable cancel-in-progress for the shared GitHub Pages deployment group. Every push now keeps its own workflow run instead of cancelling the preceding run when another fix is pushed; queued commits are processed in order.
+
+## 2026-10-10
+
 ### Notify owner after every completed test and deployment workflow
 - Extend the workflow-run notification trigger to include the separate Browser regression checks workflow as well as the deployment workflow, so test-only runs also generate an owner notification on completion.
 
