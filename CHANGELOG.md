@@ -1,5 +1,10 @@
 ## 2026-10-10
 
+### Fix browser refresh smoke test
+- Wait for the mocked session reload response after Refresh instead of evaluating the Node-side `loads` variable inside the browser page, which caused the CI smoke test to fail with `ReferenceError: loads is not defined`.
+
+## 2026-10-10
+
 ### Fix notification regression test environment
 - Provide the GitHub token and repository metadata in the explicit environment used by the workflow-run regression test, matching the sender's required inputs and allowing the Actions run-count lookup to be mocked.
 
