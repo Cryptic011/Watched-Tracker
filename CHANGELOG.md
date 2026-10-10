@@ -1,5 +1,10 @@
 ## 2026-10-10
 
+### Remove incorrect commit wording from workflow notifications
+- Notification bodies now read `Run #N (abcdef0) has passed/has failed/was cancelled/was skipped` using the repository-wide workflow run count, without the misleading word `commit` or redundant “has been pushed”.
+
+## 2026-10-10
+
 ### Display the overall failed-inclusive Actions run count in push notifications
 - Use GitHub Actions API `total_count` across all workflows for the displayed Run #, including failed runs; preserve the deployment workflow run number separately for source verification.
 

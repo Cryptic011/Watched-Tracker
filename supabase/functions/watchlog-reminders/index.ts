@@ -754,7 +754,7 @@ Deno.serve(async (req: Request) => {
       if (subscriptionError) throw subscriptionError;
       const outcome = status === "success" ? "has passed" : status === "failure" ? "has failed" : status === "cancelled" ? "was cancelled" : status === "skipped" ? "was skipped" : status === "queued" ? "is queued" : "is in progress";
       const title = String(verifiedRun.head_commit?.message || verifiedRun.display_title || "Watch Logger Change").split("\n")[0].trim().slice(0, 120) || "Watch Logger Change";
-      const bodyText = `Run #${overallRunCount} (${sha.slice(0, 7)}) has been pushed and ${outcome}.`;
+      const bodyText = `Run #${overallRunCount} (${sha.slice(0, 7)}) ${outcome}.`;
       let delivered = 0, failed = 0;
       for (const row of (subscriptions || []) as PushRow[]) {
         try {
