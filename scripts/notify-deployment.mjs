@@ -20,7 +20,17 @@ async function broadcast(event,payload){
     }catch(error){if(attempt===2)throw error;await sleep(2000);}
   }
 }
-await broadcast('deployment_status',{sha,status,runNumber,title:String(process.env.GITHUB_EVENT_NAME==='push'?'Push':'Change'),commitUrl:`https://github.com/Cryptic011/Watched-Tracker/commit/${sha}`,runUrl:process.env.GITHUB_SERVER_URL?`${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`:''});
+const notifySecret=process.env.WATCHLOG_DEPLOYMENT_NOTIFY_SECRET||'';
+if(!notifySecret)throw Error('WATCHLOG_DEPLOYMENT_NOTIFY_SECRET is required for private push-status notifications');
+const response=await fetch(`${config.url}/functions/v1/watchlog-reminders`,{
+  method:'POST',
+  headers:{apikey:config.key,'Content-Type':'application/json','x-watchlog-deployment-secret':notifySecret},
+  body:JSON.stringify({action:'deployment_status',pushNumber:runNumber,sha,status,commitUrl:`https://github.com/Cryptic011/Watched-Tracker/commit/${sha}`}),
+  signal:AbortSignal.timeout(15000),
+});
+if(!response.ok)throw Error(`Private push-status notification returned ${response.status}`);
+const delivery=await response.json();
+console.log(`Private push-status notification processed: ${status}; delivered ${delivery.delivered||0}; failed ${delivery.failed||0}`);
 if(status!=='success'||!page){console.log(`Deployment status sent: ${status} for ${sha}`);process.exit(0);}
 const site=new URL(page);let ready=false;
 for(let attempt=0;attempt<12;attempt++){

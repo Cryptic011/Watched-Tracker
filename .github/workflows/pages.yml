@@ -88,4 +88,5 @@ jobs:
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
+          WATCHLOG_DEPLOYMENT_NOTIFY_SECRET: ${{ secrets.WATCHLOG_DEPLOYMENT_NOTIFY_SECRET }}
         run: node scripts/notify-deployment.mjs

@@ -2,7 +2,9 @@
 
 ### Repair Changelog workflow-number check
 - Make the workflow-run test assert the exact source expressions without brittle regular-expression parsing.
-- Add the owner-only push status notification integration to the reminder backend in a follow-up change once the test is verified.
+- Send out-of-app push-status notifications through the private reminder backend only to the account registered as robert17041@icloud.com; no in-app/public status broadcast is used.
+- Require WATCHLOG_DEPLOYMENT_NOTIFY_SECRET on both the GitHub workflow and Supabase Edge Function; include push number, commit and outcome in the notification.
+- Keep the successful-deployment refresh signal separate from the private push-status notification.
 
 ## 2026-10-10
 

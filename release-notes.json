@@ -64,12 +64,11 @@
     "number": 224
   },
   "__current": {
-    "title": "Show workflow run numbers and clean up Weekly Releases opt-out",
+    "title": "Private push-status notifications",
     "changes": [
-      "Show the actual GitHub Actions workflow run number beside every Changelog commit, including successful, failed, cancelled, queued and in-progress runs, while retaining the app commit number.",
-      "Fix the Weekly Releases opt-out regression test that caused the preceding build to fail; keep the checkbox preference persisted on the show record and the filter active for dated and undated release lists.",
-      "Redesign the opt-out control with a properly aligned checkbox, clear title, readable helper text and consistent spacing instead of the jammed-together uppercase text.",
-      "Document the cancelled feature attempt and failed test-fix attempt, and explain how this update corrects the regression rather than listing only its own commit title."
+      "Send out-of-app Watch Logger Change notifications through the existing Web Push backend, restricted server-side to robert17041@icloud.com.",
+      "Include the push number, short commit SHA and outcome; remove public/in-app deployment-status broadcast while preserving the successful deployment refresh signal.",
+      "Authenticate the GitHub workflow to the Edge Function with WATCHLOG_DEPLOYMENT_NOTIFY_SECRET and add regression tests for private routing and missing-secret handling."
     ]
   },
   "37f6c39e9d0355b1bde705cb3fcb3cda2533119f": {

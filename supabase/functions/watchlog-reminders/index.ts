@@ -792,6 +792,41 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, publicKey: config.vapid_public_key });
     }
 
+    if (action === "deployment_status") {
+      const expectedSecret = Deno.env.get("WATCHLOG_DEPLOYMENT_NOTIFY_SECRET") || "";
+      const suppliedSecret = req.headers.get("x-watchlog-deployment-secret") || "";
+      if (!expectedSecret || !suppliedSecret || !safeEqual(expectedSecret, suppliedSecret)) return json({ error: "Unauthorized" }, 401);
+      const runNumber = String(body.pushNumber || "").slice(0, 24);
+      const sha = String(body.sha || "");
+      const status = String(body.status || "");
+      const commitUrl = String(body.commitUrl || "");
+      const allowedStatuses = new Set(["success", "failure", "cancelled", "skipped", "in_progress", "queued"]);
+      if (!/^\\d+$/.test(runNumber) || !/^[a-f0-9]{40}$/.test(sha) || !allowedStatuses.has(status)) return json({ error: "Invalid deployment status payload" }, 400);
+      const { data: account, error: accountError } = await db.from("watchlog_pin_accounts").select("id,email").ilike("email", "robert17041@icloud.com").maybeSingle();
+      if (accountError) throw accountError;
+      if (!account || normalizeEmail(account.email) !== "robert17041@icloud.com") return json({ ok: true, delivered: 0, reason: "owner_account_not_found" });
+      const config = await readConfig(false);
+      if (!config.vapid_public_key || !config.vapid_private_key) return json({ ok: true, delivered: 0, reason: "push_not_configured" });
+      const { data: subscriptions, error: subscriptionError } = await db.from("watchlog_push_subscriptions").select("id,account_id,endpoint,p256dh,auth,expiration_time,time_zone,locale,enabled").eq("account_id", account.id).eq("enabled", true);
+      if (subscriptionError) throw subscriptionError;
+      const outcome = status === "success" ? "completed successfully" : status === "failure" ? "failed" : status === "cancelled" ? "was cancelled" : status === "skipped" ? "was skipped" : status === "queued" ? "is queued" : "is in progress";
+      const title = "Watch Logger Change";
+      const bodyText = `Push #${runNumber} (commit ${sha.slice(0, 7)}) ${outcome}.`;
+      let delivered = 0, failed = 0;
+      for (const row of (subscriptions || []) as PushRow[]) {
+        try {
+          await sendPush(row, config, { title, body: bodyText, tag: `watchlog-change-${runNumber}`, data: { url: "./", pushNumber: runNumber, sha, status, commitUrl } });
+          delivered++;
+        } catch (pushError) {
+          const code = statusCodeFor(pushError);
+          if (code === 404 || code === 410) await disableExpiredSubscription(row);
+          failed++;
+          console.error("Owner push-status delivery failed", code || String((pushError as Error)?.message || pushError).slice(0, 200));
+        }
+      }
+      return json({ ok: true, delivered, failed, status });
+    }
+
     if (action === "process") return await processCron(req);
 
     const session = await getSession(req);
