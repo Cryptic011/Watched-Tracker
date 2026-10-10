@@ -99,7 +99,7 @@ const server=http.createServer((req,res)=>{
   assert.equal(items.length,2);
   // Force a pending memory change: refresh must save it before navigation.
   phase='refresh';
-  await page.evaluate(()=>{mediaItems[0].platform='Saved before refresh';});
+  const refreshItemId=await page.evaluate(()=>{mediaItems[0].platform='Saved before refresh';return mediaItems[0].id;});
   const before=loads;const reload=page.waitForEvent('load');await page.locator('#refresh-app').click();await reload;
   // A fresh browser document may require signing in again in this isolated test
   // origin. Re-authenticate through the real form, then verify the server-held
@@ -109,15 +109,15 @@ const server=http.createServer((req,res)=>{
     await page.locator('#auth-email').fill(account.email);await page.locator('#auth-pin').fill('1234');await page.locator('#auth-submit').click();
   }
   await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden'));
-  await page.waitForFunction(()=>mediaItems[0]?.platform==='Saved before refresh',null,{timeout:10000});
-  assert.equal(items[0].platform,'Saved before refresh');
+  await page.waitForFunction(id=>mediaItems.find(item=>item.id===id)?.platform==='Saved before refresh',refreshItemId,{timeout:10000});
+  assert.equal(items.find(item=>item.id===refreshItemId)?.platform,'Saved before refresh');
   assert.ok(loads>before);
   // A failed cloud save must leave the current page and edit intact.
   phase='failed save';
   failSave=true;const failedLoads=loads;
-  await page.evaluate(()=>{mediaItems[0].platform='Keep this change';});await page.locator('#refresh-app').click();
+  await page.evaluate(id=>{mediaItems.find(item=>item.id===id).platform='Keep this change';},refreshItemId);await page.locator('#refresh-app').click();
   await page.waitForFunction(()=>document.querySelector('#app-toast').textContent.includes('Refresh paused'));
-  assert.equal(loads,failedLoads);assert.equal(await page.evaluate(()=>mediaItems[0].platform),'Keep this change');
+  assert.equal(loads,failedLoads);assert.equal(await page.evaluate(id=>mediaItems.find(item=>item.id===id)?.platform,refreshItemId),'Keep this change');
   assert.ok(saves>=4);assert.deepEqual(errors,[]);
   console.log(`${engine.name()}: visual search, filters, descriptions, duplicate badges, add/edit, episode mark/undo, unreleased guard and refresh persistence passed`);
  }finally{await browser.close();}
