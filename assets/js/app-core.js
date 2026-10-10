@@ -215,7 +215,7 @@
     for(const entry of APP_CHANGELOG_FULL){
       const details=document.createElement("details");details.className="changelog-entry";details.dataset.commitSha=entry.commit||"";
       const summary=document.createElement("summary");
-      summary.textContent=(Number.isInteger(entry.appCommit)?"Commit "+entry.appCommit+" · ":"")+(Number.isInteger(entry.workflowRunNumber)?"Run "+entry.workflowRunNumber+" · ":"")+(entry.title||"Repository change");
+      summary.textContent=(Number.isInteger(entry.workflowRunNumber)?"Run "+entry.workflowRunNumber+" ("+String(entry.commit||"").slice(0,7)+")":"Run unavailable ("+String(entry.commit||"").slice(0,7)+")")+" · "+(entry.title||"Repository change");
       details.appendChild(summary);
       const status=statusBySha.get(entry.commit)||entry.status||"unknown";
       const statusLine=document.createElement("div");statusLine.className="changelog-status";statusLine.textContent=formatPushStatus(entry,status);
@@ -233,14 +233,14 @@
     try{
       const runs=[];
       for(let page=1;page<=10;page++){
-        const response=await fetch("https://api.github.com/repos/Cryptic011/Watched-Tracker/actions/runs?event=push&branch=main&per_page=100&page="+page,{headers:{Accept:"application/vnd.github+json"}});
+        const response=await fetch("https://api.github.com/repos/Cryptic011/Watched-Tracker/actions/runs?per_page=100&page="+page,{headers:{Accept:"application/vnd.github+json"}});
         if(!response.ok)throw new Error("GitHub Actions request failed");
         const data=await response.json();
-        for(const run of data.workflow_runs||[]) {
-          if(run.event!=="push"||run.head_branch!=="main")continue;
+        for(const [runIndex,run] of (data.workflow_runs||[]).entries()) {
+          if(!run.head_sha||run.head_branch!=="main")continue;
           const title=String(run.head_commit?.message||run.display_title||"Repository push").split("\n")[0];
           const matchingCommit=(currentBuild.commits||[]).find(commit=>commit.commit===run.head_sha);
-          const entry={appCommit:Number.isInteger(matchingCommit?.number)?matchingCommit.number:null,workflowRunNumber:Number.isInteger(run.run_number)?run.run_number:null,commit:run.head_sha,date:String(run.created_at||"").slice(0,10),title,changes:[title],status:run.conclusion||run.status||"unknown"};
+          const entry={appCommit:Number.isInteger(matchingCommit?.number)?matchingCommit.number:null,workflowRunNumber:Number.isInteger(data.total_count)?data.total_count-((page-1)*100+runIndex):null,workflowRunId:Number.isInteger(run.id)?run.id:null,commit:run.head_sha,date:String(run.created_at||"").slice(0,10),title,changes:[title],status:run.conclusion||run.status||"unknown"};
           runs.push(entry);
           if(run.head_sha)statusBySha.set(run.head_sha,entry.status);
         }

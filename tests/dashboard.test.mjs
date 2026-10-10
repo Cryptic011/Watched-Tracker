@@ -104,8 +104,10 @@ test('Changelog shows the actual workflow run number and explains the Weekly Rel
   const app=readAppSource();
   const notes=JSON.parse(fs.readFileSync(new URL('../release-notes.json',import.meta.url),'utf8'));
   assert.ok(app.includes('Number.isInteger(entry.workflowRunNumber)'));
-  assert.ok(app.includes('workflowRunNumber:Number.isInteger(run.run_number)?run.run_number:null'));
-  assert.ok(app.includes('workflowRunId:Number.isInteger(run.id)?run.id:null'));
+  assert.ok(app.includes('workflowRunNumber:Number.isInteger(data.total_count)?data.total_count-((page-1)*100+runIndex):null'));
+  assert.ok(app.includes('summary.textContent=(Number.isInteger(entry.workflowRunNumber)?"Run "+entry.workflowRunNumber+" ("+String(entry.commit||"").slice(0,7)+")":"Run unavailable ("+String(entry.commit||"").slice(0,7)+")")'));
+  assert.ok(app.includes('actions/runs?per_page=100&page="+page'));
+  
   assert.ok(notes.__current.changes.some(change=>/workflow run number beside every Changelog commit/i.test(change)));
   assert.ok(notes['737498912c0ad423cc4de25468de8bc2a79b80a0'].changes.some(change=>/build failed/i.test(change)));
   const index=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');

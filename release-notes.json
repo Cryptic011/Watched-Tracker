@@ -66,6 +66,7 @@
   "__current": {
     "title": "Private push-status notifications",
     "changes": [
+      "Use the overall All workflows run sequence for Changelog labels and display Run N (short commit SHA), not the app commit number or individual workflow run_number.",
       "Display each Changelog entry with the actual GitHub Actions run_number associated with that commit; keep the app commit number separate.",
       "Send out-of-app push-status notifications through the existing Web Push backend only to robert17041@icloud.com, with run number, commit and exact outcome.",
       "Observe completed deployment workflow runs in a separate workflow so success, failure and cancellation statuses are covered; remove duplicate notification calls from deployment.",

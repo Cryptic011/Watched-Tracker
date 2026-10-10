@@ -115,3 +115,5 @@
 
 - Move private status delivery to a dedicated `workflow_run: completed` observer so completed success, failure, and cancellation outcomes are covered even if the deployment job stops before its final step.
 - Remove duplicate status delivery from the deployment workflow and fail visibly if the private notification secret is missing.
+
+- Correct Changelog run labels to use the overall All workflows history position, not the individual workflow's run_number. Display only `Run N (short-commit)` before the change title.
