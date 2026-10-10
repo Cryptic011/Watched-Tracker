@@ -729,7 +729,7 @@ Deno.serve(async (req: Request) => {
       const status = String(body.status || "");
       const commitUrl = String(body.commitUrl || "");
       const allowedStatuses = new Set(["success", "failure", "cancelled", "skipped"]);
-      if (!/^\d+$/.test(runId) || !/^\d+$/.test(runNumber) || !/^\d+$/.test(overallRunCount) || !/^[a-f0-9]{40}$/.test(sha) || !allowedStatuses.has(status)) return json({ error: "Invalid workflow status payload" }, 400);
+      if (!/^\d+$/.test(runId) || !/^\d+$/.test(runNumber) || !/^[a-f0-9]{40}$/.test(sha) || !allowedStatuses.has(status)) return json({ error: "Invalid workflow status payload" }, 400);
       // Verify against GitHub directly, removing the need for a separately configured secret.
       const verification = await fetch(`https://api.github.com/repos/Cryptic011/Watched-Tracker/actions/runs/${runId}`, {
         headers: { "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "WatchLogger-Run-Status" },
