@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Fix Settings container boundary
+- Keep Account & Sync, Reminder Activity, Appearance and Background Reminders inside the Settings view container. A misplaced closing `div` had closed Settings immediately after Account & Sync, leaving later settings content outside the view and breaking page visibility.
+- Bump the app stylesheet and core script cache versions so clients fetch the corrected markup and navigation logic.
+
+## 2026-10-10
+
 ### Add regression coverage for Settings placement and navigation visibility
 - Add tests that enforce Account & Sync stays out of Library, Settings retains the requested section order, and the floating Add button is restricted to Library.
 
