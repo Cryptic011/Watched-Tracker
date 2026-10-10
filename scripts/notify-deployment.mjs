@@ -1,11 +1,12 @@
 import '../assets/js/deployment-channel.js';
 const {config}=globalThis.WatchLogDeployment;
-const sha=process.env.GITHUB_SHA;
+const sha=process.env.WATCHLOG_SOURCE_SHA;
 const page=process.env.WATCHLOG_PAGE_URL||'';
 const status=String(process.env.WATCHLOG_STATUS||'success');
-const runNumber=String(process.env.GITHUB_RUN_NUMBER||'');
-const runId=String(process.env.GITHUB_RUN_ID||'');
-if(!/^[a-f0-9]{40}$/.test(sha||''))throw Error('Deployment SHA is required');
+const runNumber=String(process.env.WATCHLOG_SOURCE_RUN_NUMBER||'');
+const runId=String(process.env.WATCHLOG_SOURCE_RUN_ID||'');
+if(!/^[a-f0-9]{40}$/.test(sha||''))throw Error('Source deployment SHA is required');
+if(!/^\d+$/.test(runId)||!/^\d+$/.test(runNumber))throw Error('Source deployment run ID and number are required');
 if(page){const site=new URL(page);if(site.protocol!=='https:')throw Error('Expected HTTPS deployment URL');}
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function broadcast(event,payload){
@@ -27,7 +28,10 @@ const response=await fetch(`${config.url}/functions/v1/watchlog-reminders`,{
   body:JSON.stringify({action:'deployment_status',runId,runNumber,sha,status,commitUrl:`https://github.com/Cryptic011/Watched-Tracker/commit/${sha}`}),
   signal:AbortSignal.timeout(15000),
 });
-if(!response.ok)throw Error(`Private run-status notification returned ${response.status}`);
+if(!response.ok){
+  const detail=(await response.text()).slice(0,1000);
+  throw Error(`Private run-status notification returned ${response.status}: ${detail}`);
+}
 const delivery=await response.json();
 console.log(`Private run-status notification processed: ${status}; delivered ${delivery.delivered||0}; failed ${delivery.failed||0}`);
 

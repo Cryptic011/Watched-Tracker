@@ -1,5 +1,12 @@
 ## 2026-10-10
 
+### Fix source workflow run IDs in private status notifications
+- Stop assigning source deployment metadata to GitHub-reserved environment variables, which GitHub Actions does not allow workflows to override.
+- Pass the completed deployment's run ID, run number and SHA through dedicated WATCHLOG_SOURCE_* variables so verification checks the correct run rather than the notification workflow itself.
+- Include the Edge Function response body in failed notification job logs to make any future rejection diagnosable.
+
+## 2026-10-10
+
 ### Correct completed-run verification for private status notifications
 - Normalize GitHub run-number, SHA and conclusion comparisons and verify the source workflow ID before allowing private push delivery.
 - Log the exact mismatched verification fields and return a distinct 403/502 response, so failures identify the rejecting layer instead of appearing as an opaque 401.
