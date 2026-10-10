@@ -19,6 +19,8 @@ const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const db = createClient(supabaseUrl, serviceKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
+// Deployment-status requests authenticate by verifying the completed run against GitHub Actions below.
+// Deploy this function with platform JWT verification disabled; other actions enforce their own session/cron checks.
 const enc = new TextEncoder();
 const PRIVATE_TEST_ACCOUNT_HASH = "ea67160ff90d5a1b54a6b7fe8522c1573ec9dea8fb18fff38969f42b09c27f0b";
 const VAPID_SUBJECT = "mailto:push@watched-logger.app";

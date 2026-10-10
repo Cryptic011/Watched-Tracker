@@ -1,5 +1,12 @@
 ## 2026-10-10
 
+### Fix run-status notification HTTP 401
+- Configure the reminder Edge Function to use its in-function authentication rather than Supabase JWT gateway verification: deployment-status requests are verified against GitHub Actions, while reminder and session actions retain their own checks.
+- Keep the sender’s public publishable key in the `apikey` header; do not treat it as a bearer JWT.
+- Bundle the function configuration/source note and this changelog entry in one repository commit.
+
+## 2026-10-10
+
 ### Fix private run-status notification authorization
 - Send both the Supabase `apikey` and `Authorization: Bearer` headers when calling the reminder Edge Function, so the authenticated endpoint can accept workflow completion notifications.
 - Diagnose the failed run from its job log: the notification request returned HTTP 401 before any delivery attempt; this fix addresses that request authentication failure.
