@@ -4,6 +4,7 @@ const sha=process.env.GITHUB_SHA;
 const page=process.env.WATCHLOG_PAGE_URL||'';
 const status=String(process.env.WATCHLOG_STATUS||'success');
 const runNumber=String(process.env.GITHUB_RUN_NUMBER||'');
+const runId=String(process.env.GITHUB_RUN_ID||'');
 if(!/^[a-f0-9]{40}$/.test(sha||''))throw Error('Deployment SHA is required');
 if(page){const site=new URL(page);if(site.protocol!=='https:')throw Error('Expected HTTPS deployment URL');}
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -20,20 +21,16 @@ async function broadcast(event,payload){
     }catch(error){if(attempt===2)throw error;await sleep(2000);}
   }
 }
-const notifySecret=process.env.WATCHLOG_DEPLOYMENT_NOTIFY_SECRET||'';
-if(!notifySecret){
-  throw Error('WATCHLOG_DEPLOYMENT_NOTIFY_SECRET is missing; private run-status notification cannot be authenticated.');
-}else{
 const response=await fetch(`${config.url}/functions/v1/watchlog-reminders`,{
   method:'POST',
-  headers:{apikey:config.key,'Content-Type':'application/json','x-watchlog-deployment-secret':notifySecret},
-  body:JSON.stringify({action:'deployment_status',runNumber,sha,status,commitUrl:`https://github.com/Cryptic011/Watched-Tracker/commit/${sha}`}),
+  headers:{apikey:config.key,'Content-Type':'application/json'},
+  body:JSON.stringify({action:'deployment_status',runId,runNumber,sha,status,commitUrl:`https://github.com/Cryptic011/Watched-Tracker/commit/${sha}`}),
   signal:AbortSignal.timeout(15000),
 });
 if(!response.ok)throw Error(`Private run-status notification returned ${response.status}`);
 const delivery=await response.json();
 console.log(`Private run-status notification processed: ${status}; delivered ${delivery.delivered||0}; failed ${delivery.failed||0}`);
-}
+
 if(status!=='success'||!page){console.log(`Deployment status sent: ${status} for ${sha}`);process.exit(0);}
 const site=new URL(page);let ready=false;
 for(let attempt=0;attempt<12;attempt++){
