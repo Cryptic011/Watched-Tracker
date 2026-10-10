@@ -31,6 +31,8 @@ test('Completed workflow-run events use the originating workflow run number and 
  assert.equal(JSON.parse(request.options.body).pushNumber,'202');
  assert.equal(JSON.parse(request.options.body).status,'cancelled');
 });
-test('Missing notification secret fails visibly rather than silently skipping the alert',async()=>{
- await assert.rejects(run(async()=>({ok:true}),{GITHUB_SHA:sha,WATCHLOG_PAGE_URL:'',WATCHLOG_STATUS:'failure',GITHUB_RUN_NUMBER:'203',GITHUB_EVENT_NAME:'workflow_run'}),/__PROCESS_EXIT__1/);
+test('Missing notification secret skips delivery without making the workflow fail',async()=>{
+ let requests=0;
+ await run(async()=>{requests++;return {ok:true,json:async()=>({ok:true,delivered:0,failed:0})};},{GITHUB_SHA:sha,WATCHLOG_PAGE_URL:'',WATCHLOG_STATUS:'failure',GITHUB_RUN_NUMBER:'203',GITHUB_EVENT_NAME:'workflow_run'});
+ assert.equal(requests,0);
 });
