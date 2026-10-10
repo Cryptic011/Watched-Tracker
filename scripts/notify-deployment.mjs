@@ -22,7 +22,7 @@ async function broadcast(event,payload){
 }
 const notifySecret=process.env.WATCHLOG_DEPLOYMENT_NOTIFY_SECRET||'';
 if(!notifySecret){
-  console.warn('Private run-status notification skipped: WATCHLOG_DEPLOYMENT_NOTIFY_SECRET is missing. Configure it in GitHub Actions and Supabase.');
+  throw Error('WATCHLOG_DEPLOYMENT_NOTIFY_SECRET is missing; private run-status notification cannot be authenticated.');
 }else{
 const response=await fetch(`${config.url}/functions/v1/watchlog-reminders`,{
   method:'POST',
