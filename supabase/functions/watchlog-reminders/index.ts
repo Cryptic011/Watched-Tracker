@@ -714,15 +714,22 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "deployment_status") {
-      const expectedSecret = Deno.env.get("WATCHLOG_DEPLOYMENT_NOTIFY_SECRET") || "";
-      const suppliedSecret = req.headers.get("x-watchlog-deployment-secret") || "";
-      if (!expectedSecret || !suppliedSecret || !safeEqual(expectedSecret, suppliedSecret)) return json({ error: "Unauthorized" }, 401);
-      const runNumber = String(body.pushNumber || "").slice(0, 24);
+      const runId = String(body.runId || "").slice(0, 24);
+      const runNumber = String(body.runNumber || "").slice(0, 24);
       const sha = String(body.sha || "");
       const status = String(body.status || "");
       const commitUrl = String(body.commitUrl || "");
-      const allowedStatuses = new Set(["success", "failure", "cancelled", "skipped", "in_progress", "queued"]);
-      if (!/^\\d+$/.test(runNumber) || !/^[a-f0-9]{40}$/.test(sha) || !allowedStatuses.has(status)) return json({ error: "Invalid deployment status payload" }, 400);
+      const allowedStatuses = new Set(["success", "failure", "cancelled", "skipped"]);
+      if (!/^\\d+$/.test(runId) || !/^\\d+$/.test(runNumber) || !/^[a-f0-9]{40}$/.test(sha) || !allowedStatuses.has(status)) return json({ error: "Invalid workflow status payload" }, 400);
+      // Verify against GitHub directly, removing the need for a separately configured secret.
+      const verification = await fetch(`https://api.github.com/repos/Cryptic011/Watched-Tracker/actions/runs/${runId}`, {
+        headers: { "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "WatchLogger-Run-Status" },
+      });
+      if (!verification.ok) return json({ error: "Workflow run could not be verified" }, 401);
+      const verifiedRun = await verification.json();
+      if (String(verifiedRun.id) !== runId || String(verifiedRun.run_number) !== runNumber || String(verifiedRun.head_sha) !== sha || verifiedRun.status !== "completed" || String(verifiedRun.conclusion || "") !== status) {
+        return json({ error: "Workflow status did not match GitHub" }, 401);
+      }
       const { data: account, error: accountError } = await db.from("watchlog_pin_accounts").select("id,email").ilike("email", "robert17041@icloud.com").maybeSingle();
       if (accountError) throw accountError;
       if (!account || normalizeEmail(account.email) !== "robert17041@icloud.com") return json({ ok: true, delivered: 0, reason: "owner_account_not_found" });
