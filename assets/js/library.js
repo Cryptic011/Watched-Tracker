@@ -235,6 +235,7 @@
   }
   function categoryControlsVisible(){return currentTab==="library"&&Boolean(window.WatchLogGallery?.hasCategory?.());}
   function updateFloatingAddVisibility(){renderLibraryMaintenance();addBtn.classList.toggle("hidden",!(currentUser&&currentTab==="library"&&(!categoryControlsVisible()||activeFilter==="All")));}
+  document.querySelectorAll(".bottom-tabs .tab-btn").forEach(button=>button.addEventListener("click",()=>{if(button.dataset.tab!=="library")addBtn.classList.add("hidden");}));
   const ALLOWED_BOTTOM_TABS=new Set(["library","search","settings"]);
   function enforceBottomNavigation(){
     document.querySelectorAll(".bottom-tabs .tab-btn").forEach(button=>{

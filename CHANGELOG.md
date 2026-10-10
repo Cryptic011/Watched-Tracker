@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Fix Settings layout and floating Add button
+- Preserve Settings section order: Account & Sync, Appearance, Background Reminders, then Maintenance; keep Changelog after Maintenance.
+- Hide the floating Add show or film button immediately when Search or Settings is selected, and bump script cache versions so mobile browsers load the updated UI.
+
+## 2026-10-10
+
 ### Keep Account & Sync inside Settings and restore section order
 - Move Account & Sync out of the Library page and into Settings.
 - Order Settings as Account & Sync, Appearance, Background Reminders, then Maintenance.
