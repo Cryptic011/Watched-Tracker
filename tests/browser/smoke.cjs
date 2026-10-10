@@ -100,7 +100,7 @@ const server=http.createServer((req,res)=>{
   // Force a pending memory change: refresh must save it before navigation.
   phase='refresh';
   await page.evaluate(()=>{mediaItems[0].platform='Saved before refresh';});
-  const before=loads;const reloadResponse=page.waitForResponse(response=>{const request=response.request();if(!response.url().includes('/functions/v1/watchlog-pin')||request.method()!=='POST')return false;try{return ['login','load'].includes(request.postDataJSON().action);}catch{return false;}});await page.locator('#refresh-app').click();await reloadResponse;await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden'));
+  const before=loads;const reload=page.waitForEvent('load');await page.locator('#refresh-app').click();await reload;await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden'));
   await page.waitForFunction(()=>mediaItems[0]?.platform==='Saved before refresh');
   assert.equal(items[0].platform,'Saved before refresh');
   await page.waitForTimeout(300);assert.ok(loads>before);

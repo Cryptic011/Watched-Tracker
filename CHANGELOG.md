@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Fix refresh smoke test navigation wait
+- Wait for the page's completed reload event after tapping Refresh instead of waiting for a specific mocked cloud login/load response, which was not a reliable signal for browser navigation.
+- Retain the persisted-library assertion after reload and the separate failed-cloud-save guard, so Refresh is still tested for data safety rather than merely clicking the button.
+
+## 2026-10-10
+
 ### Fix refresh browser smoke-test wait condition
 - Wait for the actual mocked cloud login/load response after tapping Refresh instead of a page-local counter that is inaccessible to the browser test context. This addresses the timeout at the refresh step while retaining the saved-data assertions.
 
