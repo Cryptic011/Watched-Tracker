@@ -108,7 +108,7 @@ test('Changelog shows the actual workflow run number and explains the Weekly Rel
   assert.ok(app.includes('summary.textContent=(Number.isInteger(entry.workflowRunNumber)?"Run "+entry.workflowRunNumber+" ("+String(entry.commit||"").slice(0,7)+")":"Run unavailable ("+String(entry.commit||"").slice(0,7)+")")'));
   assert.ok(app.includes('actions/runs?per_page=100&page="+page'));
   
-  assert.ok(notes.__current.changes.some(change=>/workflow run number beside every Changelog commit/i.test(change)));
+  assert.ok(notes.__current.changes.some(change=>/overall All workflows run sequence/i.test(change)));
   assert.ok(notes['737498912c0ad423cc4de25468de8bc2a79b80a0'].changes.some(change=>/build failed/i.test(change)));
   const index=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
   const css=fs.readFileSync(new URL('../assets/css/app.css',import.meta.url),'utf8');
