@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Keep Account & Sync inside Settings and restore section order
+- Move Account & Sync out of the Library page and into Settings.
+- Order Settings as Account & Sync, Appearance, Background Reminders, then Maintenance.
+
+## 2026-10-10
+
 ### Fix app startup crash after PIN login
 - Remove the stale call to the deleted `updateNotificationTestVisibility` function, which threw a `ReferenceError` during account entry and left the login screen stuck.
 
