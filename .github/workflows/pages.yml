@@ -48,9 +48,6 @@ jobs:
           WATCHLOG_GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/build-info.mjs
 
-      - name: Apply verified source fixes
-        run: python3 apply_fixes.py
-
       - name: Check application behavior
         run: node --test tests/*.test.mjs
 

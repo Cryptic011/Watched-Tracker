@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Make deployments reproducible from committed source
+- Remove the deployment-time source rewrite step. The viewport zoom, episode-progress preservation, deterministic library merge, and dynamic editor-height fixes are verified directly in committed source and covered by regression tests.
+- Add a regression assertion that deployment cannot silently rewrite source before tests and publishing.
+
+## 2026-10-10
+
 ### Fix Settings container boundary
 - Keep Account & Sync, Reminder Activity, Appearance and Background Reminders inside the Settings view container. A misplaced closing `div` had closed Settings immediately after Account & Sync, leaving later settings content outside the view and breaking page visibility.
 - Bump the app stylesheet and core script cache versions so clients fetch the corrected markup and navigation logic.

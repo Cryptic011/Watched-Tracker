@@ -28,3 +28,13 @@ test('Floating Add button is only visible on the Library tab and only under its 
  assert.match(library,/button\.addEventListener\("click",\(\)=>\{if\(button\.dataset\.tab!=="library"\)addBtn\.classList\.add\("hidden"\);\}\)/);
  assert.match(library,/libraryView\.classList\.toggle\("hidden",settings\|\|search\);settingsView\.classList\.toggle\("hidden",!settings\)/);
 });
+
+
+test('Verified fixes are committed in source, not injected during deployment',()=>{
+ const html=read('index.html'),editor=read('assets/js/editor.js'),sync=read('assets/js/sync.js'),css=read('assets/css/app.css'),workflow=read('.github/workflows/pages.yml');
+ assert.doesNotMatch(html,/user-scalable=no/);
+ assert.match(editor,/available\.length\?Math\.max\(0,\.\.\.available\.filter\(episode=>episode<=requested\)\):requested/);
+ assert.match(sync,/toMillis\(raw\.updatedAt\|\|raw\.date\)>toMillis\(prev\.updatedAt\|\|prev\.date\)/);
+ assert.match(css,/max-height:90vh;max-height:90dvh/);
+ assert.doesNotMatch(workflow,/apply_fixes\.py/);
+});
