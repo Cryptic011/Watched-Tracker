@@ -12,7 +12,7 @@ async function broadcast(event,payload){
   for(let attempt=0;attempt<3;attempt++){
     try{
       const response=await fetch(`${config.url}/realtime/v1/api/broadcast`,{
-        method:'POST',headers:{apikey:config.key,'Content-Type':'application/json'},
+        method:'POST',headers:{apikey:config.key,Authorization:`Bearer ${config.key}`,'Content-Type':'application/json'},
         body:JSON.stringify({messages:[{topic:config.topic,event,payload,private:false}]}),
         signal:AbortSignal.timeout(10000),
       });
