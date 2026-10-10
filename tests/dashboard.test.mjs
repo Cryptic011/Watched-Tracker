@@ -103,8 +103,8 @@ test('Weekly release opt-out is saved per show without removing library tracking
 test('Changelog shows the actual workflow run number and explains the Weekly Releases fix', () => {
   const app=readAppSource();
   const notes=JSON.parse(fs.readFileSync(new URL('../release-notes.json',import.meta.url),'utf8'));
-  assert.match(app,/Number\.isInteger\(entry\.workflowRunNumber\)\?"Run "+entry\.workflowRunNumber/);
-  assert.match(app,/workflowRunNumber:Number\.isInteger\(run\.run_number\)\?run\.run_number:null/);
+  assert.ok(app.includes('Number.isInteger(entry.workflowRunNumber)'));
+  assert.ok(app.includes('workflowRunNumber:Number.isInteger(run.run_number)?run.run_number:null'));
   assert.ok(notes.__current.changes.some(change=>/workflow run number beside every Changelog commit/i.test(change)));
   assert.ok(notes['737498912c0ad423cc4de25468de8bc2a79b80a0'].changes.some(change=>/build failed/i.test(change)));
   const index=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');

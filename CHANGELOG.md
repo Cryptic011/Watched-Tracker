@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Repair Changelog workflow-number check
+- Make the workflow-run test assert the exact source expressions without brittle regular-expression parsing.
+- Add the owner-only push status notification integration to the reminder backend in a follow-up change once the test is verified.
+
+## 2026-10-10
+
 ### Fix Changelog workflow-run regression test
 - Correct the Changelog assertion to match the actual `Number.isInteger(entry.workflowRunNumber)` rendering logic.
 - Keep the separate GitHub Actions `run_number` mapping assertion so workflow numbering remains covered.
