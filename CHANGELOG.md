@@ -1,5 +1,10 @@
 ## 2026-10-10
 
+### Fix notification regression test environment
+- Provide the GitHub token and repository metadata in the explicit environment used by the workflow-run regression test, matching the sender's required inputs and allowing the Actions run-count lookup to be mocked.
+
+## 2026-10-10
+
 ### Fix notification tests after adding overall run-count lookup
 - Mock the GitHub Actions total-count API and provide a test token so notification tests exercise the new failed-inclusive overall run counter rather than failing before the status endpoint is called.
 

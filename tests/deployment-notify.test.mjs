@@ -19,7 +19,7 @@ test('Notification endpoint errors fail the notification step with response stat
 test('Completed workflow-run events use the originating workflow run number and conclusion',async()=>{
  let request;
  await run(async(url,options)=>{request={url:String(url),options};return {ok:true,json:async()=>String(url).includes('api.github.com')?({total_count:351}):({ok:true,delivered:1,failed:0})};},{
-  WATCHLOG_SOURCE_SHA:sha,WATCHLOG_SOURCE_RUN_ID:'67890',WATCHLOG_SOURCE_RUN_NUMBER:'202',WATCHLOG_PAGE_URL:'',WATCHLOG_STATUS:'cancelled',GITHUB_EVENT_NAME:'workflow_run'
+  WATCHLOG_SOURCE_SHA:sha,WATCHLOG_SOURCE_RUN_ID:'67890',WATCHLOG_SOURCE_RUN_NUMBER:'202',WATCHLOG_PAGE_URL:'',WATCHLOG_STATUS:'cancelled',GITHUB_EVENT_NAME:'workflow_run',GITHUB_TOKEN:'test-token',GITHUB_REPOSITORY:'Cryptic011/Watched-Tracker'
  });
  assert.equal(JSON.parse(request.options.body).runNumber,'202');
  assert.equal(JSON.parse(request.options.body).runId,'67890');
