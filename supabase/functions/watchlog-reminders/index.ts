@@ -727,10 +727,22 @@ Deno.serve(async (req: Request) => {
       const verification = await fetch(`https://api.github.com/repos/Cryptic011/Watched-Tracker/actions/runs/${runId}`, {
         headers: { "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "WatchLogger-Run-Status" },
       });
-      if (!verification.ok) return json({ error: "Workflow run could not be verified" }, 401);
+      if (!verification.ok) {
+        console.error("Run-status GitHub verification request failed", verification.status);
+        return json({ error: "Workflow run could not be verified", verificationStatus: verification.status }, 502);
+      }
       const verifiedRun = await verification.json();
-      if (String(verifiedRun.id) !== runId || String(verifiedRun.run_number) !== runNumber || String(verifiedRun.head_sha) !== sha || verifiedRun.status !== "completed" || String(verifiedRun.conclusion || "") !== status) {
-        return json({ error: "Workflow status did not match GitHub" }, 401);
+      const mismatch = {
+        id: String(verifiedRun.id) !== runId,
+        runNumber: Number(verifiedRun.run_number) !== Number(runNumber),
+        sha: String(verifiedRun.head_sha || "").toLowerCase() !== sha.toLowerCase(),
+        completed: verifiedRun.status !== "completed",
+        conclusion: String(verifiedRun.conclusion || "").toLowerCase() !== status.toLowerCase(),
+        workflow: Number(verifiedRun.workflow_id) !== 344533582,
+      };
+      if (Object.values(mismatch).some(Boolean)) {
+        console.error("Run-status verification mismatch", JSON.stringify({ mismatch, runId, runNumber, sha, status, verified: { id: verifiedRun.id, run_number: verifiedRun.run_number, head_sha: verifiedRun.head_sha, status: verifiedRun.status, conclusion: verifiedRun.conclusion, workflow_id: verifiedRun.workflow_id } }));
+        return json({ error: "Workflow status did not match GitHub", mismatch }, 403);
       }
       const { data: account, error: accountError } = await db.from("watchlog_pin_accounts").select("id,email").ilike("email", "robert17041@icloud.com").maybeSingle();
       if (accountError) throw accountError;

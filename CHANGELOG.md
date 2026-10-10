@@ -1,5 +1,12 @@
 ## 2026-10-10
 
+### Correct completed-run verification for private status notifications
+- Normalize GitHub run-number, SHA and conclusion comparisons and verify the source workflow ID before allowing private push delivery.
+- Log the exact mismatched verification fields and return a distinct 403/502 response, so failures identify the rejecting layer instead of appearing as an opaque 401.
+- Keep status delivery restricted to the owner's enabled push subscriptions.
+
+## 2026-10-10
+
 ### Fix run-status notification HTTP 401
 - Configure the reminder Edge Function to use its in-function authentication rather than Supabase JWT gateway verification: deployment-status requests are verified against GitHub Actions, while reminder and session actions retain their own checks.
 - Keep the sender’s public publishable key in the `apikey` header; do not treat it as a bearer JWT.
