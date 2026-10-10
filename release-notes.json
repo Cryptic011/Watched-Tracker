@@ -68,7 +68,8 @@
     "changes": [
       "Send out-of-app Watch Logger Change notifications through the existing Web Push backend, restricted server-side to robert17041@icloud.com.",
       "Include the push number, short commit SHA and outcome; remove public/in-app deployment-status broadcast while preserving the successful deployment refresh signal.",
-      "Authenticate the GitHub workflow to the Edge Function with WATCHLOG_DEPLOYMENT_NOTIFY_SECRET and add regression tests for private routing and missing-secret handling."
+      "Authenticate the GitHub workflow to the Edge Function with WATCHLOG_DEPLOYMENT_NOTIFY_SECRET and add regression tests for private routing and missing-secret handling.",
+      "Display the GitHub workflow run number beside every Changelog commit."
     ]
   },
   "37f6c39e9d0355b1bde705cb3fcb3cda2533119f": {

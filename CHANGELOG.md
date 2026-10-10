@@ -4,6 +4,7 @@
 - Make the workflow-run test assert the exact source expressions without brittle regular-expression parsing.
 - Send out-of-app push-status notifications through the private reminder backend only to the account registered as robert17041@icloud.com; no in-app/public status broadcast is used.
 - Require WATCHLOG_DEPLOYMENT_NOTIFY_SECRET on both the GitHub workflow and Supabase Edge Function; include push number, commit and outcome in the notification.
+- Keep the release-note regression contract for showing the workflow run number beside each Changelog commit.
 - Keep the successful-deployment refresh signal separate from the private push-status notification.
 
 ## 2026-10-10
