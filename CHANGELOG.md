@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Show commit title and concise workflow status in private notifications
+- Use the originating commit's title as the notification title, without a generic title when GitHub supplies one.
+- Format the body as “Run #N (SHORTSHA) has been pushed and has passed/has failed …”; remove the word “commit” and keep the actual deployment workflow run number.
+
+## 2026-10-10
+
 ### Fix workflow-run notification tests and numbering
 - Update notification regression tests to use the originating workflow's dedicated source run ID, run number and SHA fields rather than obsolete push-number and secret fields.
 - Assert that the backend payload keeps the GitHub run ID separate from the workflow run number and that endpoint errors include the response body.

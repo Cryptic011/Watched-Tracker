@@ -751,9 +751,9 @@ Deno.serve(async (req: Request) => {
       if (!config.vapid_public_key || !config.vapid_private_key) return json({ ok: true, delivered: 0, reason: "push_not_configured" });
       const { data: subscriptions, error: subscriptionError } = await db.from("watchlog_push_subscriptions").select("id,account_id,endpoint,p256dh,auth,expiration_time,time_zone,locale,enabled").eq("account_id", account.id).eq("enabled", true);
       if (subscriptionError) throw subscriptionError;
-      const outcome = status === "success" ? "completed successfully" : status === "failure" ? "failed" : status === "cancelled" ? "was cancelled" : status === "skipped" ? "was skipped" : status === "queued" ? "is queued" : "is in progress";
-      const title = "Watch Logger Change";
-      const bodyText = `Workflow run #${runNumber} (commit ${sha.slice(0, 7)}) ${outcome}.`;
+      const outcome = status === "success" ? "has passed" : status === "failure" ? "has failed" : status === "cancelled" ? "was cancelled" : status === "skipped" ? "was skipped" : status === "queued" ? "is queued" : "is in progress";
+      const title = String(verifiedRun.head_commit?.message || verifiedRun.display_title || "Watch Logger Change").split("\n")[0].trim().slice(0, 120) || "Watch Logger Change";
+      const bodyText = `Run #${runNumber} (${sha.slice(0, 7)}) has been pushed and ${outcome}.`;
       let delivered = 0, failed = 0;
       for (const row of (subscriptions || []) as PushRow[]) {
         try {
