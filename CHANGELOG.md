@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Fix stale private-history regression assertion
+- Remove the obsolete test-only push table from the private reminder-history query expectations; the test endpoint was intentionally removed, while actual history/library/subscription queries remain scoped to the verified session account.
+- Keep the workflow notification wording change and record this deployment-test correction in the changelog.
+
+## 2026-10-10
+
 ### Show commit title and concise workflow status in private notifications
 - Use the originating commit's title as the notification title, without a generic title when GitHub supplies one.
 - Format the body as “Run #N (SHORTSHA) has been pushed and has passed/has failed …”; remove the word “commit” and keep the actual deployment workflow run number.

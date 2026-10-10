@@ -44,7 +44,7 @@ test('Private reminder history rejects signed-out and other accounts before read
 });
 test('Private reminder history scopes every data query to the verified session, ignoring supplied account ID',async()=>{
  const result=await requestHistory({owner:true});assert.equal(result.response.status,200);
- for(const table of ['watchlog_push_deliveries','watchlog_push_tests','watchlog_pin_library','watchlog_push_subscriptions'])assert.ok(result.filters.some(([t,k,v])=>t===table&&k==='account_id'&&v==='session-owner'));
+ for(const table of ['watchlog_push_deliveries','watchlog_pin_library','watchlog_push_subscriptions'])assert.ok(result.filters.some(([t,k,v])=>t===table&&k==='account_id'&&v==='session-owner'));
  assert.equal((await result.response.json()).enabledDevices,0);
 });
 
