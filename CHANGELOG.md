@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Browser regression reliability
+- Fix the WebKit refresh smoke test to re-authenticate only when the login email field is actually visible after navigation, avoiding a false failure when the app restores the session.
+- Keep the refresh persistence assertion and failed-save protection checks in place.
+
+## 2026-10-10
+
 ### Stop new pushes cancelling in-progress deployment checks
 - Disable cancel-in-progress for the shared GitHub Pages deployment group. Every push now keeps its own workflow run instead of cancelling the preceding run when another fix is pushed; queued commits are processed in order.
 
