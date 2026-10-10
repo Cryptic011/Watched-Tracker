@@ -1,6 +1,6 @@
 "use strict";
 
-const NAVIGATION_CACHE = "watchlog-navigation-v2";
+const NAVIGATION_CACHE = "watchlog-navigation-v3";
 
 self.addEventListener("install",event=>self.skipWaiting());
 
