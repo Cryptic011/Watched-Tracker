@@ -718,11 +718,12 @@ Deno.serve(async (req: Request) => {
     if (action === "deployment_status") {
       const runId = String(body.runId || "").slice(0, 24);
       const runNumber = String(body.runNumber || "").slice(0, 24);
+      const overallRunCount = String(body.overallRunCount || "").slice(0, 24);
       const sha = String(body.sha || "");
       const status = String(body.status || "");
       const commitUrl = String(body.commitUrl || "");
       const allowedStatuses = new Set(["success", "failure", "cancelled", "skipped"]);
-      if (!/^\d+$/.test(runId) || !/^\d+$/.test(runNumber) || !/^[a-f0-9]{40}$/.test(sha) || !allowedStatuses.has(status)) return json({ error: "Invalid workflow status payload" }, 400);
+      if (!/^\d+$/.test(runId) || !/^\d+$/.test(runNumber) || !/^\d+$/.test(overallRunCount) || !/^[a-f0-9]{40}$/.test(sha) || !allowedStatuses.has(status)) return json({ error: "Invalid workflow status payload" }, 400);
       // Verify against GitHub directly, removing the need for a separately configured secret.
       const verification = await fetch(`https://api.github.com/repos/Cryptic011/Watched-Tracker/actions/runs/${runId}`, {
         headers: { "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "WatchLogger-Run-Status" },
@@ -753,11 +754,11 @@ Deno.serve(async (req: Request) => {
       if (subscriptionError) throw subscriptionError;
       const outcome = status === "success" ? "has passed" : status === "failure" ? "has failed" : status === "cancelled" ? "was cancelled" : status === "skipped" ? "was skipped" : status === "queued" ? "is queued" : "is in progress";
       const title = String(verifiedRun.head_commit?.message || verifiedRun.display_title || "Watch Logger Change").split("\n")[0].trim().slice(0, 120) || "Watch Logger Change";
-      const bodyText = `Run #${runNumber} (${sha.slice(0, 7)}) has been pushed and ${outcome}.`;
+      const bodyText = `Run #${overallRunCount} (${sha.slice(0, 7)}) has been pushed and ${outcome}.`;
       let delivered = 0, failed = 0;
       for (const row of (subscriptions || []) as PushRow[]) {
         try {
-          await sendPush(row, config, { title, body: bodyText, tag: `watchlog-change-${runNumber}`, data: { url: "./", workflowRunNumber: runNumber, sha, status, commitUrl } });
+          await sendPush(row, config, { title, body: bodyText, tag: `watchlog-change-${overallRunCount}`, data: { url: "./", workflowRunNumber: overallRunCount, sourceWorkflowRunNumber: runNumber, sha, status, commitUrl } });
           delivered++;
         } catch (pushError) {
           const code = statusCodeFor(pushError);

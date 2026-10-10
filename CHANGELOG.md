@@ -1,5 +1,10 @@
 ## 2026-10-10
 
+### Display the overall failed-inclusive Actions run count in push notifications
+- Use GitHub Actions API `total_count` across all workflows for the displayed Run #, including failed runs; preserve the deployment workflow run number separately for source verification.
+
+## 2026-10-10
+
 ### Use actual repository-wide workflow-run total
 - Fetch GitHub Actions API `total_count` across all workflows at notification time, counting failed and successful runs alike. Keep this separate from the source workflow run number and run ID.
 
