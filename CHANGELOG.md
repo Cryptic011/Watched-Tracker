@@ -1,5 +1,10 @@
 ## 2026-10-10
 
+### Notify owner after every completed test and deployment workflow
+- Extend the workflow-run notification trigger to include the separate Browser checks workflow as well as the deployment workflow, so test-only runs also generate an owner notification on completion.
+
+## 2026-10-10
+
 ### Fix Library visibility smoke-test strict-mode failure
 - Apply the same first-match handling in the Library visibility assertions as in Settings. The generic `.profile-card` selector matches several distinct Settings cards, so a strict-mode locator check was failing before it could validate the Library transition.
 - Keep the visibility check against the real Settings and Library tabs; this is a test correction, not a change to app visibility behavior.
