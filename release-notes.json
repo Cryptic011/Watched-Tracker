@@ -64,11 +64,12 @@
     "number": 224
   },
   "__current": {
-    "title": "Fix TV release retention after the air-time rollover",
+    "title": "Show workflow run numbers and clean up Weekly Releases opt-out",
     "changes": [
-      "Keep the just-aired TV episode visible for 24 hours after its actual air timestamp even when nextEpisodeDate has already advanced to the following episode.",
-      "Use scheduled episode release metadata to retain the aired episode in the upcoming/current timeline.",
-      "Add regression coverage for the air-time rollover and 24-hour retention window."
+      "Show the actual GitHub Actions workflow run number beside every Changelog commit, including successful, failed, cancelled, queued and in-progress runs, while retaining the app commit number.",
+      "Fix the Weekly Releases opt-out regression test that caused the preceding build to fail; keep the checkbox preference persisted on the show record and the filter active for dated and undated release lists.",
+      "Redesign the opt-out control with a properly aligned checkbox, clear title, readable helper text and consistent spacing instead of the jammed-together uppercase text.",
+      "Document the cancelled feature attempt and failed test-fix attempt, and explain how this update corrects the regression rather than listing only its own commit title."
     ]
   },
   "37f6c39e9d0355b1bde705cb3fcb3cda2533119f": {
@@ -92,5 +93,32 @@
       "Add the date-only TV release normalizer used by the upcoming-release logic and regression checks.",
       "Keep the 24-hour post-air retention behavior unchanged."
     ]
+  },
+  "91cd960d4ee657eb841e030dad2291417432c12f": {
+    "title": "Fix Weekly Releases opt-out test and preserve the per-show setting",
+    "changes": [
+      "Fixed the Weekly Releases opt-out regression test by using the same ID selector as the editor, so the test checks the real checkbox binding.",
+      "The previous opt-out implementation commit was cancelled, and the first follow-up test-fix commit failed. This update corrects the test assertion that caused the build to fail.",
+      "Preserved the per-show Hide from Weekly Releases preference: excluded shows remain in the Library with episode progress, tracking and reminders intact.",
+      "This commit's deployment workflow completed successfully; the feature and test correction are included together in the deployable source."
+    ],
+    "number": 274
+  },
+  "737498912c0ad423cc4de25468de8bc2a79b80a0": {
+    "title": "Weekly Releases opt-out regression test — failed build",
+    "changes": [
+      "Attempted to add regression coverage for the per-show Hide from Weekly Releases preference.",
+      "The build failed because the assertion expected the wrong checkbox selector; corrected by commit 91cd960."
+    ],
+    "number": 273
+  },
+  "052cc746bdcbaff93e343a177532b69f7d611a01": {
+    "title": "Add per-show Weekly Releases visibility setting — cancelled build",
+    "changes": [
+      "Added a per-show checkbox to hide a series from Weekly Releases without removing it from the Library.",
+      "Kept episode tracking and reminders attached to the existing media record.",
+      "The deployment run was cancelled before verification; the feature was retained and its test was corrected in later commits."
+    ],
+    "number": 272
   }
 }

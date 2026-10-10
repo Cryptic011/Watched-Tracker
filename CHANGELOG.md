@@ -1,5 +1,13 @@
 ## 2026-10-10
 
+### Changelog run numbers, Weekly Releases fix details, and editor cleanup
+- Display the GitHub Actions workflow run number beside each corresponding app commit in Changelog, regardless of success, failure, cancellation, queueing or in-progress status.
+- Correct the Weekly Releases opt-out regression assertion that caused the previous test-fix build to fail, and record that failure and its correction in the detailed release notes.
+- Keep the per-show exclusion setting saved with the series; excluded series remain tracked in the Library and retain episode progress and reminders.
+- Replace the crowded uppercase checkbox copy with an aligned, accessible preference row and concise helper text.
+
+## 2026-10-10
+
 ### Weekly Releases opt-out — regression test correction
 - Keep the per-show “Hide from Weekly Releases” preference in the show editor and saved media record.
 - Exclude opted-out shows from both dated releases and Dates to be announced without affecting library tracking or reminders.

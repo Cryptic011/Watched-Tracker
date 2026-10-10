@@ -215,7 +215,7 @@
     for(const entry of APP_CHANGELOG_FULL){
       const details=document.createElement("details");details.className="changelog-entry";details.dataset.commitSha=entry.commit||"";
       const summary=document.createElement("summary");
-      summary.textContent=(Number.isInteger(entry.appCommit)?"Commit "+entry.appCommit+" · ":"")+(entry.title||"Repository change");
+      summary.textContent=(Number.isInteger(entry.appCommit)?"Commit "+entry.appCommit+" · ":"")+(Number.isInteger(entry.workflowRunNumber)?"Run "+entry.workflowRunNumber+" · ":"")+(entry.title||"Repository change");
       details.appendChild(summary);
       const status=statusBySha.get(entry.commit)||entry.status||"unknown";
       const statusLine=document.createElement("div");statusLine.className="changelog-status";statusLine.textContent=formatPushStatus(entry,status);
@@ -240,7 +240,7 @@
           if(run.event!=="push"||run.head_branch!=="main")continue;
           const title=String(run.head_commit?.message||run.display_title||"Repository push").split("\n")[0];
           const matchingCommit=(currentBuild.commits||[]).find(commit=>commit.commit===run.head_sha);
-          const entry={appCommit:Number.isInteger(matchingCommit?.number)?matchingCommit.number:null,commit:run.head_sha,date:String(run.created_at||"").slice(0,10),title,changes:[title],status:run.conclusion||run.status||"unknown"};
+          const entry={appCommit:Number.isInteger(matchingCommit?.number)?matchingCommit.number:null,workflowRunNumber:Number.isInteger(run.run_number)?run.run_number:null,commit:run.head_sha,date:String(run.created_at||"").slice(0,10),title,changes:[title],status:run.conclusion||run.status||"unknown"};
           runs.push(entry);
           if(run.head_sha)statusBySha.set(run.head_sha,entry.status);
         }
@@ -252,8 +252,8 @@
         if(seen.has(key))return false;
         seen.add(key);return true;
       });
-      const statusByCommit=new Map(workflowEntries.map(entry=>[entry.commit,entry.status]));
-      APP_CHANGELOG_FULL=(currentBuild.commits||APP_CHANGELOG_FULL).map(entry=>({...entry,status:statusByCommit.get(entry.commit)||statusBySha.get(entry.commit)||entry.status}));
+      const workflowByCommit=new Map(workflowEntries.map(entry=>[entry.commit,entry]));
+      APP_CHANGELOG_FULL=(currentBuild.commits||APP_CHANGELOG_FULL).map(entry=>{const run=workflowByCommit.get(entry.commit);return {...entry,workflowRunNumber:run?.workflowRunNumber??entry.workflowRunNumber??null,status:run?.status||statusBySha.get(entry.commit)||entry.status};});
       renderChangelogEntries();
     }catch(_){
       renderChangelogEntries();

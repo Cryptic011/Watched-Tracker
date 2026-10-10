@@ -102,3 +102,6 @@
 .bottom-tabs .tab-btn[data-tab="watchlist"],
 .bottom-tabs .tab-btn[aria-label="History"],
 .bottom-tabs .tab-btn[aria-label="Watchlist"] { display: none !important; }
+
+/* Per-show Weekly Releases preference: readable, aligned checkbox and copy. */
+.weekly-release-preference{display:flex;align-items:flex-start;gap:12px;margin:14px 0;padding:14px 15px;border:1px solid var(--border);border-radius:14px;background:var(--inner);color:var(--text);text-transform:none;letter-spacing:normal;line-height:1.35;cursor:pointer}.weekly-release-preference>input[type="checkbox"]{flex:0 0 22px;width:22px;height:22px;margin:1px 0 0;accent-color:var(--blue);cursor:pointer}.weekly-release-preference-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:5px}.weekly-release-preference-copy strong{font-size:.9rem;font-weight:750;text-transform:none;letter-spacing:0}.weekly-release-preference-copy small{display:block;color:var(--muted);font-size:.78rem;font-weight:500;line-height:1.45;text-transform:none;letter-spacing:0}.weekly-release-preference:focus-within{outline:2px solid var(--blue2);outline-offset:2px}
