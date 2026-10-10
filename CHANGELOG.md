@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Harden reminder scan concurrency and workflow run numbering
+- Claim the one-minute reminder scan with a single conditional database update so concurrent cron invocations cannot both pass the stale-scan check.
+- Derive the displayed all-workflows run count from GitHub inside the Edge Function instead of trusting a caller-supplied count.
+
+## 2026-10-10
+
 ### Make deployments reproducible from committed source
 - Remove the deployment-time source rewrite step. The viewport zoom, episode-progress preservation, deterministic library merge, and dynamic editor-height fixes are verified directly in committed source and covered by regression tests.
 - Add a regression assertion that deployment cannot silently rewrite source before tests and publishing.

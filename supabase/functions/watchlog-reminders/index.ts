@@ -660,19 +660,24 @@ async function processCron(req: Request) {
     return json({ ok: true, skipped: "push_not_enabled_yet" });
   }
 
-  const previousRun = config.last_scan_at
-    ? new Date(config.last_scan_at).getTime()
-    : 0;
-  if (previousRun && Date.now() - previousRun < 45000) {
-    return json({ ok: true, skipped: "scan_already_running" });
-  }
-  await db
+  // Atomically claim the scan window. A read-then-write guard lets two cron
+  // invocations pass at once; the conditional UPDATE permits only one winner.
+  const claimTime = new Date();
+  const staleBefore = new Date(claimTime.getTime() - 45000).toISOString();
+  const { data: scanClaim, error: scanClaimError } = await db
     .from("watchlog_push_config")
     .update({
-      last_scan_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      last_scan_at: claimTime.toISOString(),
+      updated_at: claimTime.toISOString(),
     })
-    .eq("singleton", true);
+    .eq("singleton", true)
+    .or(`last_scan_at.is.null,last_scan_at.lt.${staleBefore}`)
+    .select("singleton")
+    .maybeSingle();
+  if (scanClaimError) throw scanClaimError;
+  if (!scanClaim) {
+    return json({ ok: true, skipped: "scan_already_running" });
+  }
 
   const { data, error } = await db
     .from("watchlog_push_subscriptions")
@@ -718,7 +723,8 @@ Deno.serve(async (req: Request) => {
     if (action === "deployment_status") {
       const runId = String(body.runId || "").slice(0, 24);
       const runNumber = String(body.runNumber || "").slice(0, 24);
-      const overallRunCount = String(body.overallRunCount || "").slice(0, 24);
+      // Never trust the caller for the displayed all-workflows count: derive
+      // it from GitHub just as we independently verify the source run below.
       const sha = String(body.sha || "");
       const status = String(body.status || "");
       const commitUrl = String(body.commitUrl || "");
@@ -745,6 +751,16 @@ Deno.serve(async (req: Request) => {
         console.error("Run-status verification mismatch", JSON.stringify({ mismatch, runId, runNumber, sha, status, verified: { id: verifiedRun.id, run_number: verifiedRun.run_number, head_sha: verifiedRun.head_sha, status: verifiedRun.status, conclusion: verifiedRun.conclusion, workflow_id: verifiedRun.workflow_id } }));
         return json({ error: "Workflow status did not match GitHub", mismatch }, 403);
       }
+      const countResponse = await fetch("https://api.github.com/repos/Cryptic011/Watched-Tracker/actions/runs?per_page=1", {
+        headers: { "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "WatchLogger-Run-Status" },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!countResponse.ok) {
+        console.error("Run-status count request failed", countResponse.status);
+        return json({ error: "Workflow run count could not be verified" }, 502);
+      }
+      const overallRunCount = Number((await countResponse.json()).total_count);
+      if (!Number.isSafeInteger(overallRunCount) || overallRunCount < 1) return json({ error: "Invalid GitHub workflow run count" }, 502);
       const { data: account, error: accountError } = await db.from("watchlog_pin_accounts").select("id,email").ilike("email", "robert17041@icloud.com").maybeSingle();
       if (accountError) throw accountError;
       if (!account || normalizeEmail(account.email) !== "robert17041@icloud.com") return json({ ok: true, delivered: 0, reason: "owner_account_not_found" });

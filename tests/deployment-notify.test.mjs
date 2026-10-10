@@ -30,3 +30,10 @@ test('Missing source workflow metadata fails closed before sending a notificatio
  await assert.rejects(run(async()=>{requests++;return {ok:true,json:async()=>({})};},{WATCHLOG_STATUS:'failure'}),/Source deployment SHA is required/);
  assert.equal(requests,0);
 });
+
+
+test('Deployment status payload count is not trusted by the sender',async()=>{
+ let body;
+ await run(async(url,options)=>{if(String(url).includes('api.github.com'))return {ok:true,json:async()=>({total_count:351})};body=JSON.parse(options.body);return {ok:true,json:async()=>({ok:true,delivered:1,failed:0})};},{WATCHLOG_SOURCE_SHA:sha,WATCHLOG_SOURCE_RUN_NUMBER:'202',WATCHLOG_SOURCE_RUN_ID:'67890',WATCHLOG_PAGE_URL:'',WATCHLOG_STATUS:'cancelled',GITHUB_TOKEN:'test-token',GITHUB_REPOSITORY:'Cryptic011/Watched-Tracker'});
+ assert.equal(body.overallRunCount,351);
+});
