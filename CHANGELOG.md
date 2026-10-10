@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Fix private run-status notification authorization
+- Send both the Supabase `apikey` and `Authorization: Bearer` headers when calling the reminder Edge Function, so the authenticated endpoint can accept workflow completion notifications.
+- Diagnose the failed run from its job log: the notification request returned HTTP 401 before any delivery attempt; this fix addresses that request authentication failure.
+
+## 2026-10-10
+
 ### Remove separate deployment-notification secret dependency
 - Verify completed run ID, run number, commit SHA and conclusion against GitHub's public Actions API instead of requiring a separately configured shared secret.
 - Keep run-status delivery restricted to the owner's enabled push subscriptions; do not restore the removed test option.
