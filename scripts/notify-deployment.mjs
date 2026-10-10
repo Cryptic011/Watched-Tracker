@@ -4,10 +4,15 @@ const sha=process.env.WATCHLOG_SOURCE_SHA;
 const page=process.env.WATCHLOG_PAGE_URL||'';
 const status=String(process.env.WATCHLOG_STATUS||'success');
 const runNumber=String(process.env.WATCHLOG_SOURCE_RUN_NUMBER||'');
-const overallRunCount=String(process.env.WATCHLOG_OVERALL_RUN_COUNT||'');
+const githubToken=process.env.GITHUB_TOKEN||'';
+let overallRunCount=0;
 const runId=String(process.env.WATCHLOG_SOURCE_RUN_ID||'');
 if(!/^[a-f0-9]{40}$/.test(sha||''))throw Error('Source deployment SHA is required');
-if(!/^\d+$/.test(runId)||!/^\d+$/.test(runNumber)||!/^\d+$/.test(overallRunCount))throw Error('Source run ID, source run number and overall workflow run count are required');
+if(!/^\d+$/.test(runId)||!/^\d+$/.test(runNumber)||!githubToken)throw Error('Source run ID, source run number and GitHub token are required');
+const countResponse=await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/actions/runs?per_page=1`,{headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${githubToken}`,'X-GitHub-Api-Version':'2022-11-28'},signal:AbortSignal.timeout(10000)});
+if(!countResponse.ok)throw Error(`Could not retrieve overall Actions run count: HTTP ${countResponse.status}`);
+overallRunCount=Number((await countResponse.json()).total_count);
+if(!Number.isSafeInteger(overallRunCount)||overallRunCount<1)throw Error('GitHub returned an invalid overall Actions run count');
 if(page){const site=new URL(page);if(site.protocol!=='https:')throw Error('Expected HTTPS deployment URL');}
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function broadcast(event,payload){

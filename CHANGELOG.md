@@ -1,5 +1,10 @@
 ## 2026-10-10
 
+### Use actual repository-wide workflow-run total
+- Fetch GitHub Actions API `total_count` across all workflows at notification time, counting failed and successful runs alike. Keep this separate from the source workflow run number and run ID.
+
+## 2026-10-10
+
 ### Correct overall workflow-run count and refresh browser check
 - Include the repository-wide Actions run count in deployment status payloads, separately from the source deployment run number and API run ID; the UI can use the all-workflows count that includes failed runs.
 - Make the browser refresh test wait for a confirmed subsequent library load instead of relying on a fragile navigation event while verifying saved data survives refresh.
