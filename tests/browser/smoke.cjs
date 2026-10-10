@@ -103,7 +103,7 @@ const server=http.createServer((req,res)=>{
   await page.waitForFunction(()=>!document.querySelector('#settings-view').classList.contains('hidden')&&document.querySelector('#library-view').classList.contains('hidden'));
   for(const selector of ['.profile-card','#sync-now','#logout-btn','#private-reminder-history','#appearance-mode','#background-reminder-status','#enable-background-reminders']){
     assert.ok(await page.locator(selector).count()>=1,selector+' exists in the document');
-    assert.equal(await page.locator(selector).isVisible(),true,selector+' visible in Settings');
+    assert.equal(await page.locator(selector).first().isVisible(),true,selector+' visible in Settings');
   }
   await page.locator('[data-tab="library"]').click();
   await page.waitForFunction(()=>document.querySelector('#settings-view').classList.contains('hidden')&&!document.querySelector('#library-view').classList.contains('hidden'));
