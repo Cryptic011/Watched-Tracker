@@ -1,5 +1,12 @@
 ## 2026-10-10
 
+### Fix workflow-run notification tests and numbering
+- Update notification regression tests to use the originating workflow's dedicated source run ID, run number and SHA fields rather than obsolete push-number and secret fields.
+- Assert that the backend payload keeps the GitHub run ID separate from the workflow run number and that endpoint errors include the response body.
+- Keep the notification text and push data labelled with the actual workflow run number.
+
+## 2026-10-10
+
 ### Use workflow run numbers in private status notifications
 - Replace the misleading “Push #N” notification label with “Workflow run #N”, using the completed deployment workflow’s `run_number` rather than a push counter or the observer workflow’s own run number.
 - Rename the notification data field from `pushNumber` to `workflowRunNumber`; keep the run ID separate for GitHub API verification.
