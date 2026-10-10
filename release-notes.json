@@ -66,6 +66,7 @@
   "__current": {
     "title": "Private push-status notifications",
     "changes": [
+      "Fix the mobile browser refresh test race by waiting for saved PIN-session restoration before checking persisted library data; keep the persistence and failed-save assertions.",
       "Repair the Changelog regression test by loading app-core.js directly, while retaining workflow-run-number assertions against the actual implementation.",
       "Keep History and Watchlist hidden from the bottom navigation with a defensive CSS rule, in addition to the DOM cleanup.",
       "Invalidate stale client assets by bumping app, dashboard and gallery versions and the navigation service-worker cache namespace.",

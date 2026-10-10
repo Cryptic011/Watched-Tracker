@@ -114,14 +114,10 @@ const server=http.createServer((req,res)=>{
   phase='refresh';
   const refreshItemId=await page.evaluate(()=>{mediaItems[0].platform='Saved before refresh';return mediaItems[0].id;});
   const before=loads;const reload=page.waitForEvent('load');await page.locator('#refresh-app').click();await reload;
-  // A fresh browser document may require signing in again in this isolated test
-  // origin. Re-authenticate through the real form, then verify the server-held
-  // library contains the value that Refresh saved before navigation.
-  const emailField=page.locator('#auth-email');
-  if(await emailField.isVisible()){
-    await emailField.fill(account.email);await page.locator('#auth-pin').fill('1234');await page.locator('#auth-submit').click();
-    await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden'));
-  }
+  // The same browser context retains the PIN session across a document reload.
+  // Wait for session restoration to finish before inspecting or interacting with
+  // the login form; it is briefly visible while restorePinSession is still running.
+  await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden'),{timeout:10000});
   await page.waitForFunction(id=>mediaItems.find(item=>item.id===id)?.platform==='Saved before refresh',refreshItemId,{timeout:10000});
   assert.equal(items.find(item=>item.id===refreshItemId)?.platform,'Saved before refresh');
   assert.ok(loads>before);

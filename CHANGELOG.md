@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Fix browser refresh test race blocking deployment
+- Correct the mobile browser smoke test to wait for the saved PIN session to restore after refresh instead of racing the temporary login screen and attempting to fill a form that has already been hidden.
+- Preserve the cloud-persistence assertion and failed-save guard; deployment must pass Chromium and WebKit checks before it can publish.
+
+## 2026-10-10
+
 ### Repair navigation deployment and stale-client protection
 - Fix the Changelog regression test to load the actual app-core source directly, so its workflow-run-number assertions test the implementation rather than depending on HTML script inlining.
 - Keep the bottom navigation restricted to Library, Search and Settings; add a defensive CSS rule that hides retired History and Watchlist tabs if legacy markup is restored.
