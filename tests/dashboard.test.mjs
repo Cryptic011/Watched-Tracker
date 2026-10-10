@@ -94,7 +94,7 @@ test('Weekly release opt-out is saved per show without removing library tracking
   const dashboard=fs.readFileSync(new URL('../assets/js/dashboard.js',import.meta.url),'utf8');
   const index=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
   assert.match(index,/id="hide-from-weekly-releases" type="checkbox"/);
-  assert.ok(editor.includes('hideFromWeeklyReleases:type==="Film"?false:$("#hide-from-weekly-releases").checked'));
+  assert.ok(editor.includes('hideFromWeeklyReleases:type==="Film"?false:$("hide-from-weekly-releases").checked'));
   assert.match(editor,/item\.hideFromWeeklyReleases===true/);
   assert.match(dashboard,/if\(item\.hideFromWeeklyReleases===true\)continue;/);
 });

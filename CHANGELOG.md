@@ -1,5 +1,12 @@
 ## 2026-10-10
 
+### Weekly Releases opt-out — regression test correction
+- Keep the per-show “Hide from Weekly Releases” preference in the show editor and saved media record.
+- Exclude opted-out shows from both dated releases and Dates to be announced without affecting library tracking or reminders.
+- Correct the regression assertion to match the app's existing ID-based selector convention, so the build tests the actual implementation rather than a nonexistent selector.
+
+## 2026-10-10
+
 ### Per-show Weekly Releases visibility
 - Add a per-show “Hide from Weekly Releases” setting in the show editor.
 - Exclude opted-out shows from dated and to-be-announced weekly release lists while retaining their library record, episode tracking, watched progress, status, and reminders.
