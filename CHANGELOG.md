@@ -1,5 +1,12 @@
 ## 2026-10-10
 
+### Force-refresh bottom navigation fix
+- Keep the bottom navigation limited to Library, Search and Settings; remove legacy History and Watchlist tabs even if an old DOM fragment is restored.
+- Bump the navigation service-worker cache namespace and app asset query versions so the deployed shell and scripts are fetched fresh after this push instead of continuing to display a stale cached interface.
+- Verify the source HTML contains only the three supported bottom tabs and that the navigation cleanup remains active during DOM updates.
+
+## 2026-10-10
+
 ### Changelog run numbers, Weekly Releases fix details, and editor cleanup
 - Display the GitHub Actions workflow run number beside each corresponding app commit in Changelog, regardless of success, failure, cancellation, queueing or in-progress status.
 - Correct the Weekly Releases opt-out regression assertion that caused the previous test-fix build to fail, and record that failure and its correction in the detailed release notes.
