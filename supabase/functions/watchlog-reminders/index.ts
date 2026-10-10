@@ -648,82 +648,6 @@ async function processPlannedReminders(
   return { sent, failed };
 }
 
-async function processPrivateTests(
-  subscriptions: PushRow[],
-  config: PushConfig,
-) {
-  const nowIso = new Date().toISOString();
-  const { data: tests, error } = await db
-    .from("watchlog_push_tests")
-    .select("id,account_id,title,body,attempts")
-    .in("status", ["pending", "retry"])
-    .lte("due_at", nowIso)
-    .or(`next_attempt_at.is.null,next_attempt_at.lte.${nowIso}`)
-    .limit(20);
-  if (error) throw error;
-
-  const subscriptionsByAccount = new Map<string, PushRow[]>();
-  for (const row of subscriptions) {
-    const list = subscriptionsByAccount.get(row.account_id) || [];
-    list.push(row);
-    subscriptionsByAccount.set(row.account_id, list);
-  }
-
-  let sent = 0;
-  let failed = 0;
-  for (const test of tests || []) {
-    const rows = subscriptionsByAccount.get(String(test.account_id)) || [];
-    let successes = 0;
-    let lastError = "";
-    for (const row of rows) {
-      try {
-        await sendPush(row, config, {
-          title: String(test.title),
-          body: String(test.body),
-          tag: `watchlog-private-test-${test.id}`,
-          data: { url: "./", test: true },
-        });
-        successes++;
-      } catch (pushError) {
-        const code = statusCodeFor(pushError);
-        if (code === 404 || code === 410) await disableExpiredSubscription(row);
-        lastError = String((pushError as Error)?.message || pushError).slice(0, 500);
-      }
-    }
-
-    const attempts = Number(test.attempts || 0) + 1;
-    if (successes > 0) {
-      await db
-        .from("watchlog_push_tests")
-        .update({
-          status: "sent",
-          attempts,
-          sent_at: new Date().toISOString(),
-          last_error: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", test.id);
-      sent += successes;
-    } else {
-      const exhausted = attempts >= MAX_PUSH_ATTEMPTS;
-      await db
-        .from("watchlog_push_tests")
-        .update({
-          status: exhausted ? "failed" : "retry",
-          attempts,
-          next_attempt_at: exhausted
-            ? null
-            : new Date(Date.now() + attempts * 5 * 60000).toISOString(),
-          last_error: lastError || "No active push subscription",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", test.id);
-      failed++;
-    }
-  }
-  return { sent, failed };
-}
-
 async function processCron(req: Request) {
   const config = await readConfig(false);
   const supplied = req.headers.get("x-watchlog-cron") || "";
@@ -758,19 +682,16 @@ async function processCron(req: Request) {
 
   const subscriptions = (data || []) as PushRow[];
   const planned = await processPlannedReminders(subscriptions, config);
-  const tests = await processPrivateTests(subscriptions, config);
   console.log(
     JSON.stringify({
       activeSubscriptions: subscriptions.length,
       planned,
-      tests,
     }),
   );
   return json({
     ok: true,
     activeSubscriptions: subscriptions.length,
     planned,
-    tests,
   });
 }
 
@@ -922,18 +843,16 @@ Deno.serve(async (req: Request) => {
 
       // Authorize the session's account before reading any activity. Never
       // accept an account ID from the request body or expose push credentials.
-      const [deliveries, tests, library, subscriptions] = await Promise.all([
+      const [deliveries, library, subscriptions] = await Promise.all([
         db.from("watchlog_push_deliveries").select("item_id,event_key,scheduled_for,status,attempts,next_attempt_at,sent_at,last_error,updated_at").eq("account_id", session.accountId).order("updated_at", { ascending: false }).limit(50),
-        db.from("watchlog_push_tests").select("title,due_at,status,attempts,next_attempt_at,sent_at,last_error,updated_at").eq("account_id", session.accountId).order("updated_at", { ascending: false }).limit(20),
         db.from("watchlog_pin_library").select("items").eq("account_id", session.accountId).maybeSingle(),
         db.from("watchlog_push_subscriptions").select("time_zone").eq("account_id", session.accountId).eq("enabled", true),
       ]);
-      for (const result of [deliveries, tests, library, subscriptions]) if (result.error) throw result.error;
+      for (const result of [deliveries, library, subscriptions]) if (result.error) throw result.error;
       const items = (Array.isArray(library.data?.items) ? library.data.items : []) as Record<string, unknown>[];
       const titles = new Map(items.map(item => [String(item.id), String(item.title || "Tracked title")]));
       const history = [
         ...(deliveries.data || []).map(row => ({ ...row, title: titles.get(String(row.item_id)) || "Removed title", label: String(row.event_key).match(/episode:s\d+e\d+/)?.[0].replace("episode:", "") || "Release reminder", event_key: undefined })),
-        ...(tests.data || []).map(row => ({ ...row, scheduled_for: row.due_at, label: "Private test" })),
       ].sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at)).slice(0, 50);
       const now = Date.now(), upcoming = [], seen = new Set<string>();
       for (const subscription of subscriptions.data || []) for (const item of items) for (const event of reminderEvents(item)) {
@@ -949,51 +868,6 @@ Deno.serve(async (req: Request) => {
       }
       upcoming.sort((a,b) => Date.parse(a.scheduled_for) - Date.parse(b.scheduled_for));
       return json({ok: true, history, upcoming: upcoming.slice(0, 100), enabledDevices: subscriptions.data?.length || 0});
-    }
-
-    if (action === "schedule_private_test") {
-      const { data: account, error: accountError } = await db
-        .from("watchlog_pin_accounts")
-        .select("email")
-        .eq("id", session.accountId)
-        .single();
-      if (accountError) throw accountError;
-      const accountHash = await sha256(
-        `watchlog-notification-test:${normalizeEmail(account.email)}`,
-      );
-      if (!safeEqual(accountHash, PRIVATE_TEST_ACCOUNT_HASH)) {
-        return json({ error: "This test is not enabled for this account." }, 403);
-      }
-
-      const { data: library } = await db
-        .from("watchlog_pin_library")
-        .select("items")
-        .eq("account_id", session.accountId)
-        .maybeSingle();
-      const planned = (Array.isArray(library?.items) ? library.items : []).find(
-        (item: Record<string, unknown>) =>
-          item?.status === "Planned" || item?.status === "Saved",
-      );
-      if (!planned) {
-        return json(
-          { error: "Add a title with Planned status before sending the test." },
-          400,
-        );
-      }
-
-      const dueAt = new Date(Date.now() + 15000).toISOString();
-      const { error } = await db.from("watchlog_push_tests").insert({
-        account_id: session.accountId,
-        title: "Watch Logger Reminder",
-        body: `${String(planned.title || "Planned title")} test reminder is out now.`,
-        due_at: dueAt,
-      });
-      if (error) throw error;
-      return json({
-        ok: true,
-        dueAt,
-        message: "Background test queued. Close Watched Logger now.",
-      });
     }
 
     return json({ error: "Unknown action." }, 400);
