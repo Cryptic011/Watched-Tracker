@@ -66,10 +66,10 @@
   "__current": {
     "title": "Private push-status notifications",
     "changes": [
-      "Send out-of-app Watch Logger Change notifications through the existing Web Push backend, restricted server-side to robert17041@icloud.com.",
-      "Include the push number, short commit SHA and outcome; remove public/in-app deployment-status broadcast while preserving the successful deployment refresh signal.",
-      "Authenticate the GitHub workflow to the Edge Function with WATCHLOG_DEPLOYMENT_NOTIFY_SECRET and add regression tests for private routing and missing-secret handling.",
-      "Display the GitHub workflow run number beside every Changelog commit."
+      "Display each Changelog entry with the actual GitHub Actions run_number associated with that commit; keep the app commit number separate.",
+      "Send out-of-app push-status notifications through the existing Web Push backend only to robert17041@icloud.com, with run number, commit and exact outcome.",
+      "Observe completed deployment workflow runs in a separate workflow so success, failure and cancellation statuses are covered; remove duplicate notification calls from deployment.",
+      "Require WATCHLOG_DEPLOYMENT_NOTIFY_SECRET in GitHub Actions and Supabase; report missing configuration visibly instead of silently skipping notifications."
     ]
   },
   "37f6c39e9d0355b1bde705cb3fcb3cda2533119f": {

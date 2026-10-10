@@ -112,3 +112,6 @@
 - The script is idempotent and verifies all four fixes on every deployment.
 
 - 2026-10-06: Fixed Changelog push-status rendering so every result keeps exactly one actual push number with the correct status-specific wording: failed/cancelled pushes use `Failed push N` / `Cancelled push N`, while successful pushes use `Push N`.
+
+- Move private status delivery to a dedicated `workflow_run: completed` observer so completed success, failure, and cancellation outcomes are covered even if the deployment job stops before its final step.
+- Remove duplicate status delivery from the deployment workflow and fail visibly if the private notification secret is missing.

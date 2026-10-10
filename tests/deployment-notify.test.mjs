@@ -22,3 +22,15 @@ test('Missing private notification secret skips private delivery without broadca
 test('Private notification endpoint errors fail the notification step',async()=>{
  await assert.rejects(run(async()=>({ok:false,status:503}),{GITHUB_SHA:sha,WATCHLOG_PAGE_URL:'',WATCHLOG_STATUS:'failure',WATCHLOG_DEPLOYMENT_NOTIFY_SECRET:'test-secret',GITHUB_RUN_NUMBER:'199',GITHUB_EVENT_NAME:'push'}),/returned 503/);
 });
+
+test('Completed workflow-run events use the originating workflow run number and conclusion',async()=>{
+ let request;
+ await run(async(url,options)=>{request={url:String(url),options};return {ok:true,json:async()=>({ok:true,delivered:1,failed:0})};},{
+  GITHUB_SHA:sha,WATCHLOG_PAGE_URL:'',WATCHLOG_STATUS:'cancelled',WATCHLOG_DEPLOYMENT_NOTIFY_SECRET:'test-secret',GITHUB_RUN_NUMBER:'202',GITHUB_EVENT_NAME:'workflow_run'
+ });
+ assert.equal(JSON.parse(request.options.body).pushNumber,'202');
+ assert.equal(JSON.parse(request.options.body).status,'cancelled');
+});
+test('Missing notification secret fails visibly rather than silently skipping the alert',async()=>{
+ await assert.rejects(run(async()=>({ok:true}),{GITHUB_SHA:sha,WATCHLOG_PAGE_URL:'',WATCHLOG_STATUS:'failure',GITHUB_RUN_NUMBER:'203',GITHUB_EVENT_NAME:'workflow_run'}),/__PROCESS_EXIT__1/);
+});

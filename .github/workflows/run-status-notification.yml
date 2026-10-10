@@ -1,0 +1,39 @@
+name: Notify owner of every completed workflow run
+
+on:
+  workflow_run:
+    workflows:
+      - Deploy Watched Logger (Node 24)
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  notify:
+    name: Send private run-status notification
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check out notification sender
+        uses: actions/checkout@v6
+        with:
+          ref: main
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Notify owner of completed workflow run
+        env:
+          GITHUB_SHA: ${{ github.event.workflow_run.head_sha }}
+          GITHUB_RUN_NUMBER: ${{ github.event.workflow_run.run_number }}
+          GITHUB_RUN_ID: ${{ github.event.workflow_run.id }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_NAME: workflow_run
+          WATCHLOG_STATUS: ${{ github.event.workflow_run.conclusion }}
+          WATCHLOG_PAGE_URL: ''
+          WATCHLOG_DEPLOYMENT_NOTIFY_SECRET: ${{ secrets.WATCHLOG_DEPLOYMENT_NOTIFY_SECRET }}
+        run: node scripts/notify-deployment.mjs
