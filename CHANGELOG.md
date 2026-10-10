@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Put Maintenance before Changelog in Settings
+- Keep the four requested Settings sections in the exact order: Account & Sync, Appearance, Background Reminders, Maintenance. Place Changelog after Maintenance rather than before it.
+- Confirmed the Settings and Library views are separate sibling containers; the Library view is hidden whenever Settings is selected, and vice versa.
+
+## 2026-10-10
+
 ### Fix Settings layout and floating Add button
 - Preserve Settings section order: Account & Sync, Appearance, Background Reminders, then Maintenance; keep Changelog after Maintenance.
 - Hide the floating Add show or film button immediately when Search or Settings is selected, and bump script cache versions so mobile browsers load the updated UI.

@@ -178,7 +178,7 @@
   whatsNewButton.id="whats-new-button";whatsNewButton.type="button";whatsNewButton.className="whats-new-button";
   whatsNewButton.setAttribute("aria-haspopup","dialog");whatsNewButton.setAttribute("aria-controls","changelog-dialog");
   whatsNewButton.innerHTML='<span><strong>Changelog</strong><small>Pushes, fixes and deployment results</small></span><span aria-hidden="true">›</span>';
-  maintenanceAdminSection.before(whatsNewButton);
+  maintenanceAdminSection.after(whatsNewButton);
   const changelogDialog=document.createElement("dialog");
   changelogDialog.id="changelog-dialog";changelogDialog.className="changelog-dialog";changelogDialog.setAttribute("aria-labelledby","changelog-title");
   changelogDialog.innerHTML='<header class="changelog-heading"><h2 id="changelog-title">Changelog</h2><button class="close-btn" id="close-changelog" type="button" aria-label="Close changelog" autofocus>&times;</button></header><div class="changelog-body" id="changelog-body"></div>';
