@@ -753,11 +753,11 @@ Deno.serve(async (req: Request) => {
       if (subscriptionError) throw subscriptionError;
       const outcome = status === "success" ? "completed successfully" : status === "failure" ? "failed" : status === "cancelled" ? "was cancelled" : status === "skipped" ? "was skipped" : status === "queued" ? "is queued" : "is in progress";
       const title = "Watch Logger Change";
-      const bodyText = `Push #${runNumber} (commit ${sha.slice(0, 7)}) ${outcome}.`;
+      const bodyText = `Workflow run #${runNumber} (commit ${sha.slice(0, 7)}) ${outcome}.`;
       let delivered = 0, failed = 0;
       for (const row of (subscriptions || []) as PushRow[]) {
         try {
-          await sendPush(row, config, { title, body: bodyText, tag: `watchlog-change-${runNumber}`, data: { url: "./", pushNumber: runNumber, sha, status, commitUrl } });
+          await sendPush(row, config, { title, body: bodyText, tag: `watchlog-change-${runNumber}`, data: { url: "./", workflowRunNumber: runNumber, sha, status, commitUrl } });
           delivered++;
         } catch (pushError) {
           const code = statusCodeFor(pushError);

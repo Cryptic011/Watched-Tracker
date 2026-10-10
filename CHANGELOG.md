@@ -1,5 +1,12 @@
 ## 2026-10-10
 
+### Use workflow run numbers in private status notifications
+- Replace the misleading “Push #N” notification label with “Workflow run #N”, using the completed deployment workflow’s `run_number` rather than a push counter or the observer workflow’s own run number.
+- Rename the notification data field from `pushNumber` to `workflowRunNumber`; keep the run ID separate for GitHub API verification.
+- Keep the notification private to the owner’s enabled subscriptions.
+
+## 2026-10-10
+
 ### Fix source workflow run IDs in private status notifications
 - Stop assigning source deployment metadata to GitHub-reserved environment variables, which GitHub Actions does not allow workflows to override.
 - Pass the completed deployment's run ID, run number and SHA through dedicated WATCHLOG_SOURCE_* variables so verification checks the correct run rather than the notification workflow itself.
