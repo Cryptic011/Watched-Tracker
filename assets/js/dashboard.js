@@ -16,6 +16,7 @@ function calendarEvents(items,now=new Date()){
   const end=new Date(start);end.setDate(end.getDate()+7);
   const events=[],unknown=[],seen=new Set();
   for(const item of items){
+    if(item.hideFromWeeklyReleases===true)continue;
     let candidates=[];
     if(item.type==='Film')candidates=[{raw:item.filmReleaseDate,label:'Film release'}];
     else if(isEpisodeTrackable(item)){

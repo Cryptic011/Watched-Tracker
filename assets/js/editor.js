@@ -300,7 +300,7 @@
     mediaForm.reset();
     resetUKAvailability();
     $("watched-seasons").value="0";$("status").value="Planned";
-    $("item-id").value="";$("tvmaze-id").value="";$("imdb-id").value="";$("release-year").value="";filmReleaseSource.value="";
+    $("item-id").value="";$("tvmaze-id").value="";$("imdb-id").value="";$("release-year").value="";filmReleaseSource.value="";$("hide-from-weekly-releases").checked=false;
     clearAiringFields();configureProgressOptions({highest:null,episodeCounts:{},latestAired:null},{season:0,episode:0});
     if(seasonVerifyNote)seasonVerifyNote.textContent="IMDb, TVMaze and Wikipedia are checked for announced seasons.";
     if(filmVerifyNote)filmVerifyNote.textContent="Films and series are checked through multiple sources.";
@@ -313,7 +313,7 @@
     clearTimeout(searchTimer);activeCatalogueController?.abort();activeCatalogueController=null;cancelSuggestionProgress();const editRequestId=++searchRequestId,editApplyRevision=++editorApplyRevision;activeTitleSearchKey="";titleSuggestionsWanted=false;editorVerification=null;editorVerificationInFlight=null;hideDuplicateWarning();
     const shouldApply=()=>editRequestId===searchRequestId&&editApplyRevision===editorApplyRevision&&String($("item-id").value)===String(item.id)&&!modal.classList.contains("hidden");
     $("item-id").value=item.id;$("tvmaze-id").value=item.tvmazeShowId||"";$("imdb-id").value=item.imdbId||"";$("release-year").value=item.releaseYear||"";
-    $("title").value=item.title||"";$("type").value=item.type||"Series";$("status").value=item.status==="Saved"?"Planned":(item.status||"Planned");
+    $("title").value=item.title||"";$("type").value=item.type||"Series";$("status").value=item.status==="Saved"?"Planned":(item.status||"Planned");$("hide-from-weekly-releases").checked=item.hideFromWeeklyReleases===true;
     $("total-seasons").value=item.totalSeasons??"";$("watched-seasons").value=item.watchedSeasons??"";$("cur-season").value=item.curSeason??"";$("cur-ep").value=item.curEp??"";
     $("next-season-num").value=item.nextSeasonNum??"";$("next-season-date").value=item.nextSeasonDate?toLocalInput(item.nextSeasonDate):"";
     filmReleaseDate.value=item.filmReleaseDate||"";filmReleaseSource.value=item.filmReleaseSource||"";$("platform").value=item.platform||"";
@@ -369,7 +369,7 @@
       const watchedDate=status==="Watched"&&previous?.status!=="Watched"?localISODate():(previous?.date||localISODate());
       let item={
         ...previous,
-        id,title,type,status,tvmazeShowId:type==="Film"?"":(sid||""),imdbId:$("imdb-id").value||requestedImdbId,releaseYear,
+        id,title,type,status,hideFromWeeklyReleases:type==="Film"?false:$("hide-from-weekly-releases").checked,tvmazeShowId:type==="Film"?"":(sid||""),imdbId:$("imdb-id").value||requestedImdbId,releaseYear,
         totalSeasons:total,watchedSeasons:type==="Film"?null:numOrNull("watched-seasons"),curSeason,curEp:type==="Film"?null:numOrNull("cur-ep"),
         currentSeasonEpisodeCount:type==="Film"?null:Number(airedEpisodeCounts?.[curSeason]||0)||null,currentSeasonTotalEpisodes:type==="Film"?null:Number(episodeCounts?.[curSeason]||0)||null,episodeCounts:type==="Film"?{}:episodeCounts,airedEpisodeCounts:type==="Film"?{}:airedEpisodeCounts,releasedEpisodes:type==="Film"?{}:(verified?.releasedEpisodes||previous?.releasedEpisodes||releasedEpisodeMap({type,airedEpisodeCounts,episodeScheduleVerified:true})),
         scheduledEpisodeReleases:type==="Film"?[]:(verified?.scheduledEpisodeReleases||previous?.scheduledEpisodeReleases||[]),

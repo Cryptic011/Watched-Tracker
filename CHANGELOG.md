@@ -1,3 +1,10 @@
+## 2026-10-10
+
+### Per-show Weekly Releases visibility
+- Add a per-show “Hide from Weekly Releases” setting in the show editor.
+- Exclude opted-out shows from dated and to-be-announced weekly release lists while retaining their library record, episode tracking, watched progress, status, and reminders.
+- Preserve the preference through edits and cloud sync as part of the existing media record.
+
 ## 2026-10-09
 
 ### Restore complete Changelog and correct app numbering
