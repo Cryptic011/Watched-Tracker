@@ -1,5 +1,10 @@
 ## 2026-10-10
 
+### Add regression coverage for Settings placement and navigation visibility
+- Add tests that enforce Account & Sync stays out of Library, Settings retains the requested section order, and the floating Add button is restricted to Library.
+
+## 2026-10-10
+
 ### Put Maintenance before Changelog in Settings
 - Keep the four requested Settings sections in the exact order: Account & Sync, Appearance, Background Reminders, Maintenance. Place Changelog after Maintenance rather than before it.
 - Confirmed the Settings and Library views are separate sibling containers; the Library view is hidden whenever Settings is selected, and vice versa.
