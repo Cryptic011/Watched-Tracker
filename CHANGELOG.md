@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Fail workflow notification when push delivery is not confirmed
+- Require the private status endpoint to report at least one successful device delivery and zero failures; a zero-device or partially failed result now fails the observer workflow instead of showing a misleading green check.
+- Log the delivery count and backend reason in the workflow failure for diagnosis.
+
+## 2026-10-10
+
 ### Fix stale private-history regression assertion
 - Remove the obsolete test-only push table from the private reminder-history query expectations; the test endpoint was intentionally removed, while actual history/library/subscription queries remain scoped to the verified session account.
 - Keep the workflow notification wording change and record this deployment-test correction in the changelog.

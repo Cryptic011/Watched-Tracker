@@ -33,7 +33,7 @@ if(!response.ok){
   throw Error(`Private run-status notification returned ${response.status}: ${detail}`);
 }
 const delivery=await response.json();
-console.log(`Private run-status notification processed: ${status}; delivered ${delivery.delivered||0}; failed ${delivery.failed||0}`);
+const delivered=Number(delivery.delivered||0), failed=Number(delivery.failed||0);\nconsole.log(`Private run-status notification processed: ${status}; delivered ${delivered}; failed ${failed}`);\nif(!delivery.ok||delivered<1||failed>0)throw Error(`Private run-status notification was not fully delivered: ${JSON.stringify({ok:delivery.ok,delivered,failed,reason:delivery.reason||null})}`);
 
 if(status!=='success'||!page){console.log(`Deployment status sent: ${status} for ${sha}`);process.exit(0);}
 const site=new URL(page);let ready=false;
