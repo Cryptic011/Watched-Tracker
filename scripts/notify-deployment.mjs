@@ -22,17 +22,17 @@ async function broadcast(event,payload){
 }
 const notifySecret=process.env.WATCHLOG_DEPLOYMENT_NOTIFY_SECRET||'';
 if(!notifySecret){
-  console.warn('Private push-status notification skipped: WATCHLOG_DEPLOYMENT_NOTIFY_SECRET is missing. Configure it in GitHub Actions and Supabase.');
+  console.warn('Private run-status notification skipped: WATCHLOG_DEPLOYMENT_NOTIFY_SECRET is missing. Configure it in GitHub Actions and Supabase.');
 }else{
 const response=await fetch(`${config.url}/functions/v1/watchlog-reminders`,{
   method:'POST',
   headers:{apikey:config.key,'Content-Type':'application/json','x-watchlog-deployment-secret':notifySecret},
-  body:JSON.stringify({action:'deployment_status',pushNumber:runNumber,sha,status,commitUrl:`https://github.com/Cryptic011/Watched-Tracker/commit/${sha}`}),
+  body:JSON.stringify({action:'deployment_status',runNumber,sha,status,commitUrl:`https://github.com/Cryptic011/Watched-Tracker/commit/${sha}`}),
   signal:AbortSignal.timeout(15000),
 });
-if(!response.ok)throw Error(`Private push-status notification returned ${response.status}`);
+if(!response.ok)throw Error(`Private run-status notification returned ${response.status}`);
 const delivery=await response.json();
-console.log(`Private push-status notification processed: ${status}; delivered ${delivery.delivered||0}; failed ${delivery.failed||0}`);
+console.log(`Private run-status notification processed: ${status}; delivered ${delivery.delivered||0}; failed ${delivery.failed||0}`);
 }
 if(status!=='success'||!page){console.log(`Deployment status sent: ${status} for ${sha}`);process.exit(0);}
 const site=new URL(page);let ready=false;
