@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Remove private notification test option
+- Remove the private background push-test control and client-side handlers from Settings; normal background reminders remain available.
+- Remove test-queue processing and the private test scheduling endpoint from the reminder service, while retaining activity for actual reminders.
+
+## 2026-10-10
+
 ### Repair run-status notification and Changelog numbering
 - Make the workflow-run test assert the exact source expressions without brittle regular-expression parsing.
 - Send out-of-app run-status notifications through the private reminder backend only to the account registered as robert17041@icloud.com; no in-app/public status broadcast is used.
