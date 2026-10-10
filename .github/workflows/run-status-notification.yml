@@ -35,5 +35,4 @@ jobs:
           GITHUB_EVENT_NAME: workflow_run
           WATCHLOG_STATUS: ${{ github.event.workflow_run.conclusion }}
           WATCHLOG_PAGE_URL: ''
-          WATCHLOG_DEPLOYMENT_NOTIFY_SECRET: ${{ secrets.WATCHLOG_DEPLOYMENT_NOTIFY_SECRET }}
         run: node scripts/notify-deployment.mjs
