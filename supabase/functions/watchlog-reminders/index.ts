@@ -773,17 +773,21 @@ Deno.serve(async (req: Request) => {
       const bodyText = `Run #${overallRunCount} (${sha.slice(0, 7)}) ${outcome}.`;
       let delivered = 0, failed = 0;
       for (const row of (subscriptions || []) as PushRow[]) {
+        const eventKey = `workflow-status:${runId}:${sha}:${status}`;
+        const delivery = await claimDelivery(row, account.id, `workflow-run-${runId}`, eventKey, new Date().toISOString());
+        if (!delivery) continue;
         try {
-          await sendPush(row, config, { title, body: bodyText, tag: `watchlog-change-${overallRunCount}`, data: { url: "./", workflowRunNumber: overallRunCount, sourceWorkflowRunNumber: runNumber, sha, status, commitUrl } });
+          await sendPush(row, config, { title, body: bodyText, tag: `watchlog-change-${runId}`, data: { url: "./", workflowRunNumber: overallRunCount, sourceWorkflowRunNumber: runNumber, sha, status, commitUrl } });
+          await finishDelivery(delivery, row);
           delivered++;
         } catch (pushError) {
-          const code = statusCodeFor(pushError);
-          if (code === 404 || code === 410) await disableExpiredSubscription(row);
+          await finishDelivery(delivery, row, pushError);
           failed++;
-          console.error("Owner push-status delivery failed", code || String((pushError as Error)?.message || pushError).slice(0, 200));
+          console.error("Owner push-status delivery failed", statusCodeFor(pushError) || String((pushError as Error)?.message || pushError).slice(0, 200));
         }
       }
-      return json({ ok: true, delivered, failed, status });
+      const duplicate = (subscriptions || []).length > 0 && delivered === 0 && failed === 0;
+      return json({ ok: true, delivered, failed, status, duplicate });
     }
 
     if (action === "process") return await processCron(req);
@@ -890,7 +894,7 @@ Deno.serve(async (req: Request) => {
       const items = (Array.isArray(library.data?.items) ? library.data.items : []) as Record<string, unknown>[];
       const titles = new Map(items.map(item => [String(item.id), String(item.title || "Tracked title")]));
       const history = [
-        ...(deliveries.data || []).map(row => ({ ...row, title: titles.get(String(row.item_id)) || "Removed title", label: String(row.event_key).match(/episode:s\d+e\d+/)?.[0].replace("episode:", "") || "Release reminder", event_key: undefined })),
+        ...(deliveries.data || []).filter(row => !String(row.event_key).startsWith("workflow-status:")).map(row => ({ ...row, title: titles.get(String(row.item_id)) || "Removed title", label: String(row.event_key).match(/episode:s\d+e\d+/)?.[0].replace("episode:", "") || "Release reminder", event_key: undefined })),
       ].sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at)).slice(0, 50);
       const now = Date.now(), upcoming = [], seen = new Set<string>();
       for (const subscription of subscriptions.data || []) for (const item of items) for (const event of reminderEvents(item)) {

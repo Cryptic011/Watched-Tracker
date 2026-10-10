@@ -1,5 +1,12 @@
 ## 2026-10-10
 
+### Deduplicate workflow status push notifications
+- Use the existing per-subscription delivery ledger to prevent replayed workflow events from repeatedly notifying devices after successful delivery.
+- Keep workflow-status records out of Reminder Activity and preserve retry backoff and failure tracking.
+- Treat verified replays with no outstanding delivery as already processed rather than falsely reporting a new delivery.
+
+## 2026-10-10
+
 ### Harden reminder scan concurrency and workflow run numbering
 - Claim the one-minute reminder scan with a single conditional database update so concurrent cron invocations cannot both pass the stale-scan check.
 - Derive the displayed all-workflows run count from GitHub inside the Edge Function instead of trusting a caller-supplied count.
