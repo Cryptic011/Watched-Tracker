@@ -1,5 +1,11 @@
 ## 2026-10-10
 
+### Remove separate deployment-notification secret dependency
+- Verify completed run ID, run number, commit SHA and conclusion against GitHub's public Actions API instead of requiring a separately configured shared secret.
+- Keep run-status delivery restricted to the owner's enabled push subscriptions; do not restore the removed test option.
+
+## 2026-10-10
+
 ### Remove private notification test option
 - Remove the private background push-test control and client-side handlers from Settings; normal background reminders remain available.
 - Remove test-queue processing and the private test scheduling endpoint from the reminder service, while retaining activity for actual reminders.
