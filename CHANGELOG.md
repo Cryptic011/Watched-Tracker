@@ -1,5 +1,10 @@
 ## 2026-10-10
 
+### Fix refresh smoke-test hydration wait
+- Pass Playwright's timeout in the options argument, not as the page-function argument, and remove the arbitrary delay after verifying the reloaded library.
+
+## 2026-10-10
+
 ### Fix refresh browser smoke-test authentication handling
 - Keep the Refresh persistence assertion against the mocked cloud library after navigation.
 - Re-authenticate through the real PIN form when the isolated browser test origin returns to the login screen, rather than timing out while assuming its session survives a document reload.

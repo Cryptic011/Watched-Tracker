@@ -109,9 +109,9 @@ const server=http.createServer((req,res)=>{
     await page.locator('#auth-email').fill(account.email);await page.locator('#auth-pin').fill('1234');await page.locator('#auth-submit').click();
   }
   await page.waitForFunction(()=>document.querySelector('#auth-screen').classList.contains('hidden'));
-  await page.waitForFunction(()=>mediaItems[0]?.platform==='Saved before refresh');
+  await page.waitForFunction(()=>mediaItems[0]?.platform==='Saved before refresh',null,{timeout:10000});
   assert.equal(items[0].platform,'Saved before refresh');
-  await page.waitForTimeout(300);assert.ok(loads>before);
+  assert.ok(loads>before);
   // A failed cloud save must leave the current page and edit intact.
   phase='failed save';
   failSave=true;const failedLoads=loads;
