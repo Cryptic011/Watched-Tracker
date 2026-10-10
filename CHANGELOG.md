@@ -1,5 +1,10 @@
 ## 2026-10-10
 
+### Fix app startup crash after PIN login
+- Remove the stale call to the deleted `updateNotificationTestVisibility` function, which threw a `ReferenceError` during account entry and left the login screen stuck.
+
+## 2026-10-10
+
 ### Make refresh persistence assertions target the same title
 - Capture the edited media ID before Refresh and verify the saved value by ID after reload/login, avoiding brittle assumptions that the first library item remains first after cloud hydration.
 - Apply the failed-save guard to that same record so both refresh scenarios test the same item.

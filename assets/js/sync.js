@@ -525,7 +525,6 @@
     if(migration.changed||cleanup.removedCount||cleanup.repairedCount||cleaned.length!==original.length)await persistLibrary(cleaned,{background:true,precleaned:true});
     setTimeout(()=>{void refreshLibraryEpisodeMetadata({force:true});},0);
     try{await syncExistingBackgroundPush();}catch(error){console.warn("Background reminder sync skipped",error);}
-    await updateNotificationTestVisibility();
     await refreshMaintenanceAdmin();
   }
 
