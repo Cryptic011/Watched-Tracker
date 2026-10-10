@@ -1,7 +1,7 @@
 ## 2026-10-10
 
 ### Notify owner after every completed test and deployment workflow
-- Extend the workflow-run notification trigger to include the separate Browser checks workflow as well as the deployment workflow, so test-only runs also generate an owner notification on completion.
+- Extend the workflow-run notification trigger to include the separate Browser regression checks workflow as well as the deployment workflow, so test-only runs also generate an owner notification on completion.
 
 ## 2026-10-10
 

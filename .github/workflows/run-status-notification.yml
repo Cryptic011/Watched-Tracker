@@ -4,7 +4,7 @@ on:
   workflow_run:
     workflows:
       - Deploy Watched Logger (Node 24)
-      - Browser checks
+      - Browser regression checks
     types:
       - completed
 
