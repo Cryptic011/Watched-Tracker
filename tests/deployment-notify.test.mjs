@@ -14,7 +14,7 @@ test('Completed workflow run status is sent privately with the source run number
  assert.deepEqual(JSON.parse(request.options.body),{action:'deployment_status',runId:'12345',runNumber:'197',sha,status:'success',overallRunCount:351,commitUrl:`https://github.com/Cryptic011/Watched-Tracker/commit/${sha}`});
 });
 test('Notification endpoint errors fail the notification step with response status',async()=>{
- await assert.rejects(run(async()=>({ok:false,status:503,text:async()=> 'backend unavailable'})),/returned 503: backend unavailable/);
+ await assert.rejects(run(async(url)=>String(url).includes('api.github.com')?({ok:true,json:async()=>({total_count:351})}):({ok:false,status:503,text:async()=> 'backend unavailable'})),/returned 503: backend unavailable/);
 });
 test('Completed workflow-run events use the originating workflow run number and conclusion',async()=>{
  let request;
